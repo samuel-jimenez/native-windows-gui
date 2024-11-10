@@ -597,17 +597,17 @@ unsafe extern "system" fn process_events(hwnd: HWND, msg: UINT, w: WPARAM, l: LP
         },
         WM_NOTIFY => {
             let code = {
-                let notif_ptr: *mut NMHDR = mem::transmute(l);
+                let notif_ptr = l as *mut NMHDR;
                 (&*notif_ptr).code
             };
         
             match code {
-                TTN_GETDISPINFOW => handle_tooltip_callback(mem::transmute::<_, *mut NMTTDISPINFOW>(l), callback),
-                _ => handle_default_notify_callback(mem::transmute::<_, *const NMHDR>(l), callback)
+                TTN_GETDISPINFOW => handle_tooltip_callback(l as *mut NMTTDISPINFOW, callback),
+                _ => handle_default_notify_callback(l as *const NMHDR, callback)
             }
         },
         WM_MENUCOMMAND => {
-            let parent_handle: HMENU = mem::transmute(l);
+            let parent_handle = l as HMENU;
             let item_id = GetMenuItemID(parent_handle, w as i32);
             let handle = ControlHandle::MenuItem(parent_handle, item_id);
             callback(Event::OnMenuItemSelected, NO_DATA, handle);
@@ -1074,7 +1074,12 @@ unsafe fn GetWindowSubclass(hwnd: HWND, proc: SUBCLASSPROC, uid: UINT_PTR, data:
         SUBCLASS_COLLECTION = Some(Mutex::new(HashMap::new()));
     }
 
-    let id = (hwnd as usize, mem::transmute(proc), uid);
+    let proc_id = match proc {
+        Some(p) => p as usize,
+        None => 0
+    };
+
+    let id = (hwnd as usize, proc_id, uid);
     match SUBCLASS_COLLECTION.as_ref() {
         Some(collection_mutex) => {
             let collection = collection_mutex.lock().unwrap();
@@ -1096,7 +1101,12 @@ unsafe fn SetWindowSubclass(hwnd: HWND, proc: SUBCLASSPROC, uid: UINT_PTR, data:
         SUBCLASS_COLLECTION = Some(Mutex::new(HashMap::new()));
     }
 
-    let id = (hwnd as usize, mem::transmute(proc), uid);
+    let proc_id = match proc {
+        Some(p) => p as usize,
+        None => 0
+    };
+
+    let id = (hwnd as usize, proc_id, uid);
     match SUBCLASS_COLLECTION.as_ref() {
         Some(collection_mutex) => {
             let mut collection = collection_mutex.lock().unwrap();
@@ -1119,7 +1129,12 @@ unsafe fn RemoveWindowSubclass(hwnd: HWND, proc: SUBCLASSPROC, uid: UINT_PTR) ->
         SUBCLASS_COLLECTION = Some(Mutex::new(HashMap::new()));
     }
 
-    let id = (hwnd as usize, mem::transmute(proc), uid);
+    let proc_id = match proc {
+        Some(p) => p as usize,
+        None => 0
+    };
+
+    let id = (hwnd as usize, proc_id, uid);
     match SUBCLASS_COLLECTION.as_ref() {
         Some(collection_mutex) => {
             let mut collection = collection_mutex.lock().unwrap();

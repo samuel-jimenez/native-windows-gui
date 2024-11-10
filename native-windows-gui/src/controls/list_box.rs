@@ -106,9 +106,7 @@ impl<D: Display+Default> ListBox<D> {
         let display = format!("{}", item);
         let display_os = to_utf16(&display);
 
-        unsafe {
-            wh::send_message(handle, LB_ADDSTRING, 0, mem::transmute(display_os.as_ptr()));
-        }
+        wh::send_message(handle, LB_ADDSTRING, 0, display_os.as_ptr() as LPARAM);
 
         self.collection.borrow_mut().push(item);
     }
@@ -131,9 +129,7 @@ impl<D: Display+Default> ListBox<D> {
             col.insert(index, item);
         }
 
-        unsafe {
-            wh::send_message(handle, LB_INSERTSTRING, index, mem::transmute(display_os.as_ptr()));
-        }
+        wh::send_message(handle, LB_INSERTSTRING, index, display_os.as_ptr() as LPARAM);
     }
 
 
@@ -215,10 +211,8 @@ impl<D: Display+Default> ListBox<D> {
             let index = index as usize;
             let length = (wh::send_message(handle, LB_GETTEXTLEN, index, 0) as usize) + 1;  // +1 for the terminating null character
             let mut buffer: Vec<WCHAR> = Vec::with_capacity(length);
-            unsafe { 
-                buffer.set_len(length); 
-                wh::send_message(handle, LB_GETTEXT, index, mem::transmute(buffer.as_ptr()));
-            }
+            unsafe { buffer.set_len(length); }
+            wh::send_message(handle, LB_GETTEXT, index, buffer.as_ptr() as LPARAM);
 
             Some(from_utf16(&buffer))
         }
@@ -292,13 +286,11 @@ impl<D: Display+Default> ListBox<D> {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let os_string = to_utf16(value);
 
-        unsafe {
-            let index = wh::send_message(handle, LB_SELECTSTRING, 0, mem::transmute(os_string.as_ptr()));
-            if index == LB_ERR {
-                None
-            } else {
-                Some(index as usize)
-            }
+        let index = wh::send_message(handle, LB_SELECTSTRING, 0, os_string.as_ptr() as LPARAM);
+        if index == LB_ERR {
+            None
+        } else {
+            Some(index as usize)
         }
     }
 
@@ -327,9 +319,7 @@ impl<D: Display+Default> ListBox<D> {
             let display = format!("{}", item);
             let display_os = to_utf16(&display);
             
-            unsafe {
-                wh::send_message(handle, LB_ADDSTRING, 0, mem::transmute(display_os.as_ptr()));
-            }
+            wh::send_message(handle, LB_ADDSTRING, 0, display_os.as_ptr() as LPARAM);
         }
     }
 
@@ -345,9 +335,7 @@ impl<D: Display+Default> ListBox<D> {
             let display = format!("{}", item);
             let display_os = to_utf16(&display);
             
-            unsafe {
-                wh::send_message(handle, LB_ADDSTRING, 0, mem::transmute(display_os.as_ptr()));
-            }
+            wh::send_message(handle, LB_ADDSTRING, 0, display_os.as_ptr() as LPARAM);
         }
 
         let mut col_ref = self.collection.borrow_mut();

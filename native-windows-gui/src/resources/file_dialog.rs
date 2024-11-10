@@ -1,4 +1,4 @@
-use winapi::um::shobjidl::IFileDialog;
+use winapi::um::shobjidl::{IFileDialog, IFileOpenDialog};
 use crate::win32::resources_helper as rh;
 
 use crate::win32::base_helper::to_utf16;
@@ -115,7 +115,7 @@ impl FileDialog {
         }
 
         unsafe {
-            rh::filedialog_get_items(mem::transmute(&mut *self.handle))
+            rh::filedialog_get_items(&mut *(self.handle as *mut IFileOpenDialog))
         }
     }
 

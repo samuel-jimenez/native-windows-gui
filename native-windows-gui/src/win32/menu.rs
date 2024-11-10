@@ -1,6 +1,7 @@
 /*!
 Native Windows GUI menu base.
 */
+use winapi::shared::basetsd::UINT_PTR;
 use winapi::shared::windef::{HMENU, HWND};
 use winapi::shared::minwindef::UINT;
 use super::base_helper::{CUSTOM_ID_BEGIN, to_utf16};
@@ -70,7 +71,7 @@ pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: b
                 return Err(NwgError::menu_create("Menu without parent"));
             }
             use_menu_command(menu);
-            AppendMenuW(menubar, flags, mem::transmute(menu), text.as_ptr());
+            AppendMenuW(menubar, flags, menu as UINT_PTR, text.as_ptr());
         }
 
         // Draw the menu bar to make sure the changes are visible
@@ -89,7 +90,7 @@ pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: b
                 return Err(NwgError::menu_create("Menu without parent"));
             }
             use_menu_command(menu);
-            AppendMenuW(parent, flags, mem::transmute(menu), text.as_ptr());
+            AppendMenuW(parent, flags, menu as UINT_PTR, text.as_ptr());
         }
     }
 

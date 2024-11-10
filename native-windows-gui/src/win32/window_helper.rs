@@ -169,10 +169,7 @@ pub fn get_window_parent(hwnd: HWND) -> HWND {
 
 pub fn get_window_font(handle: HWND) -> HFONT {
     use winapi::um::winuser::{ WM_GETFONT };
-    unsafe { 
-        let h = send_message(handle, WM_GETFONT, 0, 0);
-        mem::transmute(h)
-    }
+    send_message(handle, WM_GETFONT, 0, 0) as HFONT
 }
 
 pub fn maximize_window(handle: HWND) {
@@ -203,7 +200,7 @@ pub unsafe fn set_window_font(handle: HWND, font_handle: Option<HFONT>, redraw: 
 
     let font_handle = font_handle.unwrap_or(ptr::null_mut());
 
-    SendMessageW(handle, WM_SETFONT, mem::transmute(font_handle), redraw as LPARAM);
+    SendMessageW(handle, WM_SETFONT, font_handle as WPARAM, redraw as LPARAM);
 }
 
 

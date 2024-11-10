@@ -158,14 +158,13 @@ impl Window {
     /// - icon: The new icon. If None, the icon is removed
     pub fn set_icon(&self, icon: Option<&Icon>) {
         use winapi::um::winuser::WM_SETICON;
-        use std::{mem, ptr};
+        use winapi::shared::minwindef::LPARAM;
+        use std::ptr;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let image_handle = icon.map(|i| i.handle).unwrap_or(ptr::null_mut());
-        unsafe {
-            wh::send_message(handle, WM_SETICON, 0, mem::transmute(image_handle));
-        }
+        wh::send_message(handle, WM_SETICON, 0, image_handle as LPARAM);
     }
 
     /// Return true if the control currently has the keyboard focus

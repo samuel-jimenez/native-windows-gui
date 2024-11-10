@@ -349,6 +349,7 @@ pub unsafe fn create_file_dialog<'a, 'b>(
     use winapi::um::shobjidl::{FOS_PICKFOLDERS, FOS_ALLOWMULTISELECT, FOS_FORCEFILESYSTEM};
     use winapi::um::combaseapi::CoCreateInstance;
     use winapi::shared::{wtypesbase::CLSCTX_INPROC_SERVER, winerror::S_OK};
+    use winapi::shared::minwindef::LPVOID;
 
     let (clsid, uuid) = match action {
         FileDialogAction::Save => (CLSID_FileSaveDialog, IFileDialog::uuidof()),
@@ -356,7 +357,7 @@ pub unsafe fn create_file_dialog<'a, 'b>(
     };
 
     let mut handle: *mut IFileDialog = ptr::null_mut();
-    let r = CoCreateInstance(&clsid, ptr::null_mut(), CLSCTX_INPROC_SERVER, &uuid, mem::transmute(&mut handle) );
+    let r = CoCreateInstance(&clsid, ptr::null_mut(), CLSCTX_INPROC_SERVER, &uuid, &mut handle as *mut _ as *mut LPVOID);
     if r != S_OK {
         return Err(NwgError::file_dialog("Filedialog creation failed"));
     }
@@ -418,7 +419,7 @@ pub unsafe fn file_dialog_set_default_folder<'a>(dialog: &mut IFileDialog, folde
     let mut shellitem: *mut IShellItem = ptr::null_mut();
     let path = to_utf16(&folder_name);
 
-    if SHCreateItemFromParsingName(path.as_ptr(), ptr::null_mut(), &IShellItem::uuidof(), mem::transmute(&mut shellitem) ) != S_OK {
+    if SHCreateItemFromParsingName(path.as_ptr(), ptr::null_mut(), &IShellItem::uuidof(), &mut shellitem as *mut _ as *mut *mut c_void) != S_OK {
         return Err(NwgError::file_dialog("Failed to set default folder"));
     }
 
@@ -504,7 +505,7 @@ pub unsafe fn filedialog_get_items(dialog: &mut IFileOpenDialog) -> Result<Vec<O
     let mut _item: *mut IShellItem = ptr::null_mut();
     let mut _items: *mut IShellItemArray = ptr::null_mut();
 
-    if dialog.GetResults( mem::transmute(&mut _items) ) != S_OK {
+    if dialog.GetResults(&mut _items as *mut _) != S_OK {
         return Err(NwgError::file_dialog("Failed to get dialog items"));
     }
 
@@ -530,6 +531,7 @@ pub unsafe fn filedialog_get_items(dialog: &mut IFileOpenDialog) -> Result<Vec<O
 unsafe fn get_ishellitem_path(item: &mut IShellItem) -> Result<OsString, NwgError> {
     use winapi::um::shobjidl_core::SIGDN_FILESYSPATH;
     use winapi::shared::{ntdef::PWSTR, winerror::S_OK};
+    use winapi::shared::minwindef::LPVOID;
     use winapi::um::combaseapi::CoTaskMemFree;
     use super::base_helper::os_string_from_wide_ptr;
 
@@ -540,7 +542,7 @@ unsafe fn get_ishellitem_path(item: &mut IShellItem) -> Result<OsString, NwgErro
 
     let text = os_string_from_wide_ptr(item_path, None);
 
-    CoTaskMemFree(mem::transmute(item_path));
+    CoTaskMemFree(item_path as LPVOID);
 
     Ok(text)
 }

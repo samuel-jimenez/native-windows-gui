@@ -162,7 +162,7 @@ impl DatePicker {
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
-        let info = unsafe{ get_dtp_info(handle) };
+        let info = get_dtp_info(handle);
 
         match info.stateCheck {
             STATE_SYSTEM_CHECKED => true,
@@ -185,13 +185,15 @@ impl DatePicker {
     pub fn value(&self) -> Option<DatePickerValue> {
         use winapi::um::commctrl::{GDT_VALID, DTM_GETSYSTEMTIME};
         use winapi::um::minwinbase::SYSTEMTIME;
+        use winapi::shared::minwindef::LPARAM;
         use std::mem;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut syst: SYSTEMTIME = unsafe{ mem::zeroed() };
+        let syst_ptr = &mut syst as *mut _;
 
-        let r = unsafe{ wh::send_message(handle, DTM_GETSYSTEMTIME, 0, mem::transmute(&mut syst)) };
+        let r = wh::send_message(handle, DTM_GETSYSTEMTIME, 0, syst_ptr as LPARAM);
         match r {
             GDT_VALID => Some(DatePickerValue {
                 year: syst.wYear,
@@ -488,14 +490,15 @@ impl<'a> DatePickerBuilder<'a> {
 use winapi::um::commctrl::DATETIMEPICKERINFO;
 use winapi::shared::windef::HWND;
 
-unsafe fn get_dtp_info(handle: HWND) -> DATETIMEPICKERINFO {
+fn get_dtp_info(handle: HWND) -> DATETIMEPICKERINFO {
     use winapi::um::commctrl::DTM_GETDATETIMEPICKERINFO;
-    use winapi::shared::minwindef::DWORD;
+    use winapi::shared::minwindef::{DWORD, LPARAM};
     use std::mem;
 
-    let mut dtp_info: DATETIMEPICKERINFO = mem::zeroed();
+    let mut dtp_info: DATETIMEPICKERINFO = unsafe { mem::zeroed() };
     dtp_info.cbSize = mem::size_of::<DATETIMEPICKERINFO>() as DWORD;
-    wh::send_message(handle, DTM_GETDATETIMEPICKERINFO, 0, mem::transmute(&mut dtp_info));
+    let dtp_info_ptr = &mut dtp_info as *mut _;
+    wh::send_message(handle, DTM_GETDATETIMEPICKERINFO, 0, dtp_info_ptr as LPARAM);
 
     dtp_info
 }

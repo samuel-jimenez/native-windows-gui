@@ -265,7 +265,7 @@ impl TabsContainer {
         let handler0 = bind_raw_event_handler_inner(&parent_handle, handle as usize, move |_hwnd, msg, _w, l| { unsafe {
             match msg {
                 WM_NOTIFY => {
-                    let nmhdr: &NMHDR = mem::transmute(l);
+                    let nmhdr = &*(l as *const NMHDR);
                     if nmhdr.code == TCN_SELCHANGE {
                         let index = SendMessageW(handle, TCM_GETCURSEL, 0, 0) as i32;
                         let data: (HWND, i32) = (handle, index);
@@ -318,7 +318,7 @@ impl TabsContainer {
                     data.tab_offset_y = tab_height;
                     
                     let data_ptr = &data as *const ResizeDirectChildrenParams;
-                    EnumChildWindows(hwnd, Some(resize_direct_children), mem::transmute(data_ptr));
+                    EnumChildWindows(hwnd, Some(resize_direct_children), data_ptr as LPARAM);
                 },
                 _ => {}
             }
@@ -612,7 +612,7 @@ impl Tab {
         let count_ptr = &mut count as *mut usize;
 
         unsafe {
-            EnumChildWindows(tab_view_handle, Some(count_children), mem::transmute(count_ptr));
+            EnumChildWindows(tab_view_handle, Some(count_children), count_ptr as LPARAM);
         }
 
         count
@@ -757,7 +757,7 @@ unsafe extern "system" fn count_children(handle: HWND, params: LPARAM) -> BOOL {
 
     if &wh::get_window_class_name(handle) == "NWG_TAB" {
         let tab_index = (wh::get_window_long(handle, GWL_USERDATA)) as WPARAM;
-        let count: &mut usize = ::std::mem::transmute(params);
+        let count = params as *mut usize;
         *count = usize::max(tab_index+1, *count);
     }
     
@@ -768,7 +768,7 @@ unsafe extern "system" fn count_children(handle: HWND, params: LPARAM) -> BOOL {
 unsafe extern "system" fn toggle_children_tabs(handle: HWND, params: LPARAM) -> BOOL {
     use winapi::um::winuser::GWL_USERDATA;
     
-    let &(parent, index): &(HWND, i32) = mem::transmute(params);
+    let (parent, index) = *(params as *const (HWND, i32));
     if wh::get_window_parent(handle) == parent {
         let tab_index = wh::get_window_long(handle, GWL_USERDATA) as i32;
         let visible = tab_index == index + 1;
