@@ -45,7 +45,11 @@ impl FreeingTest {
     }
 
     fn bind_raw_handler(&self) {
-        let mut data = self.data.borrow_mut();
+        let mut _data = self.data.try_borrow_mut();
+        if _data.is_err() {
+            return;
+        }
+        let mut data = _data.unwrap();
         if data.raw_handler_bound {
             self.bind_handler_btn.set_text("Bind raw handler");
             data.raw_handler_bound = false;
@@ -76,7 +80,11 @@ impl FreeingTest {
     }
 
     fn bind_handler(&self) {
-        let mut data = self.data.borrow_mut();
+        let mut _data = self.data.try_borrow_mut();
+        if _data.is_err() {
+            return;
+        }
+        let mut data = _data.unwrap();
         if data.handler_bound {
             self.bind_handler_btn2.set_text("Bind handler");
             data.handler_bound = false;
