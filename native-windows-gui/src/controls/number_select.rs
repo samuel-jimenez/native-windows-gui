@@ -1,15 +1,16 @@
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_EX_CONTROLPARENT};
 use std::cell::RefCell;
 use std::rc::Rc;
+use winapi::um::winuser::{WS_DISABLED, WS_EX_CONTROLPARENT, WS_TABSTOP, WS_VISIBLE};
 
-use crate::win32::window_helper as wh;
+use super::{Button, ButtonFlags, ControlBase, ControlHandle, TextInput, TextInputFlags};
 use crate::win32::base_helper::check_hwnd;
-use crate::{NwgError, Font, RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler};
-use super::{ControlBase, ControlHandle, TextInput, Button, ButtonFlags, TextInputFlags};
+use crate::win32::window_helper as wh;
+use crate::{
+    bind_raw_event_handler_inner, unbind_raw_event_handler, Font, NwgError, RawEventHandler,
+};
 
 const NOT_BOUND: &'static str = "UpDown is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: UpDown handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -18,7 +19,7 @@ bitflags! {
         * NONE:     No flags. Equivalent to a invisible blank NumberSelect.
         * VISIBLE:  The NumberSelect is immediatly visible after creation
         * DISABLED: The NumberSelect cannot be interacted with by the user. It also has a grayed out look.
-        * TAB_STOP: The control can be selected using tab navigation. 
+        * TAB_STOP: The control can be selected using tab navigation.
     */
     pub struct NumberSelectFlags: u32 {
         const NONE = 0;
@@ -31,26 +32,42 @@ bitflags! {
 /// The value inside a number select and the limits of that value
 #[derive(Copy, Clone, Debug)]
 pub enum NumberSelectData {
-    Int { value: i64, step: i64, max: i64, min: i64 },
-    Float { value: f64, step: f64, max: f64, min: f64, decimals: u8 },
+    Int {
+        value: i64,
+        step: i64,
+        max: i64,
+        min: i64,
+    },
+    Float {
+        value: f64,
+        step: f64,
+        max: f64,
+        min: f64,
+        decimals: u8,
+    },
 }
 
 impl NumberSelectData {
-
     pub fn formatted_value(&self) -> String {
         match self {
-            NumberSelectData::Int{ value, ..} => format!("{}", value),
-            NumberSelectData::Float{ value, decimals, ..} => format!("{:.*}", *decimals as usize, value),
+            NumberSelectData::Int { value, .. } => format!("{}", value),
+            NumberSelectData::Float {
+                value, decimals, ..
+            } => format!("{:.*}", *decimals as usize, value),
         }
     }
 
     pub fn decrease(&mut self) {
         match self {
-            NumberSelectData::Int{ value, step, min, ..} => {
+            NumberSelectData::Int {
+                value, step, min, ..
+            } => {
                 *value -= *step;
                 *value = i64::max(*value, *min);
-            },
-            NumberSelectData::Float{ value, step, min, ..} => {
+            }
+            NumberSelectData::Float {
+                value, step, min, ..
+            } => {
                 *value -= *step;
                 *value = f64::max(*value, *min);
             }
@@ -59,22 +76,25 @@ impl NumberSelectData {
 
     pub fn increase(&mut self) {
         match self {
-            NumberSelectData::Int{ value, step, max, ..} => {
+            NumberSelectData::Int {
+                value, step, max, ..
+            } => {
                 *value += *step;
                 *value = i64::min(*value, *max);
-            },
-            NumberSelectData::Float{ value, step, max, ..} => {
+            }
+            NumberSelectData::Float {
+                value, step, max, ..
+            } => {
                 *value += *step;
                 *value = f64::min(*value, *max);
             }
         }
     }
-
 }
 
 impl Default for NumberSelectData {
     fn default() -> NumberSelectData {
-        NumberSelectData::Int { 
+        NumberSelectData::Int {
             value: 0,
             step: 1,
             max: i64::max_value(),
@@ -87,7 +107,7 @@ impl Default for NumberSelectData {
 A NumberSelect control is a pair of arrow buttons that the user can click to increment or decrement a value.
 NumberSelect is implemented as a custom control because the one provided by winapi really sucks.
 
-Requires the `number-select` feature. 
+Requires the `number-select` feature.
 
 **Builder parameters:**
   * `parent`:   **Required.** The number select parent container.
@@ -120,11 +140,10 @@ pub struct NumberSelect {
     edit: TextInput,
     btn_up: Button,
     btn_down: Button,
-    handler: Option<RawEventHandler>
+    handler: Option<RawEventHandler>,
 }
 
 impl NumberSelect {
-
     pub fn builder<'a>() -> NumberSelectBuilder<'a> {
         NumberSelectBuilder {
             size: (100, 25),
@@ -133,7 +152,7 @@ impl NumberSelect {
             enabled: true,
             flags: None,
             font: None,
-            parent: None
+            parent: None,
         }
     }
 
@@ -157,14 +176,18 @@ impl NumberSelect {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Sets the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Returns true if the control currently has the keyboard focus
@@ -176,7 +199,9 @@ impl NumberSelect {
     /// Sets the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Returns true if the control user can interact with the control, return false otherwise
@@ -191,7 +216,7 @@ impl NumberSelect {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -243,11 +268,9 @@ impl NumberSelect {
         use winapi::um::winuser::{WS_BORDER, WS_CHILD, WS_CLIPCHILDREN};
         WS_CHILD | WS_BORDER | WS_CLIPCHILDREN
     }
-
 }
 
 impl Drop for NumberSelect {
-
     fn drop(&mut self) {
         if let Some(h) = self.handler.as_ref() {
             drop(unbind_raw_event_handler(h));
@@ -255,7 +278,6 @@ impl Drop for NumberSelect {
 
         self.handle.destroy();
     }
-
 }
 
 pub struct NumberSelectBuilder<'a> {
@@ -265,11 +287,10 @@ pub struct NumberSelectBuilder<'a> {
     enabled: bool,
     flags: Option<NumberSelectFlags>,
     font: Option<&'a Font>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> NumberSelectBuilder<'a> {
-
     pub fn flags(mut self, flags: NumberSelectFlags) -> NumberSelectBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -298,32 +319,68 @@ impl<'a> NumberSelectBuilder<'a> {
     // Int values
     pub fn value_int(mut self, v: i64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Int { value, .. } => { *value = v; }
-            data => *data = NumberSelectData::Int { value: v, step: 1, max: i64::max_value(), min: i64::min_value() }
+            NumberSelectData::Int { value, .. } => {
+                *value = v;
+            }
+            data => {
+                *data = NumberSelectData::Int {
+                    value: v,
+                    step: 1,
+                    max: i64::max_value(),
+                    min: i64::min_value(),
+                }
+            }
         }
         self
     }
 
     pub fn step_int(mut self, v: i64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Int { step, .. } => { *step = v; }
-            data => *data = NumberSelectData::Int { value: 0, step: v, max: i64::max_value(), min: i64::min_value() }
+            NumberSelectData::Int { step, .. } => {
+                *step = v;
+            }
+            data => {
+                *data = NumberSelectData::Int {
+                    value: 0,
+                    step: v,
+                    max: i64::max_value(),
+                    min: i64::min_value(),
+                }
+            }
         }
         self
     }
 
     pub fn max_int(mut self, v: i64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Int { max, .. } => { *max = v; }
-            data => *data = NumberSelectData::Int { value: 0, step: 1, max: v, min: i64::min_value() }
+            NumberSelectData::Int { max, .. } => {
+                *max = v;
+            }
+            data => {
+                *data = NumberSelectData::Int {
+                    value: 0,
+                    step: 1,
+                    max: v,
+                    min: i64::min_value(),
+                }
+            }
         }
         self
     }
 
     pub fn min_int(mut self, v: i64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Int { min, .. } => { *min = v; }
-            data => *data = NumberSelectData::Int { value: 0, step: 1, max: i64::max_value(), min: v }
+            NumberSelectData::Int { min, .. } => {
+                *min = v;
+            }
+            data => {
+                *data = NumberSelectData::Int {
+                    value: 0,
+                    step: 1,
+                    max: i64::max_value(),
+                    min: v,
+                }
+            }
         }
         self
     }
@@ -331,40 +388,90 @@ impl<'a> NumberSelectBuilder<'a> {
     // Float values
     pub fn value_float(mut self, v: f64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Float { value, .. } => { *value = v; }
-            data => *data = NumberSelectData::Float { value: v, step: 1.0, max: 1000000.0, min: -1000000.0, decimals: 2 }
+            NumberSelectData::Float { value, .. } => {
+                *value = v;
+            }
+            data => {
+                *data = NumberSelectData::Float {
+                    value: v,
+                    step: 1.0,
+                    max: 1000000.0,
+                    min: -1000000.0,
+                    decimals: 2,
+                }
+            }
         }
         self
     }
 
     pub fn step_float(mut self, v: f64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Float { step, .. } => { *step = v; }
-            data => *data = NumberSelectData::Float { value: 0.0, step: v, max: 1000000.0, min: -1000000.0, decimals: 2 }
+            NumberSelectData::Float { step, .. } => {
+                *step = v;
+            }
+            data => {
+                *data = NumberSelectData::Float {
+                    value: 0.0,
+                    step: v,
+                    max: 1000000.0,
+                    min: -1000000.0,
+                    decimals: 2,
+                }
+            }
         }
         self
     }
 
     pub fn max_float(mut self, v: f64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Float { max, .. } => { *max = v; }
-            data => *data = NumberSelectData::Float { value: 0.0, step: 1.0, max: v, min: -1000000.0, decimals: 2 }
+            NumberSelectData::Float { max, .. } => {
+                *max = v;
+            }
+            data => {
+                *data = NumberSelectData::Float {
+                    value: 0.0,
+                    step: 1.0,
+                    max: v,
+                    min: -1000000.0,
+                    decimals: 2,
+                }
+            }
         }
         self
     }
 
     pub fn min_float(mut self, v: f64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Float { min, .. } => { *min = v; }
-            data => *data = NumberSelectData::Float { value: 0.0, step: 1.0, max: 1000000.0, min: v, decimals: 2 }
+            NumberSelectData::Float { min, .. } => {
+                *min = v;
+            }
+            data => {
+                *data = NumberSelectData::Float {
+                    value: 0.0,
+                    step: 1.0,
+                    max: 1000000.0,
+                    min: v,
+                    decimals: 2,
+                }
+            }
         }
         self
     }
 
     pub fn decimals(mut self, v: u8) -> NumberSelectBuilder<'a> {
         match &mut self.data {
-            NumberSelectData::Float { decimals, .. } => { *decimals = v; }
-            data => *data = NumberSelectData::Float { value: 0.0, step: 1.0, max: 1000000.0, min: -1000000.0, decimals: v }
+            NumberSelectData::Float { decimals, .. } => {
+                *decimals = v;
+            }
+            data => {
+                *data = NumberSelectData::Float {
+                    value: 0.0,
+                    step: 1.0,
+                    max: 1000000.0,
+                    min: -1000000.0,
+                    decimals: v,
+                }
+            }
         }
         self
     }
@@ -377,14 +484,17 @@ impl<'a> NumberSelectBuilder<'a> {
     pub fn build(self, out: &mut NumberSelect) -> Result<(), NwgError> {
         let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
         let (btn_flags, text_flags) = if flags & WS_TABSTOP == WS_TABSTOP {
-            (ButtonFlags::VISIBLE | ButtonFlags::TAB_STOP, TextInputFlags::VISIBLE | TextInputFlags::TAB_STOP)
+            (
+                ButtonFlags::VISIBLE | ButtonFlags::TAB_STOP,
+                TextInputFlags::VISIBLE | TextInputFlags::TAB_STOP,
+            )
         } else {
             (ButtonFlags::VISIBLE, TextInputFlags::VISIBLE)
         };
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("NumberSelect"))
+            None => Err(NwgError::no_parent("NumberSelect")),
         }?;
 
         *out = Default::default();
@@ -397,7 +507,7 @@ impl<'a> NumberSelectBuilder<'a> {
 
         *out = NumberSelect::default();
         *out.data.borrow_mut() = self.data;
-        
+
         out.handle = ControlBase::build_hwnd()
             .class_name(out.class_name())
             .forced_flags(out.forced_flags())
@@ -410,25 +520,25 @@ impl<'a> NumberSelectBuilder<'a> {
 
         TextInput::builder()
             .text(&self.data.formatted_value())
-            .size((w-19, h))
+            .size((w - 19, h))
             .parent(&out.handle)
             .flags(text_flags)
             .build(&mut out.edit)?;
 
         Button::builder()
             .text("+")
-            .size((20, h/2+1))
-            .position((w-20, -1))
+            .size((20, h / 2 + 1))
+            .position((w - 20, -1))
             .parent(&out.handle)
             .flags(btn_flags)
             .build(&mut out.btn_up)?;
 
         Button::builder()
             .text("-")
-            .size((20, h/2+1))
-            .position((w-20, (h/2)-1))
+            .size((20, h / 2 + 1))
+            .position((w - 20, (h / 2) - 1))
             .parent(&out.handle)
-            .flags(btn_flags)    
+            .flags(btn_flags)
             .build(&mut out.btn_down)?;
 
         if self.font.is_some() {
@@ -449,10 +559,10 @@ impl<'a> NumberSelectBuilder<'a> {
         let text_handle = out.edit.handle.clone();
 
         let handler = bind_raw_event_handler_inner(&out.handle, 0x4545, move |_hwnd, msg, w, l| {
-            use winapi::shared::windef::HWND;
-            use winapi::um::winuser::{WM_COMMAND, BN_CLICKED};
             use winapi::shared::minwindef::HIWORD;
-            
+            use winapi::shared::windef::HWND;
+            use winapi::um::winuser::{BN_CLICKED, WM_COMMAND};
+
             match msg {
                 WM_COMMAND => {
                     let handle = ControlHandle::Hwnd(l as HWND);
@@ -463,17 +573,21 @@ impl<'a> NumberSelectBuilder<'a> {
 
                         let handle = text_handle.hwnd().unwrap();
                         let text = data.formatted_value();
-                        unsafe { wh::set_window_text(handle, &text); }
+                        unsafe {
+                            wh::set_window_text(handle, &text);
+                        }
                     } else if message == BN_CLICKED && handle == minus_button {
                         let mut data = handler_data.borrow_mut();
                         data.decrease();
 
                         let handle = text_handle.hwnd().unwrap();
                         let text = data.formatted_value();
-                        unsafe { wh::set_window_text(handle, &text); }
+                        unsafe {
+                            wh::set_window_text(handle, &text);
+                        }
                     }
-                },
-                
+                }
+
                 _ => {}
             }
             None
@@ -487,5 +601,4 @@ impl<'a> NumberSelectBuilder<'a> {
 
         Ok(())
     }
-
 }

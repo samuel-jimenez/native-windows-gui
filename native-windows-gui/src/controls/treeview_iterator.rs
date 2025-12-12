@@ -1,8 +1,7 @@
-use winapi::shared::windef::HWND;
-use winapi::um::commctrl::{HTREEITEM, TVGN_ROOT, TVGN_CHILD, TVGN_NEXT, TVGN_PARENT};
-use crate::{TreeView, TreeItem};
 use crate::win32::window_helper as wh;
-
+use crate::{TreeItem, TreeView};
+use winapi::shared::windef::HWND;
+use winapi::um::commctrl::{HTREEITEM, TVGN_CHILD, TVGN_NEXT, TVGN_PARENT, TVGN_ROOT};
 
 #[derive(Copy, Clone)]
 #[repr(usize)]
@@ -13,7 +12,7 @@ enum NextAction {
     Parent = TVGN_PARENT,
 }
 
-/** 
+/**
 A structure to iterate over the items of a `TreeView`
 Requires the feature `tree-view-iterator` and `tree-view`
 
@@ -36,14 +35,13 @@ pub struct TreeViewIterator<'a> {
 }
 
 impl<'a> TreeViewIterator<'a> {
-
     /// Use `TreeView.iter` to create a `TreeViewIterator`
     pub(crate) fn new(tree_view: &'a TreeView, current_item: HTREEITEM) -> TreeViewIterator {
         let tree_view_handle = tree_view.handle.hwnd().unwrap();
 
         let action = match current_item.is_null() {
             true => NextAction::Root,
-            false => NextAction::Child
+            false => NextAction::Child,
         };
 
         TreeViewIterator {
@@ -54,7 +52,6 @@ impl<'a> TreeViewIterator<'a> {
             action,
         }
     }
-
 }
 
 impl<'a> Iterator for TreeViewIterator<'a> {
@@ -83,11 +80,13 @@ impl<'a> Iterator for TreeViewIterator<'a> {
                     }
 
                     // Do not return parents has they have already been iterated upon
-                    item = None;  
+                    item = None;
 
                     Sibling
                 }
-                (Parent, false) => { return None; }
+                (Parent, false) => {
+                    return None;
+                }
             };
 
             if item.is_some() {
@@ -100,12 +99,12 @@ impl<'a> Iterator for TreeViewIterator<'a> {
     }
 }
 
-
 fn next_item(tree: HWND, action: NextAction, handle: HTREEITEM) -> Option<TreeItem> {
-    use winapi::shared::minwindef::{WPARAM, LPARAM};
+    use winapi::shared::minwindef::{LPARAM, WPARAM};
     use winapi::um::commctrl::TVM_GETNEXTITEM;
 
-    let handle = wh::send_message(tree, TVM_GETNEXTITEM, action as WPARAM, handle as LPARAM) as HTREEITEM;
+    let handle =
+        wh::send_message(tree, TVM_GETNEXTITEM, action as WPARAM, handle as LPARAM) as HTREEITEM;
     if handle.is_null() {
         None
     } else {

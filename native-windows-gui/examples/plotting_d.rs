@@ -3,15 +3,20 @@
     To run: `cargo run --example plotting_d --features "plotting"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
+use nwg::stretch::{
+    geometry::*,
+    style::{Dimension::*, *},
+};
 use nwg::NativeUi;
-use nwg::stretch::{style::{*, Dimension::*}, geometry::*};
-use std::{cell::RefCell, time::{Duration, Instant}};
-use plotters::{prelude::*};
-
+use plotters::prelude::*;
+use std::{
+    cell::RefCell,
+    time::{Duration, Instant},
+};
 
 const EXAMPLES: &[&str] = &[
     "Simple",
@@ -33,7 +38,7 @@ pub struct PlottingExample {
     plotting_data: RefCell<PlottingData>,
 
     #[nwg_control(size: (900, 600), position: (300, 300), title: "Plotting")]
-    #[nwg_events( 
+    #[nwg_events(
         OnInit: [PlottingExample::draw_graph],
         OnWindowClose: [nwg::stop_thread_dispatch()],
         OnResize: [PlottingExample::draw_graph],
@@ -44,7 +49,7 @@ pub struct PlottingExample {
     layout: nwg::GridLayout,
 
     #[nwg_control(parent: window)]
-    #[nwg_events( 
+    #[nwg_events(
         OnMouseMove: [PlottingExample::update_interactive],
     )]
     #[nwg_layout_item(layout: layout, col: 0, row: 0, col_span: 3)]
@@ -77,7 +82,6 @@ pub struct PlottingExample {
 }
 
 impl PlottingExample {
-
     fn simple_chart(&self) -> Result<(), Box<dyn std::error::Error>> {
         let root = self.graph.draw().unwrap();
 
@@ -88,8 +92,13 @@ impl PlottingExample {
             .y_label_area_size(30)
             .build_cartesian_2d(-1f32..1f32, -0.1f32..1f32)?;
 
-        chart.configure_mesh()
-            .light_line_style(ShapeStyle { color: TRANSPARENT, filled: false, stroke_width: 0 })
+        chart
+            .configure_mesh()
+            .light_line_style(ShapeStyle {
+                color: TRANSPARENT,
+                filled: false,
+                stroke_width: 0,
+            })
             .draw()?;
 
         chart
@@ -105,7 +114,7 @@ impl PlottingExample {
             .background_style(&WHITE.mix(0.8))
             .border_style(&BLACK)
             .draw()?;
-        
+
         Ok(())
     }
 
@@ -204,7 +213,6 @@ impl PlottingExample {
     fn multiple_plot(&self) -> Result<(), Box<dyn std::error::Error>> {
         let root = self.graph.draw().unwrap();
 
-
         let root_area = root.titled("Multiplot", ("sans-serif", 60))?;
         let (upper, lower) = root_area.split_vertically(256);
 
@@ -236,7 +244,6 @@ impl PlottingExample {
 
         cc.configure_series_labels().border_style(&BLACK).draw()?;
 
-
         let drawing_areas = lower.split_evenly((1, 2));
 
         for (drawing_area, idx) in drawing_areas.iter().zip(1..) {
@@ -263,22 +270,24 @@ impl PlottingExample {
     fn animated_chart(&self) -> Result<(), Box<dyn std::error::Error>> {
         let root = self.graph.draw().unwrap();
 
-        let time = self.plotting_data.borrow_mut()
+        let time = self
+            .plotting_data
+            .borrow_mut()
             .animation_start
             .as_ref()
             .map(|t| t.elapsed())
             .unwrap_or(Duration::new(0, 0));
 
         let offset = (time.as_millis() as f64) / 1000.0;
-        let x_spec = (0.0+offset)..(5.0+offset);
-        
+        let x_spec = (0.0 + offset)..(5.0 + offset);
+
         let sin_x_values = (0..=250)
             .map(|x| x as f64 / 50.0)
-            .map(|x| ((x+offset), (x+offset).sin()));
+            .map(|x| ((x + offset), (x + offset).sin()));
 
         let cos_x_values = (0..=250)
             .map(|x| x as f64 / 50.0)
-            .map(|x| ((x+offset), (x+offset).cos()));
+            .map(|x| ((x + offset), (x + offset).cos()));
 
         let mut chart = ChartBuilder::on(&root)
             .caption("SIN & COS", ("sans-serif", 50).into_font())
@@ -287,7 +296,8 @@ impl PlottingExample {
             .y_label_area_size(30)
             .build_cartesian_2d(x_spec, -1.5f64..1.5f64)?;
 
-        chart.configure_mesh()
+        chart
+            .configure_mesh()
             .x_labels(20)
             .y_labels(10)
             .disable_mesh()
@@ -309,7 +319,6 @@ impl PlottingExample {
             .border_style(&BLACK)
             .draw()?;
 
-
         Ok(())
     }
 
@@ -323,12 +332,15 @@ impl PlottingExample {
             .y_label_area_size(30)
             .build_cartesian_2d(-100..100, -200..200)?;
 
-
-        chart.configure_mesh()
-            .light_line_style(ShapeStyle { color: TRANSPARENT, filled: false, stroke_width: 0 })
+        chart
+            .configure_mesh()
+            .light_line_style(ShapeStyle {
+                color: TRANSPARENT,
+                filled: false,
+                stroke_width: 0,
+            })
             .draw()?;
 
-        
         chart
             .draw_series(LineSeries::new(
                 [-100, -50, 0, 50, 100].iter().map(|&x| (x, x * 2)),
@@ -337,16 +349,16 @@ impl PlottingExample {
             .label("y = x*2")
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
-        chart.configure_series_labels()
+        chart
+            .configure_series_labels()
             .border_style(&BLACK)
             .draw()?;
-        
-        
+
         // As far as I know, there's no way to fetch the margin in pixels within a chart, so you have to use trial and error
         // 80 & 130 seems to be good enough for this case
         let (x, _) = nwg::GlobalCursor::local_position(&self.graph, None);
         let max_x = self.graph.size().0 as i32;
-        let percent = (x-80) as f32 / (max_x-130) as f32;
+        let percent = (x - 80) as f32 / (max_x - 130) as f32;
         let value = (((percent - 0.5) * 200.0) as i32).clamp(-100, 100);
 
         chart.draw_series(PointSeries::of_element(
@@ -369,7 +381,7 @@ impl PlottingExample {
         Ok(())
     }
 
-    fn kotch_snowflake(&self) ->  Result<(), Box<dyn std::error::Error>> {
+    fn kotch_snowflake(&self) -> Result<(), Box<dyn std::error::Error>> {
         let root = self.graph.draw().unwrap();
 
         fn snowflake_iter(points: &[(f64, f64)]) -> Vec<(f64, f64)> {
@@ -455,7 +467,6 @@ impl PlottingExample {
             }
         }
     }
-
 }
 
 fn main() {

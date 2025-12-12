@@ -53,15 +53,25 @@ fn main() {
         use nwg::Event as E;
 
         match evt {
-            E::OnWindowClose => 
+            E::OnWindowClose => {
                 if &handle == &events_window as &nwg::Window {
-                    nwg::modal_info_message(&events_window.handle, "Goodbye", &format!("Goodbye {}", name_edit.text()));
+                    nwg::modal_info_message(
+                        &events_window.handle,
+                        "Goodbye",
+                        &format!("Goodbye {}", name_edit.text()),
+                    );
                     nwg::stop_thread_dispatch();
-                },
-            E::OnButtonClick => 
+                }
+            }
+            E::OnButtonClick => {
                 if &handle == &hello_button {
-                    nwg::modal_info_message(&events_window.handle, "Hello", &format!("Hello {}", name_edit.text()));
-                },
+                    nwg::modal_info_message(
+                        &events_window.handle,
+                        "Hello",
+                        &format!("Hello {}", name_edit.text()),
+                    );
+                }
+            }
             _ => {}
         }
     });

@@ -1,18 +1,13 @@
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED};
-use winapi::um::wingdi::DeleteObject;
-use winapi::shared::windef::HBRUSH;
-use crate::win32::{
-    base_helper::check_hwnd,  
-    window_helper as wh,
-    resources_helper as rh
-};
 use super::{ControlBase, ControlHandle};
-use crate::{Bitmap, Icon, NwgError, RawEventHandler, unbind_raw_event_handler};
+use crate::win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh};
+use crate::{unbind_raw_event_handler, Bitmap, Icon, NwgError, RawEventHandler};
 use std::cell::RefCell;
+use winapi::shared::windef::HBRUSH;
+use winapi::um::wingdi::DeleteObject;
+use winapi::um::winuser::{WS_DISABLED, WS_VISIBLE};
 
 const NOT_BOUND: &'static str = "ImageFrame is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ImageFrame handle is not HWND!";
-
 
 bitflags! {
     pub struct ImageFrameFlags: u32 {
@@ -60,7 +55,6 @@ pub struct ImageFrame {
 }
 
 impl ImageFrame {
-
     pub fn builder<'a>() -> ImageFrameBuilder<'a> {
         ImageFrameBuilder {
             size: (100, 100),
@@ -70,37 +64,41 @@ impl ImageFrame {
             bitmap: None,
             icon: None,
             parent: None,
-            background_color: None
+            background_color: None,
         }
     }
 
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_bitmap<'a>(&self, image: Option<&'a Bitmap>) {
-        use winapi::um::winuser::{STM_SETIMAGE, IMAGE_BITMAP};
-        use winapi::shared::minwindef::{WPARAM, LPARAM};
+        use winapi::shared::minwindef::{LPARAM, WPARAM};
+        use winapi::um::winuser::{IMAGE_BITMAP, STM_SETIMAGE};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let image_handle = image.map(|i| i.handle as LPARAM).unwrap_or(0);
         let prev_img = wh::send_message(handle, STM_SETIMAGE, IMAGE_BITMAP as WPARAM, image_handle);
         if prev_img != 0 {
-            unsafe { DeleteObject(prev_img as _); }
+            unsafe {
+                DeleteObject(prev_img as _);
+            }
         }
     }
 
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_icon<'a>(&self, image: Option<&'a Icon>) {
-        use winapi::um::winuser::{STM_SETIMAGE, IMAGE_ICON};
-        use winapi::shared::minwindef::{WPARAM, LPARAM};
+        use winapi::shared::minwindef::{LPARAM, WPARAM};
+        use winapi::um::winuser::{IMAGE_ICON, STM_SETIMAGE};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let image_handle = image.map(|i| i.handle as LPARAM).unwrap_or(0);
         let prev_img = wh::send_message(handle, STM_SETIMAGE, IMAGE_ICON as WPARAM, image_handle);
         if prev_img != 0 {
-            unsafe { DeleteObject(prev_img as _); }
+            unsafe {
+                DeleteObject(prev_img as _);
+            }
         }
     }
 
@@ -108,10 +106,10 @@ impl ImageFrame {
     /// If the image frame has a bitmap, the value will be returned in `bitmap`
     /// If the image frame has a icon, the value will be returned in `icon`
     pub fn image<'a>(&self, bitmap: &mut Option<Bitmap>, icon: &mut Option<Icon>) {
-        use winapi::um::winuser::{STM_GETIMAGE, IMAGE_BITMAP, IMAGE_ICON};
         use winapi::shared::minwindef::WPARAM;
         use winapi::shared::windef::HBITMAP;
         use winapi::um::winnt::HANDLE;
+        use winapi::um::winuser::{IMAGE_BITMAP, IMAGE_ICON, STM_GETIMAGE};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let bitmap_handle = wh::send_message(handle, STM_GETIMAGE, IMAGE_BITMAP as WPARAM, 0);
@@ -121,9 +119,15 @@ impl ImageFrame {
         *icon = None;
 
         if bitmap_handle != 0 && rh::is_bitmap(bitmap_handle as HBITMAP) {
-            *bitmap = Some(Bitmap { handle: bitmap_handle as HANDLE, owned: false });
+            *bitmap = Some(Bitmap {
+                handle: bitmap_handle as HANDLE,
+                owned: false,
+            });
         } else if icon_handle != 0 {
-            *icon = Some(Icon { handle: icon_handle as HANDLE, owned: false });
+            *icon = Some(Icon {
+                handle: icon_handle as HANDLE,
+                owned: false,
+            });
         }
     }
 
@@ -139,7 +143,7 @@ impl ImageFrame {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -188,7 +192,7 @@ impl ImageFrame {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{SS_NOTIFY, WS_CHILD, SS_CENTERIMAGE};
+        use winapi::um::winuser::{SS_CENTERIMAGE, SS_NOTIFY, WS_CHILD};
 
         WS_CHILD | SS_NOTIFY | SS_CENTERIMAGE
     }
@@ -197,34 +201,39 @@ impl ImageFrame {
     /// Change the checkbox background color.
     fn hook_background_color(&mut self, c: [u8; 3]) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::um::winuser::{WM_CTLCOLORSTATIC};
-        use winapi::shared::{basetsd::UINT_PTR, windef::{HWND}, minwindef::LRESULT};
+        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
         use winapi::um::wingdi::{CreateSolidBrush, RGB};
+        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
         let brush = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
         self.background_brush = Some(brush);
-        
-        let handler = bind_raw_event_handler_inner(&parent_handle, handle as UINT_PTR, move |_hwnd, msg, _w, l| {
-            match msg {
-                WM_CTLCOLORSTATIC => {
-                    let child = l as HWND;
-                    if child == handle {
-                        return Some(brush as LRESULT);
-                    }
-                },
-                _ => {}
-            }
 
-            None
-        });
+        let handler = bind_raw_event_handler_inner(
+            &parent_handle,
+            handle as UINT_PTR,
+            move |_hwnd, msg, _w, l| {
+                match msg {
+                    WM_CTLCOLORSTATIC => {
+                        let child = l as HWND;
+                        if child == handle {
+                            return Some(brush as LRESULT);
+                        }
+                    }
+                    _ => {}
+                }
+
+                None
+            },
+        );
 
         *self.handler0.borrow_mut() = Some(handler.unwrap());
     }
-
 }
 
 impl Drop for ImageFrame {
@@ -235,7 +244,9 @@ impl Drop for ImageFrame {
         }
 
         if let Some(bg) = self.background_brush {
-            unsafe { DeleteObject(bg as _); }
+            unsafe {
+                DeleteObject(bg as _);
+            }
         }
 
         self.handle.destroy();
@@ -254,7 +265,6 @@ pub struct ImageFrameBuilder<'a> {
 }
 
 impl<'a> ImageFrameBuilder<'a> {
-
     pub fn flags(mut self, flags: ImageFrameFlags) -> ImageFrameBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -290,7 +300,7 @@ impl<'a> ImageFrameBuilder<'a> {
         self
     }
 
-    pub fn background_color(mut self, color: Option<[u8;3]>) -> ImageFrameBuilder<'a> {
+    pub fn background_color(mut self, color: Option<[u8; 3]>) -> ImageFrameBuilder<'a> {
         self.background_color = color;
         self
     }
@@ -304,10 +314,10 @@ impl<'a> ImageFrameBuilder<'a> {
         } else {
             flags |= SS_BITMAP;
         }
-        
+
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("ImageFrame"))
+            None => Err(NwgError::no_parent("ImageFrame")),
         }?;
 
         *out = Default::default();
@@ -334,7 +344,6 @@ impl<'a> ImageFrameBuilder<'a> {
 
         Ok(())
     }
-
 }
 
 impl PartialEq for ImageFrame {

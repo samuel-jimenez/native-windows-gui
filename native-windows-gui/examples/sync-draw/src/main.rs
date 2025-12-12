@@ -7,10 +7,10 @@
 // Disable this to show the console
 #![windows_subsystem = "windows"]
 
-extern crate native_windows_gui as nwg;
-extern crate native_windows_derive as nwd;
-extern crate glutin;
 extern crate gl;
+extern crate glutin;
+extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 mod win32_event;
 use win32_event::{Win32Event, Win32EventWaitResult};
@@ -19,7 +19,7 @@ mod opengl_canvas;
 use opengl_canvas::OpenGlCanvas;
 
 mod shared_memory;
-use shared_memory::{SharedMemory};
+use shared_memory::SharedMemory;
 
 mod data;
 use data::{AppData, AppMode};
@@ -30,13 +30,11 @@ use nwg::NativeUi;
 use std::cell::RefCell;
 use std::time::Duration;
 
-
 /**
     Base of the main application. Regroups the UI definition and the application data.
 */
 #[derive(Default, NwgUi)]
 pub struct SyncDraw {
-
     // Application data
     data: RefCell<AppData>,
 
@@ -47,7 +45,7 @@ pub struct SyncDraw {
 
     // Window and layout
     #[nwg_control(size: (400, 300), position: (700, 150), title: "SyncDraw", icon: Some(&data.pen_icon), flags: "MAIN_WINDOW" )]
-    #[nwg_events( 
+    #[nwg_events(
         OnWindowClose: [SyncDraw::exit], OnInit: [SyncDraw::setup],
         OnResize: [SyncDraw::update_size], OnResizeEnd: [SyncDraw::update_size], OnWindowMaximize: [SyncDraw::update_size]
     )]
@@ -91,11 +89,10 @@ pub struct SyncDraw {
 
     // Status bar
     #[nwg_control(parent: window, font: Some(&data.font))]
-    status: nwg::StatusBar
+    status: nwg::StatusBar,
 }
 
 impl SyncDraw {
-
     /// Initial application setup when the event queue just started.
     fn setup(&self) {
         {
@@ -104,13 +101,21 @@ impl SyncDraw {
             data.listen_events(self.notice.sender());
 
             self.mode_lbl.set_size(50, 30);
-            self.window.set_text(&format!("SyncDraw - {}", data.instance_id));
-            self.status.set_text(0, &format!("Current mode: {:?}; Instances linked: {}", data.mode, data.instances_count()));
+            self.window
+                .set_text(&format!("SyncDraw - {}", data.instance_id));
+            self.status.set_text(
+                0,
+                &format!(
+                    "Current mode: {:?}; Instances linked: {}",
+                    data.mode,
+                    data.instances_count()
+                ),
+            );
         }
 
         self.window.set_visible(true);
     }
-    
+
     /// Update the current mode of syndraw
     fn update_mode(&self, control: &nwg::Button) {
         let mut data = self.data.borrow_mut();
@@ -118,10 +123,17 @@ impl SyncDraw {
         if control == &self.pencil_btn {
             data.mode = AppMode::Draw;
         } else if control == &self.eraser_btn {
-            data.mode = AppMode::Erase; 
+            data.mode = AppMode::Erase;
         }
 
-        self.status.set_text(0, &format!("Current mode: {:?}; Instances linked: {}", data.mode, data.instances_count()));
+        self.status.set_text(
+            0,
+            &format!(
+                "Current mode: {:?}; Instances linked: {}",
+                data.mode,
+                data.instances_count()
+            ),
+        );
     }
 
     /// Update the drawing state of syncdraw
@@ -132,16 +144,20 @@ impl SyncDraw {
         let mut data = self.data.borrow_mut();
 
         match evt {
-            E::OnMousePress(MousePressLeftDown) => { data.drawing = true; },
-            E::OnMousePress(MousePressLeftUp) => { data.drawing = false; },
-            _ => unreachable!()
+            E::OnMousePress(MousePressLeftDown) => {
+                data.drawing = true;
+            }
+            E::OnMousePress(MousePressLeftUp) => {
+                data.drawing = false;
+            }
+            _ => unreachable!(),
         }
     }
 
     /// Resize the canvas to match the new window size. Also update the shared texture data.
     fn update_size(&self) {
         let (width, height) = self.canvas.size();
-    
+
         // After the texture was resized write the new data to the shared memory
         self.canvas.resize_texture(width, height, true);
         self.update_texture();
@@ -173,14 +189,23 @@ impl SyncDraw {
         let texture_data = data.texture_data();
         self.canvas.set_texture_data(w2, h2, &texture_data);
         self.canvas.render();
-        self.status.set_text(0, &format!("Current mode: {:?}; Instances linked: {}", data.mode, data.instances_count()));
+        self.status.set_text(
+            0,
+            &format!(
+                "Current mode: {:?}; Instances linked: {}",
+                data.mode,
+                data.instances_count()
+            ),
+        );
         self.invalidate_canvas();
     }
 
     /// Paint with the mouse in the canvas
     fn paint(&self) {
         let data = self.data.borrow();
-        if !data.drawing { return; }
+        if !data.drawing {
+            return;
+        }
 
         let local_pos = nwg::GlobalCursor::local_position(&self.canvas, None);
 
@@ -217,10 +242,11 @@ impl SyncDraw {
     fn invalidate_canvas(&self) {
         use winapi::um::winuser::InvalidateRect;
         let handle = self.window.handle.hwnd().unwrap();
-        unsafe { InvalidateRect(handle, ::std::ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ::std::ptr::null(), 1);
+        }
     }
 }
-
 
 const ERR: &'static str = "Failed to initialize the SyncDraw";
 
@@ -233,7 +259,7 @@ fn init_shared_memory(app: &SyncDraw) {
     }
 
     data.set_window_size(app.window.size());
-    
+
     let (tw, th) = app.canvas.texture_size();
     let texture = app.canvas.texture_data();
     data.set_texture_data(tw, th, &texture);
@@ -261,9 +287,12 @@ fn init_app() -> Result<(), &'static str> {
     nwg::init().map_err(|_e| ERR)?;
 
     let data = AppData::new();
-    let app = SyncDraw { data: RefCell::new(data), ..Default::default() };
+    let app = SyncDraw {
+        data: RefCell::new(data),
+        ..Default::default()
+    };
     let app = SyncDraw::build_ui(app).map_err(|_e| ERR)?;
-    
+
     app.canvas.create_context().map_err(|_e| ERR)?;
 
     init_shared_memory(&app);

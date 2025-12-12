@@ -1,17 +1,16 @@
-use winapi::um::memoryapi::{MapViewOfFile, UnmapViewOfFile, FILE_MAP_ALL_ACCESS};
-use winapi::um::handleapi::CloseHandle;
-use winapi::um::winnt::{HANDLE, WCHAR};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::basetsd::SIZE_T;
-use std::{ptr, mem};
 use crate::opengl_canvas::Texel;
+use std::{mem, ptr};
+use winapi::shared::basetsd::SIZE_T;
+use winapi::shared::minwindef::DWORD;
+use winapi::um::handleapi::CloseHandle;
+use winapi::um::memoryapi::{MapViewOfFile, UnmapViewOfFile, FILE_MAP_ALL_ACCESS};
+use winapi::um::winnt::{HANDLE, WCHAR};
 
 const NAME: &'static str = "SyncDraw_Shared_Memory";
 const HEADER_SIZE: SIZE_T = mem::size_of::<SharedHeader>() as SIZE_T;
 const DATA_SIZE: SIZE_T = mem::size_of::<SharedData>() as SIZE_T;
-const MAX_TEXTURE_PIXELS: usize = 7000*4320;
+const MAX_TEXTURE_PIXELS: usize = 7000 * 4320;
 type Size = (u32, u32);
-
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -26,29 +25,27 @@ struct SharedHeader {
     instances: [u32; 32],
 }
 
-
 #[repr(C)]
 struct SharedData {
     /// Shared data between instances
     header: SharedHeader,
 
     /// Shared texture data.
-    texture_data: [Texel; MAX_TEXTURE_PIXELS]
+    texture_data: [Texel; MAX_TEXTURE_PIXELS],
 }
 
 /**
     A wrapper over a named shared memory.
 */
 pub struct SharedMemory {
-    handle: HANDLE
+    handle: HANDLE,
 }
 
 impl SharedMemory {
-
     /// Try to create a new shared memory region
     pub fn new() -> SharedMemory {
-        use winapi::um::memoryapi::{CreateFileMappingW};
         use winapi::um::handleapi::INVALID_HANDLE_VALUE;
+        use winapi::um::memoryapi::CreateFileMappingW;
         use winapi::um::winnt::PAGE_READWRITE;
 
         let handle = unsafe {
@@ -60,7 +57,7 @@ impl SharedMemory {
                 PAGE_READWRITE,
                 0,
                 buffer_size,
-                name.as_ptr()
+                name.as_ptr(),
             );
 
             if handle.is_null() {
@@ -70,9 +67,7 @@ impl SharedMemory {
             handle
         };
 
-        SharedMemory {
-            handle
-        }
+        SharedMemory { handle }
     }
 
     /// Try to load an existing shared memory region
@@ -88,21 +83,20 @@ impl SharedMemory {
 
             handle
         };
-        
-        SharedMemory {
-            handle
-        }
+
+        SharedMemory { handle }
     }
 
     /// Close the handle to the shared memory
     /// Also removes the current instance from the instance list
     pub fn close(&self, id: u32) {
         unsafe {
-            let header_ptr = SharedMemory::map_view(self.handle, 0, HEADER_SIZE) as *mut SharedHeader;
+            let header_ptr =
+                SharedMemory::map_view(self.handle, 0, HEADER_SIZE) as *mut SharedHeader;
             let header = &mut *header_ptr;
 
-            match header.instances.iter_mut().find(|h| **h == id ) {
-                Some(handle) => { *handle = 0 },
+            match header.instances.iter_mut().find(|h| **h == id) {
+                Some(handle) => *handle = 0,
                 None => {}
             }
 
@@ -117,7 +111,12 @@ impl SharedMemory {
         let header_ptr = SharedMemory::map_view(self.handle, 0, HEADER_SIZE) as *mut SharedHeader;
         let instances: Vec<DWORD> = unsafe {
             let header = &mut *header_ptr;
-            header.instances.iter().filter(|&&i| i != 0 ).map(|i| *i).collect()
+            header
+                .instances
+                .iter()
+                .filter(|&&i| i != 0)
+                .map(|i| *i)
+                .collect()
         };
 
         SharedMemory::unmap_view(header_ptr);
@@ -140,13 +139,15 @@ impl SharedMemory {
     }
 
     /// Saves the selected id in the instance list
-    pub fn save_instance_id(&self, instance_id: u32)  {
+    pub fn save_instance_id(&self, instance_id: u32) {
         let header_ptr = SharedMemory::map_view(self.handle, 0, HEADER_SIZE) as *mut SharedHeader;
         let header = unsafe { &mut *header_ptr };
 
-        match header.instances.iter_mut().find(|h| **h == 0 ) {
-            Some(handle) => { *handle = instance_id; },
-            None => panic!("No more space left in the instance list")
+        match header.instances.iter_mut().find(|h| **h == 0) {
+            Some(handle) => {
+                *handle = instance_id;
+            }
+            None => panic!("No more space left in the instance list"),
         }
 
         SharedMemory::unmap_view(header_ptr);
@@ -188,14 +189,20 @@ impl SharedMemory {
 
         let pixel_count = (width * height) as usize;
         if pixel_count > MAX_TEXTURE_PIXELS {
-            panic!("Texture is bigger than shared buffer: texture {} VS buffer {}", pixel_count, MAX_TEXTURE_PIXELS);
+            panic!(
+                "Texture is bigger than shared buffer: texture {} VS buffer {}",
+                pixel_count, MAX_TEXTURE_PIXELS
+            );
         }
 
         data.header.texture_width = width;
         data.header.texture_height = height;
         unsafe {
-            
-            ptr::copy_nonoverlapping(texture_data.as_ptr(), data.texture_data.as_mut_ptr(), pixel_count);
+            ptr::copy_nonoverlapping(
+                texture_data.as_ptr(),
+                data.texture_data.as_mut_ptr(),
+                pixel_count,
+            );
         }
 
         SharedMemory::unmap_view(data_ptr);
@@ -206,7 +213,7 @@ impl SharedMemory {
         let data_ptr = SharedMemory::map_view(self.handle, 0, DATA_SIZE) as *mut SharedData;
         let data = unsafe { &*data_ptr };
 
-        // Pixel count will never be bigger than the capacity of the shared texture. 
+        // Pixel count will never be bigger than the capacity of the shared texture.
         // `set_texture_data` ensures that.
         let pixel_count = (data.header.texture_width * data.header.texture_height) as usize;
         let texture_data: &[Texel] = &data.texture_data[0..pixel_count];
@@ -214,7 +221,11 @@ impl SharedMemory {
         let mut out_texture_data = Vec::with_capacity(pixel_count);
         unsafe {
             out_texture_data.set_len(pixel_count);
-            ptr::copy_nonoverlapping(texture_data.as_ptr(), out_texture_data.as_mut_ptr(), pixel_count);
+            ptr::copy_nonoverlapping(
+                texture_data.as_ptr(),
+                out_texture_data.as_mut_ptr(),
+                pixel_count,
+            );
         }
 
         SharedMemory::unmap_view(data_ptr);
@@ -234,14 +245,13 @@ impl SharedMemory {
 
     /// Safe wrapper over MapViewOfFile
     fn map_view(handle: HANDLE, offset: DWORD, size: SIZE_T) -> *mut u8 {
-        
-            let handle = unsafe { MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, offset, size) as *mut u8 };
-            if handle.is_null() {
-                panic!("Could not map memory region");
-            }
+        let handle =
+            unsafe { MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, offset, size) as *mut u8 };
+        if handle.is_null() {
+            panic!("Could not map memory region");
+        }
 
-            handle
-        
+        handle
     }
 
     /// Safe wrapper over UnmapViewOfFile
@@ -250,16 +260,12 @@ impl SharedMemory {
             UnmapViewOfFile(handle as _);
         }
     }
-
 }
 
 impl Default for SharedMemory {
-
     fn default() -> SharedMemory {
         SharedMemory {
-            handle: ptr::null_mut()
+            handle: ptr::null_mut(),
         }
     }
-
 }
-

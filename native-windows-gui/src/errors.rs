@@ -1,5 +1,5 @@
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 #[cfg(feature = "plotting")]
 use crate::win32::plotters_d2d::PlottersError;
@@ -10,7 +10,7 @@ use crate::win32::plotters_d2d::PlottersError;
 #[derive(Debug, Clone)]
 pub enum NwgError {
     Unknown,
-    
+
     /// Fatal error raised when calling low level winapi functionalities
     InitializationError(String),
 
@@ -47,7 +47,6 @@ pub enum NwgError {
 }
 
 impl NwgError {
-
     pub fn initialization<S: Into<String>>(e: S) -> NwgError {
         NwgError::InitializationError(e.into())
     }
@@ -94,7 +93,6 @@ impl NwgError {
     pub fn no_parent_menu() -> NwgError {
         NwgError::MenuCreationError("No parent defined for menu".to_string())
     }
-
 }
 
 impl fmt::Display for NwgError {
@@ -109,7 +107,7 @@ impl fmt::Display for NwgError {
             ResourceCreationError(reason) => write!(f, "Failed to create a resource: {:?}", reason),
             LayoutCreationError(reason) => write!(f, "Failed to create a layout: {:?}", reason),
             EventsBinding(reason) => write!(f, "Failed to bind events: {:?}", reason),
-            
+
             #[cfg(feature = "file-dialog")]
             FileDialogError(reason) => write!(f, "File dialog actions failed: {:?}", reason),
 
@@ -122,7 +120,6 @@ impl fmt::Display for NwgError {
             #[cfg(feature = "plotting")]
             Plotters(reason) => write!(f, "Plotting canvas function failed: {}", reason),
         }
-        
     }
 }
 

@@ -1,15 +1,12 @@
-use winapi::um::winuser::{WS_DISABLED, BS_ICON, BS_BITMAP, BS_NOTIFY, WS_VISIBLE, WS_TABSTOP, WS_CHILD};
-use crate::win32::{
-    base_helper::check_hwnd,  
-    window_helper as wh,
-    resources_helper as rh
-};
-use crate::{NwgError, Font, Bitmap, Icon};
 use super::{ControlBase, ControlHandle};
+use crate::win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh};
+use crate::{Bitmap, Font, Icon, NwgError};
+use winapi::um::winuser::{
+    BS_BITMAP, BS_ICON, BS_NOTIFY, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE,
+};
 
 const NOT_BOUND: &'static str = "Button is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Button handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -75,11 +72,10 @@ fn build_button(button: &mut nwg::Button, window: &nwg::Window, font: &nwg::Font
 */
 #[derive(Default, Eq, PartialEq)]
 pub struct Button {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl Button {
-
     pub fn builder<'a>() -> ButtonBuilder<'a> {
         ButtonBuilder {
             text: "Button",
@@ -92,7 +88,7 @@ impl Button {
             parent: None,
             bitmap: None,
             icon: None,
-            focus: false
+            focus: false,
         }
     }
 
@@ -106,8 +102,8 @@ impl Button {
     /// Sets the bitmap image of the button. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_bitmap<'a>(&self, image: Option<&'a Bitmap>) {
+        use winapi::shared::minwindef::{LPARAM, WPARAM};
         use winapi::um::winuser::{BM_SETIMAGE, IMAGE_BITMAP};
-        use winapi::shared::minwindef::{WPARAM, LPARAM};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -118,8 +114,8 @@ impl Button {
     /// Sets the bitmap image of the button. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_icon<'a>(&self, image: Option<&'a Icon>) {
+        use winapi::shared::minwindef::{LPARAM, WPARAM};
         use winapi::um::winuser::{BM_SETIMAGE, IMAGE_ICON};
-        use winapi::shared::minwindef::{WPARAM, LPARAM};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -131,10 +127,10 @@ impl Button {
     /// If the button has a bitmap, the value will be returned in `bitmap`
     /// If the button has a icon, the value will be returned in `icon`
     pub fn image<'a>(&self, bitmap: &mut Option<Bitmap>, icon: &mut Option<Icon>) {
-        use winapi::um::winuser::{BM_GETIMAGE, IMAGE_BITMAP, IMAGE_ICON};
         use winapi::shared::minwindef::WPARAM;
         use winapi::shared::windef::HBITMAP;
         use winapi::um::winnt::HANDLE;
+        use winapi::um::winuser::{BM_GETIMAGE, IMAGE_BITMAP, IMAGE_ICON};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -145,9 +141,15 @@ impl Button {
         *icon = None;
 
         if bitmap_handle != 0 && rh::is_bitmap(bitmap_handle as HBITMAP) {
-            *bitmap = Some(Bitmap { handle: bitmap_handle as HANDLE, owned: false });
+            *bitmap = Some(Bitmap {
+                handle: bitmap_handle as HANDLE,
+                owned: false,
+            });
         } else if icon_handle != 0 {
-            *icon = Some(Icon { handle: icon_handle as HANDLE, owned: false });
+            *icon = Some(Icon {
+                handle: icon_handle as HANDLE,
+                owned: false,
+            });
         }
     }
 
@@ -159,14 +161,18 @@ impl Button {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Sets the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Returns true if the control currently has the keyboard focus
@@ -178,7 +184,9 @@ impl Button {
     /// Sets the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Returns true if the control user can interact with the control, return false otherwise
@@ -193,7 +201,7 @@ impl Button {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -231,7 +239,7 @@ impl Button {
     }
 
     /// Returns the button label
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -256,7 +264,6 @@ impl Button {
     pub fn forced_flags(&self) -> u32 {
         WS_CHILD
     }
-
 }
 
 impl Drop for Button {
@@ -280,7 +287,6 @@ pub struct ButtonBuilder<'a> {
 }
 
 impl<'a> ButtonBuilder<'a> {
-
     pub fn flags(mut self, flags: ButtonFlags) -> ButtonBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -341,7 +347,7 @@ impl<'a> ButtonBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("Button"))
+            None => Err(NwgError::no_parent("Button")),
         }?;
 
         // Drop the old object
@@ -378,5 +384,4 @@ impl<'a> ButtonBuilder<'a> {
 
         Ok(())
     }
-
 }

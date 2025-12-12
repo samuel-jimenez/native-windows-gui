@@ -1,12 +1,11 @@
-use winapi::um::winuser::{WS_VISIBLE, ES_MULTILINE, WS_DISABLED, EM_SETSEL};
-use crate::win32::window_helper as wh;
+use super::{CharFormat, ControlBase, ControlHandle, ParaFormat};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::richedit as rich;
-use crate::{Font, NwgError, RawEventHandler, HTextAlign, unbind_raw_event_handler};
-use super::{ControlBase, ControlHandle, CharFormat, ParaFormat};
+use crate::win32::window_helper as wh;
+use crate::{unbind_raw_event_handler, Font, HTextAlign, NwgError, RawEventHandler};
+use winapi::um::winuser::{EM_SETSEL, ES_MULTILINE, WS_DISABLED, WS_VISIBLE};
 
-use std::{rc::Rc, ops::Range, cell::RefCell};
-
+use std::{cell::RefCell, ops::Range, rc::Rc};
 
 const NOT_BOUND: &'static str = "RichLabel is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: RichLabel handle is not HWND!";
@@ -27,7 +26,6 @@ bitflags! {
         const MULTI_LINE = ES_MULTILINE;
     }
 }
-
 
 /**
 A rich label is a label that supports rich text. This control is built on top of the rich text box control and as such
@@ -82,7 +80,6 @@ pub struct RichLabel {
 }
 
 impl RichLabel {
-
     pub fn builder<'a>() -> RichLabelBuilder<'a> {
         RichLabelBuilder {
             text: "A rich label",
@@ -158,7 +155,10 @@ impl RichLabel {
         let (ptr1, ptr2) = (&mut out1 as *mut u32, &mut out2 as *mut u32);
         wh::send_message(handle, EM_GETSEL as u32, ptr1 as _, ptr2 as _);
 
-        Range { start: out1 as usize, end: out2 as usize }
+        Range {
+            start: out1 as usize,
+            end: out2 as usize,
+        }
     }
 
     /// Return the selected range of characters by the user in the text input
@@ -195,10 +195,12 @@ impl RichLabel {
     /// It is not possible to get the base font handle of a rich label. Use `char_format` instead.
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -236,7 +238,7 @@ impl RichLabel {
     }
 
     /// Return the text displayed in the TextInput
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -260,17 +262,22 @@ impl RichLabel {
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
         use winapi::um::winuser::{ES_READONLY, WS_CHILD};
-        
+
         ES_READONLY | WS_CHILD
     }
 
     unsafe fn override_events(&self) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::windef::{RECT, HBRUSH, POINT};
-        use winapi::um::winuser::{WM_NCCALCSIZE, WM_SIZE, WM_NCPAINT};
-        use winapi::um::winuser::{SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOMOVE, SWP_FRAMECHANGED, COLOR_WINDOW, NCCALCSIZE_PARAMS};
-        use winapi::um::winuser::{GetDC, ReleaseDC, GetClientRect, GetWindowRect, ScreenToClient, FillRect, SetWindowPos};
         use std::{mem, ptr};
+        use winapi::shared::windef::{HBRUSH, POINT, RECT};
+        use winapi::um::winuser::{
+            FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient, SetWindowPos,
+        };
+        use winapi::um::winuser::{
+            COLOR_WINDOW, NCCALCSIZE_PARAMS, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER,
+            SWP_NOSIZE,
+        };
+        use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE};
 
         let callback_line_height = self.line_height.clone();
 
@@ -279,7 +286,9 @@ impl RichLabel {
             match msg {
                 WM_NCCALCSIZE => {
                     let client_height = *callback_line_height.borrow();
-                    if w == 0 || client_height.is_none() { return None }
+                    if w == 0 || client_height.is_none() {
+                        return None;
+                    }
 
                     let client_height = client_height.unwrap();
 
@@ -300,34 +309,42 @@ impl RichLabel {
                     info.rgrc[0].bottom -= center;
 
                     None
-                },
+                }
                 WM_NCPAINT => {
                     let client_height = *callback_line_height.borrow();
-                    if client_height.is_none() { return None }
+                    if client_height.is_none() {
+                        return None;
+                    }
 
                     let mut window: RECT = mem::zeroed();
                     let mut client: RECT = mem::zeroed();
                     GetWindowRect(hwnd, &mut window);
                     GetClientRect(hwnd, &mut client);
 
-                    let mut pt1 = POINT {x: window.left, y: window.top};
+                    let mut pt1 = POINT {
+                        x: window.left,
+                        y: window.top,
+                    };
                     ScreenToClient(hwnd, &mut pt1);
 
-                    let mut pt2 = POINT {x: window.right, y: window.bottom};
+                    let mut pt2 = POINT {
+                        x: window.right,
+                        y: window.bottom,
+                    };
                     ScreenToClient(hwnd, &mut pt2);
 
                     let top = RECT {
                         left: 0,
                         top: pt1.y,
                         right: client.right,
-                        bottom: client.top
+                        bottom: client.top,
                     };
 
                     let bottom = RECT {
                         left: 0,
                         top: client.bottom,
                         right: client.right,
-                        bottom: pt2.y
+                        bottom: pt2.y,
                     };
 
                     let dc = GetDC(hwnd);
@@ -336,18 +353,25 @@ impl RichLabel {
                     FillRect(dc, &bottom, brush);
                     ReleaseDC(hwnd, dc);
                     None
-                },
+                }
                 WM_SIZE => {
-                    SetWindowPos(hwnd, ptr::null_mut(), 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED);
+                    SetWindowPos(
+                        hwnd,
+                        ptr::null_mut(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
+                    );
                     None
-                },
-                _ => None
-            }            
+                }
+                _ => None,
+            }
         });
 
         *self.handler0.borrow_mut() = Some(handler0.unwrap());
     }
-
 }
 
 impl PartialEq for RichLabel {
@@ -381,7 +405,6 @@ pub struct RichLabelBuilder<'a> {
 }
 
 impl<'a> RichLabelBuilder<'a> {
-
     pub fn text(mut self, text: &'a str) -> RichLabelBuilder<'a> {
         self.text = text;
         self
@@ -433,23 +456,29 @@ impl<'a> RichLabelBuilder<'a> {
     }
 
     pub fn build(self, out: &mut RichLabel) -> Result<(), NwgError> {
-        use winapi::um::winuser::{SS_LEFT, SS_RIGHT, SS_CENTER};
+        use winapi::um::winuser::{SS_CENTER, SS_LEFT, SS_RIGHT};
 
         let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
         match self.h_align {
-            HTextAlign::Left => { flags |= SS_LEFT; },
-            HTextAlign::Right => { flags |= SS_RIGHT; },
-            HTextAlign::Center => { flags |= SS_CENTER; },
+            HTextAlign::Left => {
+                flags |= SS_LEFT;
+            }
+            HTextAlign::Right => {
+                flags |= SS_RIGHT;
+            }
+            HTextAlign::Center => {
+                flags |= SS_CENTER;
+            }
         }
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("RichLabel"))
+            None => Err(NwgError::no_parent("RichLabel")),
         }?;
 
         // Drop the old object
         *out = Default::default();
-    
+
         *out.line_height.borrow_mut() = self.line_height;
         out.handle = ControlBase::build_hwnd()
             .class_name(out.class_name())
@@ -476,9 +505,10 @@ impl<'a> RichLabelBuilder<'a> {
             }
         }
 
-        unsafe { out.override_events(); }
+        unsafe {
+            out.override_events();
+        }
 
         Ok(())
     }
-
 }

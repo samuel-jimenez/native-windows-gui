@@ -1,15 +1,13 @@
-use crate::nwg;
 use crate::gl;
 use crate::glutin::{
-    ContextBuilder, GlRequest, GlProfile, PossiblyCurrent, RawContext, Api,
-    dpi::PhysicalSize,
-    os::windows::RawContextExt
+    dpi::PhysicalSize, os::windows::RawContextExt, Api, ContextBuilder, GlProfile, GlRequest,
+    PossiblyCurrent, RawContext,
 };
+use crate::nwg;
 
 use std::cell::RefCell;
 use std::ffi::c_void;
-use std::{ptr, mem};
-
+use std::{mem, ptr};
 
 /**
     A macro that loads the required opengl functions pointers.
@@ -23,14 +21,12 @@ macro_rules! gl {
 pub type Texel = [u8; 4];
 type Ctx = RawContext<PossiblyCurrent>;
 
-
 #[derive(Default, Copy, Clone)]
 pub struct Texture {
     handle: u32,
     width: u32,
-    height: u32
+    height: u32,
 }
-
 
 /**
     A wrapper over an extern canvas that adds support for opengl.
@@ -47,7 +43,6 @@ pub struct OpenGlCanvas {
 nwg::subclass_control!(OpenGlCanvas, ExternCanvas, canvas);
 
 impl OpenGlCanvas {
-
     /// Create an opengl canvas with glutin & gl
     pub fn create_context(&self) -> Result<(), &'static str> {
         let (ctx, texture) = unsafe {
@@ -60,20 +55,65 @@ impl OpenGlCanvas {
                 .map_err(|_e| "Failed to set opengl context as current")?;
 
             // Load the opengl functions pointers.
-            gl!( ctx, [
-                Clear, ClearColor, Viewport, CreateShader, ShaderSource, CompileShader, CreateProgram, AttachShader, LinkProgram, UseProgram,
-                GenBuffers, BindBuffer, BufferData, GenVertexArrays, BindVertexArray, EnableVertexAttribArray, VertexAttribPointer, DrawArrays,
-                TexParameteri, TexParameterfv, GenTextures, BindTexture, TexStorage2D, TexSubImage2D, GetShaderiv, GetShaderInfoLog,
-                GetProgramiv, GetProgramInfoLog, BindTexture, ActiveTexture, DeleteTextures, GetnTexImage, PixelStorei, CopyImageSubData
-            ]);
+            gl!(
+                ctx,
+                [
+                    Clear,
+                    ClearColor,
+                    Viewport,
+                    CreateShader,
+                    ShaderSource,
+                    CompileShader,
+                    CreateProgram,
+                    AttachShader,
+                    LinkProgram,
+                    UseProgram,
+                    GenBuffers,
+                    BindBuffer,
+                    BufferData,
+                    GenVertexArrays,
+                    BindVertexArray,
+                    EnableVertexAttribArray,
+                    VertexAttribPointer,
+                    DrawArrays,
+                    TexParameteri,
+                    TexParameterfv,
+                    GenTextures,
+                    BindTexture,
+                    TexStorage2D,
+                    TexSubImage2D,
+                    GetShaderiv,
+                    GetShaderInfoLog,
+                    GetProgramiv,
+                    GetProgramInfoLog,
+                    BindTexture,
+                    ActiveTexture,
+                    DeleteTextures,
+                    GetnTexImage,
+                    PixelStorei,
+                    CopyImageSubData
+                ]
+            );
 
             // Initial GL setup
             gl::ClearColor(1.0, 1.0, 1.0, 1.0);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_BORDER as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_BORDER as i32);
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_BORDER as i32,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_BORDER as i32,
+            );
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-            gl::TexParameterfv(gl::TEXTURE_2D, gl::TEXTURE_BORDER_COLOR, [1.0, 1.0, 1.0, 1.0].as_ptr());
+            gl::TexParameterfv(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_BORDER_COLOR,
+                [1.0, 1.0, 1.0, 1.0].as_ptr(),
+            );
 
             // Shaders
             let vs = gl::CreateShader(gl::VERTEX_SHADER);
@@ -105,13 +145,8 @@ impl OpenGlCanvas {
 
             // Mesh
             let vertex_data: &[f32] = &[
-               -1.0,  1.0,   0.0, 0.0,
-               -1.0, -1.0,   0.0, 1.0,
-                1.0, -1.0,   1.0, 1.0,
-
-               -1.0,  1.0,   0.0, 0.0,
-                1.0,  1.0,   1.0, 0.0,
-                1.0, -1.0,   1.0, 1.0,
+                -1.0, 1.0, 0.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 0.0,
+                0.0, 1.0, 1.0, 1.0, 0.0, 1.0, -1.0, 1.0, 1.0,
             ];
             let vertex_size = vertex_data.len() * mem::size_of::<f32>();
 
@@ -134,14 +169,14 @@ impl OpenGlCanvas {
             gl::EnableVertexAttribArray(1);
 
             let stride = mem::size_of::<f32>() * 4;
-            let color_offset = 8 as *const c_void; 
+            let color_offset = 8 as *const c_void;
             gl::VertexAttribPointer(0, 2, gl::FLOAT, 0, stride as i32, ptr::null());
             gl::VertexAttribPointer(1, 2, gl::FLOAT, 0, stride as i32, color_offset);
 
             let texture = Texture {
                 handle: tex,
                 width,
-                height
+                height,
             };
 
             (ctx, texture)
@@ -156,25 +191,28 @@ impl OpenGlCanvas {
     /// Paints the pixel at `pos` with the selected color.
     pub fn paint(&self, pos: (i32, i32), color: [u8; 4]) {
         const BRUSH: i32 = 10;
-        const HALF_BRUSH: i32 = BRUSH/2;
+        const HALF_BRUSH: i32 = BRUSH / 2;
 
         let (mut x, mut y) = pos;
-        x = (x)-HALF_BRUSH;
-        y = (y)-HALF_BRUSH;
+        x = (x) - HALF_BRUSH;
+        y = (y) - HALF_BRUSH;
 
-        let mut data = Vec::with_capacity((BRUSH*BRUSH) as usize);
-        for _ in 0..(BRUSH*BRUSH) {
+        let mut data = Vec::with_capacity((BRUSH * BRUSH) as usize);
+        for _ in 0..(BRUSH * BRUSH) {
             data.push(color);
         }
-        
+
         unsafe {
             gl::TexSubImage2D(
                 gl::TEXTURE_2D,
-                0,                        // mip level
-                x, y,                     // offset 
-                HALF_BRUSH , HALF_BRUSH,  //size
-                gl::RGBA, gl::UNSIGNED_BYTE,
-                data.as_ptr() as *mut c_void
+                0, // mip level
+                x,
+                y, // offset
+                HALF_BRUSH,
+                HALF_BRUSH, //size
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as *mut c_void,
             );
         }
     }
@@ -215,11 +253,18 @@ impl OpenGlCanvas {
 
         unsafe {
             buffer.set_len(tex_size);
-            gl::GetnTexImage(gl::TEXTURE_2D, 0, gl::RGBA, gl::UNSIGNED_BYTE, buffer_size as _, buffer.as_mut_ptr() as *mut c_void);
+            gl::GetnTexImage(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                buffer_size as _,
+                buffer.as_mut_ptr() as *mut c_void,
+            );
         }
 
         buffer
-    } 
+    }
 
     /// Sets the texture content of the canvas
     /// Panics if the size of data is not enough to fill the texture or if the new texture size do not match the old
@@ -227,15 +272,18 @@ impl OpenGlCanvas {
         self.resize_texture(width, height, false);
 
         let texture = self.texture.borrow();
-        
+
         unsafe {
             gl::TexSubImage2D(
                 gl::TEXTURE_2D,
                 0,
-                0, 0,
-                texture.width as _, texture.height as _,
-                gl::RGBA, gl::UNSIGNED_BYTE,
-                data.as_ptr() as *mut c_void
+                0,
+                0,
+                texture.width as _,
+                texture.height as _,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as *mut c_void,
             );
         }
     }
@@ -253,26 +301,33 @@ impl OpenGlCanvas {
             gl::GenTextures(1, &mut tex);
             gl::BindTexture(gl::TEXTURE_2D, tex);
             gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA8, width as _, height as _);
-            
+
             if preserve {
                 clear_texture(width, height);
 
-                let (copy_w, copy_h) = (cmp::min(texture.width, width), cmp::min(texture.height, height));
+                let (copy_w, copy_h) = (
+                    cmp::min(texture.width, width),
+                    cmp::min(texture.height, height),
+                );
                 gl::CopyImageSubData(
-                    texture.handle,       // src
+                    texture.handle, // src
                     gl::TEXTURE_2D,
-                    0,                    // src level
-                    0, 0, 0,              // src XYZ
-                    tex,                  // dst
+                    0, // src level
+                    0,
+                    0,
+                    0,   // src XYZ
+                    tex, // dst
                     gl::TEXTURE_2D,
-                    0,                    // dst level
-                    0, 0, 0,              // dst xyz
-                    copy_w as _,          // width, height, depth
+                    0, // dst level
+                    0,
+                    0,
+                    0,           // dst xyz
+                    copy_w as _, // width, height, depth
                     copy_h as _,
-                    1
+                    1,
                 );
             }
-            
+
             // Free / update the application resources
             gl::DeleteTextures(1, &texture.handle);
             texture.handle = tex;
@@ -280,7 +335,6 @@ impl OpenGlCanvas {
             texture.height = height;
         }
     }
-
 }
 
 unsafe fn check_shader_status(shader: u32) {
@@ -297,8 +351,11 @@ unsafe fn check_shader_status(shader: u32) {
         logs.set_len(error_length as usize);
 
         gl::GetShaderInfoLog(shader, error_length, &mut error_length, logs.as_mut_ptr());
-        
-        panic!("\n\n{}\n\n", CStr::from_ptr(logs.as_ptr()).to_str().unwrap());
+
+        panic!(
+            "\n\n{}\n\n",
+            CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
+        );
     }
 }
 
@@ -316,8 +373,11 @@ unsafe fn check_program_status(program: u32) {
         logs.set_len(error_length as usize);
 
         gl::GetProgramInfoLog(program, error_length, &mut error_length, logs.as_mut_ptr());
-        
-        panic!("\n\n{}\n\n", CStr::from_ptr(logs.as_ptr()).to_str().unwrap());
+
+        panic!(
+            "\n\n{}\n\n",
+            CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
+        );
     }
 }
 
@@ -330,11 +390,14 @@ unsafe fn clear_texture(w: u32, h: u32) {
 
     gl::TexSubImage2D(
         gl::TEXTURE_2D,
-        0,      // mip level
-        0, 0,   // offset 
-        w as _, h as _,
-        gl::RGBA, gl::UNSIGNED_BYTE,
-        texture_data.as_mut_ptr() as *mut c_void
+        0, // mip level
+        0,
+        0, // offset
+        w as _,
+        h as _,
+        gl::RGBA,
+        gl::UNSIGNED_BYTE,
+        texture_data.as_mut_ptr() as *mut c_void,
     );
 }
 
@@ -362,9 +425,8 @@ in vec2 uv;
 out vec4 outColor;
 
 uniform sampler2D target;
- 
+
 void main() {
     outColor = texture(target, uv);
 }
 \0";
-

@@ -1,16 +1,17 @@
-use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL};
-use crate::win32::window_helper as wh;
+use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::richedit as rich;
+use crate::win32::window_helper as wh;
 use crate::{Font, NwgError};
-use super::{ControlBase, ControlHandle};
+use newline_converter::{dos2unix, unix2dos};
 use std::ops::Range;
-use newline_converter::{unix2dos, dos2unix};
+use winapi::shared::minwindef::{LPARAM, WPARAM};
+use winapi::um::winuser::{
+    ES_AUTOHSCROLL, ES_AUTOVSCROLL, WS_DISABLED, WS_HSCROLL, WS_TABSTOP, WS_VISIBLE, WS_VSCROLL,
+};
 
 const NOT_BOUND: &'static str = "RichTextBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: RichTextBox handle is not HWND!";
-
 
 const ES_SAVESEL: u32 = 32768;
 
@@ -44,9 +45,9 @@ bitflags! {
         The effets that can be applied to the text of a rich edit control
 
         * BOLD:      Characters are bold.
-        * ITALIC:    Characters are italic. 
-        * STRIKEOUT: Characters are struck. 
-        * UNDERLINE: Characters are underlined. 
+        * ITALIC:    Characters are italic.
+        * STRIKEOUT: Characters are struck.
+        * UNDERLINE: Characters are underlined.
         * AUTOCOLOR: Characters use the default system color
     */
     pub struct CharEffects: u32 {
@@ -76,7 +77,7 @@ pub enum UnderlineType {
 pub struct CharFormat {
     /// Character effects (bold, italics, strikeout, etc)
     ///
-    /// When returned by `char_format`, specifies which attributes are consistent throughout the entire selection. 
+    /// When returned by `char_format`, specifies which attributes are consistent throughout the entire selection.
     /// For example, if the entire selection is either in italics or not in italics.
     pub effects: Option<CharEffects>,
 
@@ -86,7 +87,7 @@ pub struct CharFormat {
     /// Character offset, in twips, from the baseline. If the value of this member is positive, the character is a superscript; if it is negative, the character is a subscript.
     pub y_offset: Option<i32>,
 
-    /// Text color. This member is ignored if the AUTOCOLOR character effect is specified. 
+    /// Text color. This member is ignored if the AUTOCOLOR character effect is specified.
     pub text_color: Option<[u8; 3]>,
 
     /// The font family name
@@ -96,35 +97,33 @@ pub struct CharFormat {
     pub underline_type: Option<UnderlineType>,
 }
 
-
 #[derive(Copy, Clone, Debug)]
-/// Options used for bulleted or numbered paragraphs. 
+/// Options used for bulleted or numbered paragraphs.
 pub enum ParaNumbering {
-    /// No paragraph numbering or bullets. 
+    /// No paragraph numbering or bullets.
     None,
 
-    /// Insert a bullet at the beginning of each selected paragraph. 
+    /// Insert a bullet at the beginning of each selected paragraph.
     Bullet,
 
-    /// Use Arabic numbers (0, 1, 2, and so on). 
+    /// Use Arabic numbers (0, 1, 2, and so on).
     Arabic,
 
-    /// Use lowercase letters (a, b, c, and so on). 
+    /// Use lowercase letters (a, b, c, and so on).
     LcLetter,
 
-    /// Use lowercase Roman letters (i, ii, iii, and so on). 
+    /// Use lowercase Roman letters (i, ii, iii, and so on).
     LcRoman,
 
-    /// Use uppercase letters (A, B, C, and so on). 
+    /// Use uppercase letters (A, B, C, and so on).
     UcLetter,
 
-    /// Use uppercase Roman letters (I, II, III, and so on). 
+    /// Use uppercase Roman letters (I, II, III, and so on).
     UcRoman,
 
     /// Uses a sequence of characters beginning with the Unicode character specified
-    Seq(char)
+    Seq(char),
 }
-
 
 #[derive(Copy, Clone, Debug)]
 /// Numbering style used with the numbering paragraphs. Used with `ParamNumbering`
@@ -140,44 +139,44 @@ pub enum ParaNumberingStyle {
     /// Continues a numbered lsit without applying the next number of bullet
     NoNumber,
     /// Starts a new number using the value of `ParaNumbering::Seq(char)`
-    NewNumber
+    NewNumber,
 }
 
 #[derive(Copy, Clone, Debug)]
 /// Paragraph alignment
 pub enum ParaAlignment {
-    /// Paragraphs are aligned with the left margin. 
+    /// Paragraphs are aligned with the left margin.
     Left,
-    /// Paragraphs are aligned with the right margin. 
+    /// Paragraphs are aligned with the right margin.
     Right,
-    /// Paragraphs are centered. 
+    /// Paragraphs are centered.
     Center,
     /// Paragraphs are justified.
     Justify,
-    /// Paragraphs are justified by expanding the blanks alone. 
-    FullInterword
+    /// Paragraphs are justified by expanding the blanks alone.
+    FullInterword,
 }
 
 /// Type of line spacing
 #[derive(Copy, Clone, Debug)]
 pub enum ParaLineSpacing {
-    /// Single spacing. 
+    /// Single spacing.
     Single,
-    
+
     /// One-and-a-half spacing.
     OneAndHalf,
 
-    /// Double spacing. 
+    /// Double spacing.
     Double,
 
     /// Value in twips (twentieth of a point). If the value specifies a value that is less than single spacing, the control displays single-spaced text
     SingleOr(i32),
 
-    /// Value in twips (twentieth of a point). The control uses the exact spacing specified, even if dyLineSpacing specifies a value that is less than single spacing. 
+    /// Value in twips (twentieth of a point). The control uses the exact spacing specified, even if dyLineSpacing specifies a value that is less than single spacing.
     Exact(i32),
 
-    /// The value of `value` / 20 is the spacing, in lines, from one line to the next. 20 produces single-spaced text, 40 is double spaced, 60 is triple spaced, and so on. 
-    Exact20(i32)
+    /// The value of `value` / 20 is the spacing, in lines, from one line to the next. 20 produces single-spaced text, 40 is double spaced, 60 is triple spaced, and so on.
+    Exact20(i32),
 }
 
 /// Contains information about paragraph formatting in a rich edit control
@@ -186,10 +185,10 @@ pub struct ParaFormat {
     /// Options used for bulleted or numbered paragraphs.
     pub numbering: Option<ParaNumbering>,
 
-    /// Numbering style used with numbered paragraphs. 
+    /// Numbering style used with numbered paragraphs.
     pub numbering_style: Option<ParaNumberingStyle>,
 
-    /// Minimum space between a paragraph number and the paragraph text, in twips (twentieth of a point). 
+    /// Minimum space between a paragraph number and the paragraph text, in twips (twentieth of a point).
     pub numbering_tab: Option<u16>,
 
     /// Paragraph alignment
@@ -259,11 +258,10 @@ Note: Use `\r\n` to input a new line not just `\n`.
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct RichTextBox {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl RichTextBox {
-
     pub fn builder<'a>() -> RichTextBoxBuilder<'a> {
         RichTextBoxBuilder {
             text: "",
@@ -275,7 +273,7 @@ impl RichTextBox {
             readonly: false,
             focus: false,
             font: None,
-            parent: None
+            parent: None,
         }
     }
 
@@ -318,7 +316,9 @@ impl RichTextBox {
     /// It is not possible to get the base font handle of a rich label. Use `char_format` instead.
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return the number of maximum character allowed in this text input
@@ -369,7 +369,10 @@ impl RichTextBox {
         let (ptr1, ptr2) = (&mut out1 as *mut u32, &mut out2 as *mut u32);
         wh::send_message(handle, EM_GETSEL as u32, ptr1 as WPARAM, ptr2 as LPARAM);
 
-        Range { start: out1 as u32, end: out2 as u32 }
+        Range {
+            start: out1 as u32,
+            end: out2 as u32,
+        }
     }
 
     /// Return the selected range of characters by the user in the text input
@@ -385,9 +388,13 @@ impl RichTextBox {
     pub fn len(&self) -> u32 {
         use std::convert::TryInto;
 
-        dos2unix(&self.text()).chars().count().try_into().unwrap_or_default()
+        dos2unix(&self.text())
+            .chars()
+            .count()
+            .try_into()
+            .unwrap_or_default()
     }
-    
+
     /// Return the number of lines in the multiline edit control.
     /// If the control has no text, the return value is 1.
     pub fn linecount(&self) -> i32 {
@@ -395,16 +402,16 @@ impl RichTextBox {
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, EM_GETLINECOUNT as u32, 0, 0) as i32
-    }  
-    
+    }
+
     /// Scroll `v` lines in the multiline edit control.
     pub fn scroll(&self, v: i32) {
         use winapi::um::winuser::EM_LINESCROLL;
-        
+
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, EM_LINESCROLL as u32, 0, v as LPARAM);
     }
-    
+
     /// Get the linecount and then scroll the text to the last line
     pub fn scroll_lastline(&self) {
         let lines = self.linecount();
@@ -444,7 +451,9 @@ impl RichTextBox {
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -459,7 +468,7 @@ impl RichTextBox {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -497,7 +506,7 @@ impl RichTextBox {
     }
 
     /// Return the text displayed in the TextInput
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -511,7 +520,7 @@ impl RichTextBox {
     /// Set the text in the current control, converting unix-style newlines in the input to "\r\n"
     pub fn set_text_unix2dos<'a>(&self, v: &'a str) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_text(handle,  &unix2dos(&v).to_string()) }
+        unsafe { wh::set_window_text(handle, &unix2dos(&v).to_string()) }
     }
 
     /// Append text to the current control
@@ -535,16 +544,21 @@ impl RichTextBox {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        WS_VISIBLE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_TABSTOP | WS_VSCROLL | WS_HSCROLL | ES_SAVESEL
+        WS_VISIBLE
+            | ES_AUTOVSCROLL
+            | ES_AUTOHSCROLL
+            | WS_TABSTOP
+            | WS_VSCROLL
+            | WS_HSCROLL
+            | ES_SAVESEL
     }
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_BORDER, WS_CHILD, ES_MULTILINE, ES_WANTRETURN};
-        
+        use winapi::um::winuser::{ES_MULTILINE, ES_WANTRETURN, WS_BORDER, WS_CHILD};
+
         WS_BORDER | WS_CHILD | ES_MULTILINE | ES_WANTRETURN
     }
-
 }
 
 impl Drop for RichTextBox {
@@ -562,11 +576,10 @@ pub struct RichTextBoxBuilder<'a> {
     readonly: bool,
     focus: bool,
     font: Option<&'a Font>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> RichTextBoxBuilder<'a> {
-
     pub fn flags(mut self, flags: RichTextBoxFlags) -> RichTextBoxBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -622,7 +635,7 @@ impl<'a> RichTextBoxBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("RichTextBox"))
+            None => Err(NwgError::no_parent("RichTextBox")),
         }?;
 
         *out = Default::default();
@@ -658,5 +671,4 @@ impl<'a> RichTextBoxBuilder<'a> {
 
         Ok(())
     }
-
 }

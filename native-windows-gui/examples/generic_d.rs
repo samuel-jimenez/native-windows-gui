@@ -5,20 +5,21 @@
     Requires the following features: `cargo run --example generic_d --features "combobox"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
-use std::fmt::Display;
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-
 #[derive(NwgUi)]
 pub struct GuessApp<VALIDATOR, T: Display + Default + 'static, const W: i32, const H: i32>
-    where VALIDATOR: Fn(Option<&T>) -> Result<String, String> + 'static {
+where
+    VALIDATOR: Fn(Option<&T>) -> Result<String, String> + 'static,
+{
     #[nwg_control(size: (W, H), position: (300, 300), title: "Guess the number", flags: "WINDOW|VISIBLE")]
     #[nwg_events(OnWindowClose: [nwg::stop_thread_dispatch()])]
     window: nwg::Window,
@@ -35,16 +36,19 @@ pub struct GuessApp<VALIDATOR, T: Display + Default + 'static, const W: i32, con
 }
 
 impl<VALIDATOR, T, const W: i32, const H: i32> GuessApp<VALIDATOR, T, W, H>
-    where VALIDATOR: Fn(Option<&T>) -> Result<String, String>,
-          T: Display + Default {
-
+where
+    VALIDATOR: Fn(Option<&T>) -> Result<String, String>,
+    T: Display + Default,
+{
     fn guess(&self) {
         let validation = match self.combobox.selection() {
             Some(s) => (self.validator)(self.combobox.collection().get(s)),
             None => Err("Please select any value".to_owned()),
         };
         match validation {
-            Err(error) => { nwg::modal_error_message(&self.window, "Fail", &error); }
+            Err(error) => {
+                nwg::modal_error_message(&self.window, "Fail", &error);
+            }
             Ok(success) => {
                 nwg::modal_info_message(&self.window, "Congratulation", &success);
                 nwg::stop_thread_dispatch();
@@ -58,8 +62,10 @@ fn main() {
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let random_number = (SystemTime::now()
-        .duration_since(UNIX_EPOCH).expect("Clock may have gone backwards")
-        .as_millis() % 100) as i8;
+        .duration_since(UNIX_EPOCH)
+        .expect("Clock may have gone backwards")
+        .as_millis()
+        % 100) as i8;
 
     let validator = move |c: Option<&i8>| {
         c.filter(|x| **x == random_number)

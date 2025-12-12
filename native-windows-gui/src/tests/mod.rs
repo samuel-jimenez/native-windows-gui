@@ -12,7 +12,6 @@ use freeing_test::*;
 
 mod other;
 
-
 #[derive(Default)]
 pub struct TestControlPanel {
     window: Window,
@@ -31,12 +30,12 @@ pub struct TestControlPanel {
 mod test_control_panel_ui {
     use super::*;
     use crate::{NativeUi, NwgError};
-    use std::rc::Rc;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct TestControlPanelUi {
         inner: Rc<TestControlPanel>,
-        default_handler: RefCell<Vec<EventHandler>>
+        default_handler: RefCell<Vec<EventHandler>>,
     }
 
     impl NativeUi<TestControlPanelUi> for TestControlPanel {
@@ -73,9 +72,9 @@ mod test_control_panel_ui {
             FreeingTest::build_partial(&mut data.freeing_tests, Some(&data.window))?;
 
             // Wrap-up
-            let ui = TestControlPanelUi { 
+            let ui = TestControlPanelUi {
                 inner: Rc::new(data),
-                default_handler: Default::default()
+                default_handler: Default::default(),
             };
 
             // Events
@@ -93,22 +92,25 @@ mod test_control_panel_ui {
                         evt_ui.freeing_tests.process_event(evt, &evt_data, handle);
 
                         match evt {
-                            E::OnButtonClick =>
+                            E::OnButtonClick => {
                                 if &handle == &evt_ui.controls_test_button {
                                     show_control_test(&evt_ui);
                                 } else if &handle == &evt_ui.thread_test_button {
                                     show_thread_test(&evt_ui);
                                 } else if &handle == &evt_ui.free_test_button {
                                     show_freeing_test(&evt_ui);
-                                },
-                            E::OnInit => 
+                                }
+                            }
+                            E::OnInit => {
                                 if handle == evt_ui.window.handle {
                                     show(&evt_ui);
-                                },
-                            E::OnWindowClose => 
+                                }
+                            }
+                            E::OnWindowClose => {
                                 if handle == evt_ui.window.handle {
                                     close();
-                                },
+                                }
+                            }
                             _ => {}
                         }
                     }
@@ -133,7 +135,6 @@ mod test_control_panel_ui {
     }
 
     impl Drop for TestControlPanelUi {
-
         fn drop(&mut self) {
             self.freeing_tests.destroy();
 
@@ -143,7 +144,6 @@ mod test_control_panel_ui {
                 unbind_event_handler(&handler);
             }
         }
-
     }
 
     impl Deref for TestControlPanelUi {
@@ -153,7 +153,6 @@ mod test_control_panel_ui {
             &self.inner
         }
     }
-
 }
 
 fn show_control_test(app: &TestControlPanel) {
@@ -175,7 +174,12 @@ fn show_freeing_test(app: &TestControlPanel) {
 fn show(app: &TestControlPanel) {
     let text = "Hello World from Native windows GUI!";
     Clipboard::set_data_text(&app.window, text);
-    assert!(Some(text) == Clipboard::data_text(&app.window).as_ref().map(|s| s as &str));
+    assert!(
+        Some(text)
+            == Clipboard::data_text(&app.window)
+                .as_ref()
+                .map(|s| s as &str)
+    );
 
     app.window.set_visible(true);
 }
@@ -195,7 +199,7 @@ fn everything() {
 
     init().expect("Failed to init Native Windows GUI");
     Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    
+
     let app = TestControlPanel::build_ui(Default::default()).expect("Failed to build UI");
 
     app.window.set_focus();

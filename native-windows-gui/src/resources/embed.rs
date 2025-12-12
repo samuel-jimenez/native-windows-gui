@@ -1,11 +1,10 @@
-use winapi::shared::minwindef::{HINSTANCE, HRSRC, HGLOBAL};
-use winapi::um::winuser::{LoadImageW, LR_DEFAULTSIZE, LR_CREATEDIBSECTION};
-use winapi::ctypes::c_void;
-use crate::win32::base_helper::{to_utf16, from_utf16};
+use super::{Bitmap, Cursor, Icon};
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::NwgError;
-use super::{Icon, Bitmap, Cursor};
 use std::{ptr, slice};
-
+use winapi::ctypes::c_void;
+use winapi::shared::minwindef::{HGLOBAL, HINSTANCE, HRSRC};
+use winapi::um::winuser::{LoadImageW, LR_CREATEDIBSECTION, LR_DEFAULTSIZE};
 
 /// Raw resource type that can be stored into an embedded resource.
 #[derive(Copy, Clone, Debug)]
@@ -29,7 +28,7 @@ pub enum RawResourceType {
     AnimatedIcon,
     Html,
     Manifest,
-    Other(&'static str)
+    Other(&'static str),
 }
 
 /**
@@ -46,7 +45,6 @@ pub struct RawResource {
 }
 
 impl RawResource {
-
     /// Returns the system handle for the resource
     pub fn handle(&self) -> HRSRC {
         self.handle
@@ -66,9 +64,7 @@ impl RawResource {
     pub fn len(&self) -> usize {
         use winapi::um::libloaderapi::SizeofResource;
 
-        unsafe {
-            SizeofResource(self.module, self.handle) as usize
-        }
+        unsafe { SizeofResource(self.module, self.handle) as usize }
     }
 
     /// Return a const pointer to the resource.
@@ -85,7 +81,6 @@ impl RawResource {
         use winapi::um::libloaderapi::LockResource;
         unsafe { LockResource(self.data_handle) }
     }
-
 }
 
 /**
@@ -113,22 +108,17 @@ pub struct EmbedResource {
 }
 
 impl EmbedResource {
-
     /// Returns an embed resource that wraps the current executable. Shortcut for the builder API.
     pub fn load(name: Option<&str>) -> Result<EmbedResource, NwgError> {
         let mut embed = EmbedResource::default();
-        EmbedResource::builder()
-            .module(name)
-            .build(&mut embed)?;
+        EmbedResource::builder().module(name).build(&mut embed)?;
 
         Ok(embed)
     }
 
     /// Creates a `EmbedResourceBuilder`. `EmbedResource::load` can also be used to skip the builder api
     pub fn builder() -> EmbedResourceBuilder {
-        EmbedResourceBuilder {
-            module: None
-        }
+        EmbedResourceBuilder { module: None }
     }
 
     /// Load a string the the RC file STRINGTABLE. Returns `None` if `id` does not map to a string.
@@ -156,13 +146,16 @@ impl EmbedResource {
             let id_rc = id as _;
             let icon = match size {
                 None => LoadImageW(self.hinst, id_rc, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE),
-                Some((w, h)) =>  LoadImageW(self.hinst, id_rc, IMAGE_ICON, w as _, h as _, 0),
+                Some((w, h)) => LoadImageW(self.hinst, id_rc, IMAGE_ICON, w as _, h as _, 0),
             };
 
             if icon.is_null() {
                 None
             } else {
-                Some(Icon { handle: icon as _, owned: true } )
+                Some(Icon {
+                    handle: icon as _,
+                    owned: true,
+                })
             }
         }
     }
@@ -181,13 +174,23 @@ impl EmbedResource {
             let id_rc = id as _;
             let bitmap = match size {
                 None => LoadImageW(self.hinst, id_rc, IMAGE_BITMAP, 0, 0, LR_DEFAULTSIZE),
-                Some((w, h)) =>  LoadImageW(self.hinst, id_rc, IMAGE_BITMAP, w as _, h as _, LR_CREATEDIBSECTION),
+                Some((w, h)) => LoadImageW(
+                    self.hinst,
+                    id_rc,
+                    IMAGE_BITMAP,
+                    w as _,
+                    h as _,
+                    LR_CREATEDIBSECTION,
+                ),
             };
 
             if bitmap.is_null() {
                 None
             } else {
-                Some(Bitmap { handle: bitmap as _, owned: true } )
+                Some(Bitmap {
+                    handle: bitmap as _,
+                    owned: true,
+                })
             }
         }
     }
@@ -198,8 +201,7 @@ impl EmbedResource {
         self.bitmap(name.as_ptr() as usize, size)
     }
 
-    
-    #[cfg(feature="image-decoder")]
+    #[cfg(feature = "image-decoder")]
     /// Load an image from the embed files and returns a bitmap. An image is defined this way: `IMAGE_NAME IMAGE "../path/my_image.bmp"`
     /// This method can load any image type supported by the image decoder.
     pub fn image(&self, id: usize, size: Option<(u32, u32)>) -> Option<Bitmap> {
@@ -211,7 +213,10 @@ impl EmbedResource {
                 let src = unsafe { raw.as_mut_slice() };
                 let handle = unsafe { rh::build_image_decoder_from_memory(src, size) };
                 match handle {
-                    Ok(handle) => Some(Bitmap { handle, owned: true }),
+                    Ok(handle) => Some(Bitmap {
+                        handle,
+                        owned: true,
+                    }),
                     Err(e) => {
                         println!("{:?}", e);
                         None
@@ -221,7 +226,7 @@ impl EmbedResource {
         }
     }
 
-    #[cfg(feature="image-decoder")]
+    #[cfg(feature = "image-decoder")]
     /// Load a image using a string name. See `EmbedResource::image`
     pub fn image_str(&self, id: &str, size: Option<(u32, u32)>) -> Option<Bitmap> {
         let name = to_utf16(id);
@@ -238,7 +243,10 @@ impl EmbedResource {
             if cursor.is_null() {
                 None
             } else {
-                Some(Cursor { handle: cursor as _, owned: true } )
+                Some(Cursor {
+                    handle: cursor as _,
+                    owned: true,
+                })
             }
         }
     }
@@ -293,40 +301,34 @@ impl EmbedResource {
                 module: self.hinst,
                 handle,
                 data_handle,
-                ty
+                ty,
             })
         }
     }
 
     /// Return a wrapper over the data of an embed resource. Return `None` `id` does not map to a resource.
-    pub fn raw_str(&self, id: &str, ty: RawResourceType) ->  Option<RawResource> {
+    pub fn raw_str(&self, id: &str, ty: RawResourceType) -> Option<RawResource> {
         let name = to_utf16(id);
         self.raw(name.as_ptr() as usize, ty)
     }
-
 }
-
 
 impl Default for EmbedResource {
-
     fn default() -> EmbedResource {
         EmbedResource {
-            hinst: ptr::null_mut()
+            hinst: ptr::null_mut(),
         }
     }
-
 }
-
 
 /**
     The EmbedResource builder. See `EmbedResource` docs.
 */
 pub struct EmbedResourceBuilder {
-    module: Option<String>
+    module: Option<String>,
 }
 
 impl EmbedResourceBuilder {
-
     pub fn module(mut self, module: Option<&str>) -> EmbedResourceBuilder {
         self.module = module.map(|s| s.to_string());
         self
@@ -339,20 +341,20 @@ impl EmbedResourceBuilder {
             Some(name) => {
                 let name = to_utf16(name);
                 unsafe { GetModuleHandleW(name.as_ptr()) as HINSTANCE }
-            },
-            None => unsafe { GetModuleHandleW(ptr::null_mut()) as HINSTANCE }
+            }
+            None => unsafe { GetModuleHandleW(ptr::null_mut()) as HINSTANCE },
         };
 
         if hinst.is_null() {
-            let name = self.module.as_ref().map(|name| name as &str ).unwrap_or("");
-            return Err(NwgError::resource_create(format!("No module named \"{}\" in application", name)));
+            let name = self.module.as_ref().map(|name| name as &str).unwrap_or("");
+            return Err(NwgError::resource_create(format!(
+                "No module named \"{}\" in application",
+                name
+            )));
         }
 
-        *out = EmbedResource {
-            hinst
-        };
+        *out = EmbedResource { hinst };
 
         Ok(())
     }
-
 }

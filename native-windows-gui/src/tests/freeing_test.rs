@@ -1,7 +1,6 @@
 use crate::*;
-use winapi::um::winuser::WM_LBUTTONUP;
 use std::cell::RefCell;
-
+use winapi::um::winuser::WM_LBUTTONUP;
 
 struct MessageBoxOnDrop {}
 
@@ -10,7 +9,6 @@ impl Drop for MessageBoxOnDrop {
         simple_message("Dropped", "A MessageBoxOnDrop object was dropped");
     }
 }
-
 
 #[derive(Default)]
 struct FreeingData {
@@ -35,7 +33,6 @@ pub struct FreeingTest {
 }
 
 impl FreeingTest {
-
     pub fn destroy(&self) {
         let mut data = self.data.borrow_mut();
         if data.raw_handler_bound {
@@ -53,27 +50,36 @@ impl FreeingTest {
         if data.raw_handler_bound {
             self.bind_handler_btn.set_text("Bind raw handler");
             data.raw_handler_bound = false;
-            
+
             if let Err(_) = unbind_raw_event_handler(&data.raw_handler.take().unwrap()) {
                 error_message("Error", "Failed to free event handler");
             }
-            
-            assert!(has_raw_handler(&self.custom_bind_button.handle, data.raw_callback_id) == false);
+
+            assert!(
+                has_raw_handler(&self.custom_bind_button.handle, data.raw_callback_id) == false
+            );
         } else {
             self.bind_handler_btn.set_text("Unbind raw handler");
             data.raw_handler_bound = true;
             data.raw_callback_id += 1;
 
-            let message = MessageBoxOnDrop{};
-            let handler = bind_raw_event_handler_inner(&self.custom_bind_button.handle, data.raw_callback_id, move |_hwnd, msg, _w, _l| {
-                if msg == WM_LBUTTONUP {
-                    &message;
-                    simple_message("Raw handler", &"Hello from raw dynamic handler");
-                }
-                None
-            });
+            let message = MessageBoxOnDrop {};
+            let handler = bind_raw_event_handler_inner(
+                &self.custom_bind_button.handle,
+                data.raw_callback_id,
+                move |_hwnd, msg, _w, _l| {
+                    if msg == WM_LBUTTONUP {
+                        &message;
+                        simple_message("Raw handler", &"Hello from raw dynamic handler");
+                    }
+                    None
+                },
+            );
 
-            assert!(has_raw_handler(&self.custom_bind_button.handle, data.raw_callback_id));
+            assert!(has_raw_handler(
+                &self.custom_bind_button.handle,
+                data.raw_callback_id
+            ));
 
             data.raw_handler = Some(handler.unwrap());
         }
@@ -93,37 +99,41 @@ impl FreeingTest {
             self.bind_handler_btn2.set_text("Unbind handler");
             data.handler_bound = true;
 
-            let message = MessageBoxOnDrop{};
+            let message = MessageBoxOnDrop {};
             let bind_handler_btn2 = self.custom_bind_button2.handle;
 
-            let handler = bind_event_handler(&self.custom_bind_button2.handle, &self.window.handle, move |event, _event_data, ctrl| {
-                match event {
-                    Event::OnButtonClick => {
-                        if &ctrl == &bind_handler_btn2 {    
-                            &message;
-                            simple_message("Handler", &"Hello from dynamic handler");
+            let handler = bind_event_handler(
+                &self.custom_bind_button2.handle,
+                &self.window.handle,
+                move |event, _event_data, ctrl| {
+                    match event {
+                        Event::OnButtonClick => {
+                            if &ctrl == &bind_handler_btn2 {
+                                &message;
+                                simple_message("Handler", &"Hello from dynamic handler");
+                            }
                         }
-                    },
-                    _ => {}
-                }
+                        _ => {}
+                    }
 
-                ()
-            });
+                    ()
+                },
+            );
 
             data.handler = Some(handler);
         }
     }
-
 }
 
 mod partial_freeing_test_ui {
     use super::*;
-    use crate::{PartialUi, NwgError, ControlHandle};
+    use crate::{ControlHandle, NwgError, PartialUi};
 
     impl PartialUi for FreeingTest {
-
-        fn build_partial<W: Into<ControlHandle>>(data: &mut FreeingTest, _parent: Option<W>) -> Result<(), NwgError> {
-            
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut FreeingTest,
+            _parent: Option<W>,
+        ) -> Result<(), NwgError> {
             Window::builder()
                 .flags(WindowFlags::WINDOW)
                 .size((400, 150))
@@ -168,12 +178,13 @@ mod partial_freeing_test_ui {
             use crate::Event as E;
 
             match evt {
-                E::OnButtonClick => 
+                E::OnButtonClick => {
                     if &handle == &self.bind_handler_btn {
                         FreeingTest::bind_raw_handler(self)
                     } else if &handle == &self.bind_handler_btn2 {
                         FreeingTest::bind_handler(self)
                     }
+                }
                 _ => {}
             }
         }
@@ -181,6 +192,5 @@ mod partial_freeing_test_ui {
         fn handles(&self) -> Vec<&ControlHandle> {
             vec![&self.window.handle]
         }
-
     }
 }

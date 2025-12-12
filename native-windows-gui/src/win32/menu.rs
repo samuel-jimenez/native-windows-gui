@@ -1,23 +1,30 @@
 /*!
 Native Windows GUI menu base.
 */
-use winapi::shared::basetsd::UINT_PTR;
-use winapi::shared::windef::{HMENU, HWND};
-use winapi::shared::minwindef::UINT;
-use super::base_helper::{CUSTOM_ID_BEGIN, to_utf16};
+use super::base_helper::{to_utf16, CUSTOM_ID_BEGIN};
 use crate::controls::ControlHandle;
-use crate::{NwgError};
-use std::{mem, ptr};
+use crate::NwgError;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::{mem, ptr};
+use winapi::shared::basetsd::UINT_PTR;
+use winapi::shared::minwindef::UINT;
+use winapi::shared::windef::{HMENU, HWND};
 
-
-static MENU_ITEMS_ID: AtomicU32 = AtomicU32::new(CUSTOM_ID_BEGIN); 
-
+static MENU_ITEMS_ID: AtomicU32 = AtomicU32::new(CUSTOM_ID_BEGIN);
 
 /// Build a system menu
-pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: bool, popup: bool, hmenu: Option<HMENU>, hwnd: Option<HWND>) -> Result<ControlHandle, NwgError> {
-    use winapi::um::winuser::{CreateMenu, CreatePopupMenu, GetMenu, SetMenu, DrawMenuBar, AppendMenuW};
-    use winapi::um::winuser::{MF_STRING, MF_POPUP};
+pub unsafe fn build_hmenu_control(
+    text: Option<String>,
+    item: bool,
+    separator: bool,
+    popup: bool,
+    hmenu: Option<HMENU>,
+    hwnd: Option<HWND>,
+) -> Result<ControlHandle, NwgError> {
+    use winapi::um::winuser::{
+        AppendMenuW, CreateMenu, CreatePopupMenu, DrawMenuBar, GetMenu, SetMenu,
+    };
+    use winapi::um::winuser::{MF_POPUP, MF_STRING};
 
     if separator {
         if hmenu.is_none() {
@@ -46,7 +53,9 @@ pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: b
     let mut item_id = 0;
 
     let mut flags = MF_STRING;
-    if !item { flags |= MF_POPUP; }
+    if !item {
+        flags |= MF_POPUP;
+    }
 
     let text = to_utf16(text.unwrap_or("".to_string()).as_ref());
 
@@ -75,7 +84,7 @@ pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: b
         }
 
         // Draw the menu bar to make sure the changes are visible
-        DrawMenuBar(hwnd); 
+        DrawMenuBar(hwnd);
     } else if hmenu.is_some() {
         let parent = hmenu.unwrap();
 
@@ -105,28 +114,35 @@ pub unsafe fn build_hmenu_control(text: Option<String>, item: bool, separator: b
     Enable or disable a menuitem at the selected position or using the selected ID. If the position is None and id is None, the last item is selected.
 */
 pub unsafe fn enable_menuitem(h: HMENU, pos: Option<UINT>, id: Option<UINT>, enabled: bool) {
-    use winapi::um::winuser::{MENUITEMINFOW, MIIM_STATE, MFS_DISABLED, MFS_ENABLED};
-    use winapi::um::winuser::{SetMenuItemInfoW, GetMenuItemCount};
     use winapi::shared::minwindef::BOOL;
-    
+    use winapi::um::winuser::{GetMenuItemCount, SetMenuItemInfoW};
+    use winapi::um::winuser::{MENUITEMINFOW, MFS_DISABLED, MFS_ENABLED, MIIM_STATE};
+
     let use_position = id.is_none();
     let choice = if use_position { pos } else { id };
     let value = match choice {
         Some(p) => p,
-        None => (GetMenuItemCount(h) - 1) as u32
+        None => (GetMenuItemCount(h) - 1) as u32,
     };
 
     let state = match enabled {
         true => MFS_ENABLED,
-        false => MFS_DISABLED
+        false => MFS_DISABLED,
     };
 
-    let mut info = MENUITEMINFOW { 
+    let mut info = MENUITEMINFOW {
         cbSize: mem::size_of::<MENUITEMINFOW>() as UINT,
-        fMask: MIIM_STATE, fType: 0, fState: state,
-        wID: 0, hSubMenu: ptr::null_mut(), hbmpChecked: ptr::null_mut(),
-        hbmpUnchecked: ptr::null_mut(), dwItemData: 0, dwTypeData: ptr::null_mut(),
-        cch: 0, hbmpItem: ptr::null_mut()
+        fMask: MIIM_STATE,
+        fType: 0,
+        fState: state,
+        wID: 0,
+        hSubMenu: ptr::null_mut(),
+        hbmpChecked: ptr::null_mut(),
+        hbmpUnchecked: ptr::null_mut(),
+        dwItemData: 0,
+        dwTypeData: ptr::null_mut(),
+        cch: 0,
+        hbmpItem: ptr::null_mut(),
     };
 
     SetMenuItemInfoW(h, value, use_position as BOOL, &mut info);
@@ -136,32 +152,40 @@ pub unsafe fn enable_menuitem(h: HMENU, pos: Option<UINT>, id: Option<UINT>, ena
     Return the state of a menuitem. Panic if both pos and id are None.
 */
 pub unsafe fn is_menuitem_enabled(h: HMENU, pos: Option<UINT>, id: Option<UINT>) -> bool {
-    use winapi::um::winuser::{MENUITEMINFOW, MIIM_STATE, MFS_DISABLED};
-    use winapi::um::winuser::GetMenuItemInfoW;
     use winapi::shared::minwindef::BOOL;
+    use winapi::um::winuser::GetMenuItemInfoW;
+    use winapi::um::winuser::{MENUITEMINFOW, MFS_DISABLED, MIIM_STATE};
 
-    if id.is_none() && pos.is_none() { panic!("Both pos and id are None"); }
+    if id.is_none() && pos.is_none() {
+        panic!("Both pos and id are None");
+    }
 
     let use_position = id.is_none();
     let choice = if use_position { pos } else { id };
     let value = match choice {
         Some(p) => p,
-        None => unreachable!()
+        None => unreachable!(),
     };
 
-    let mut info = MENUITEMINFOW { 
+    let mut info = MENUITEMINFOW {
         cbSize: mem::size_of::<MENUITEMINFOW>() as UINT,
-        fMask: MIIM_STATE, fType: 0, fState: 0,
-        wID: 0, hSubMenu: ptr::null_mut(), hbmpChecked: ptr::null_mut(),
-        hbmpUnchecked: ptr::null_mut(), dwItemData: 0, dwTypeData: ptr::null_mut(),
-        cch: 0, hbmpItem: ptr::null_mut()
+        fMask: MIIM_STATE,
+        fType: 0,
+        fState: 0,
+        wID: 0,
+        hSubMenu: ptr::null_mut(),
+        hbmpChecked: ptr::null_mut(),
+        hbmpUnchecked: ptr::null_mut(),
+        dwItemData: 0,
+        dwTypeData: ptr::null_mut(),
+        cch: 0,
+        hbmpItem: ptr::null_mut(),
     };
 
     GetMenuItemInfoW(h, value, use_position as BOOL, &mut info);
 
     (info.fState & MFS_DISABLED) != MFS_DISABLED
 }
-
 
 /// Set the state of a menuitem
 pub unsafe fn enable_menu(parent_menu: HMENU, menu: HMENU, e: bool) {
@@ -180,7 +204,7 @@ pub unsafe fn check_menu_item(parent_menu: HMENU, id: u32, check: bool) {
 
     let check = match check {
         true => MF_CHECKED,
-        false => MF_UNCHECKED
+        false => MF_UNCHECKED,
     };
 
     CheckMenuItem(parent_menu, id, MF_BYCOMMAND | check);
@@ -191,11 +215,10 @@ pub unsafe fn menu_item_checked(parent_menu: HMENU, id: u32) -> bool {
     GetMenuState(parent_menu, id, MF_BYCOMMAND) & MF_CHECKED == MF_CHECKED
 }
 
-
 unsafe fn build_hmenu_separator(menu: HMENU) -> ControlHandle {
-    use winapi::um::winuser::{GetMenuItemCount, SetMenuItemInfoW, AppendMenuW};
+    use winapi::shared::minwindef::BOOL;
+    use winapi::um::winuser::{AppendMenuW, GetMenuItemCount, SetMenuItemInfoW};
     use winapi::um::winuser::{MENUITEMINFOW, MF_SEPARATOR, MIIM_ID};
-    use winapi::shared::minwindef::{BOOL};
 
     let item_id = MENU_ITEMS_ID.fetch_add(1, Ordering::SeqCst);
 
@@ -204,13 +227,19 @@ unsafe fn build_hmenu_separator(menu: HMENU) -> ControlHandle {
 
     // Set the unique id of the separator
     let pos = GetMenuItemCount(menu) - 1;
-    let mut info = MENUITEMINFOW { 
+    let mut info = MENUITEMINFOW {
         cbSize: mem::size_of::<MENUITEMINFOW>() as UINT,
-        fMask: MIIM_ID, fType: 0, fState: 0,
+        fMask: MIIM_ID,
+        fType: 0,
+        fState: 0,
         wID: item_id,
-        hSubMenu: ptr::null_mut(), hbmpChecked: ptr::null_mut(),
-        hbmpUnchecked: ptr::null_mut(), dwItemData: 0, dwTypeData: ptr::null_mut(),
-        cch: 0, hbmpItem: ptr::null_mut()
+        hSubMenu: ptr::null_mut(),
+        hbmpChecked: ptr::null_mut(),
+        hbmpUnchecked: ptr::null_mut(),
+        dwItemData: 0,
+        dwTypeData: ptr::null_mut(),
+        cch: 0,
+        hbmpItem: ptr::null_mut(),
     };
 
     SetMenuItemInfoW(menu, pos as UINT, true as BOOL, &mut info);
@@ -223,8 +252,8 @@ unsafe fn build_hmenu_separator(menu: HMENU) -> ControlHandle {
     Required in order to allow nwg to dispatch the events correctly
 */
 unsafe fn use_menu_command(h: HMENU) {
-    use winapi::um::winuser::{MENUINFO, MNS_NOTIFYBYPOS, MIM_STYLE, SetMenuInfo};
     use winapi::shared::minwindef::DWORD;
+    use winapi::um::winuser::{SetMenuInfo, MENUINFO, MIM_STYLE, MNS_NOTIFYBYPOS};
 
     let mut info = MENUINFO {
         cbSize: mem::size_of::<MENUINFO>() as DWORD,
@@ -233,7 +262,7 @@ unsafe fn use_menu_command(h: HMENU) {
         cyMax: 0,
         hbrBack: ptr::null_mut(),
         dwContextHelpID: 0,
-        dwMenuData: 0
+        dwMenuData: 0,
     };
 
     SetMenuInfo(h, &mut info);
@@ -251,8 +280,11 @@ pub unsafe fn menu_index_in_parent(parent: HMENU, menu: HMENU) -> UINT {
 
     for i in 0..children_count {
         sub_menu = GetSubMenu(parent, i as i32);
-        if sub_menu.is_null() { continue; }
-        else if sub_menu == menu { return i as UINT; }
+        if sub_menu.is_null() {
+            continue;
+        } else if sub_menu == menu {
+            return i as UINT;
+        }
     }
 
     panic!("Menu/MenuItem not found in parent!")

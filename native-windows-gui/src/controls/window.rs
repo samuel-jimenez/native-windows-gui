@@ -1,25 +1,27 @@
-use winapi::um::winuser::{WS_OVERLAPPEDWINDOW, WS_CLIPCHILDREN, WS_VISIBLE, WS_DISABLED, WS_MAXIMIZE, WS_MINIMIZE, WS_CAPTION,
-WS_MINIMIZEBOX, WS_MAXIMIZEBOX, WS_SYSMENU, WS_THICKFRAME, WS_POPUP, WS_EX_TOPMOST, WS_EX_ACCEPTFILES};
+use winapi::um::winuser::{
+    WS_CAPTION, WS_CLIPCHILDREN, WS_DISABLED, WS_EX_ACCEPTFILES, WS_EX_TOPMOST, WS_MAXIMIZE,
+    WS_MAXIMIZEBOX, WS_MINIMIZE, WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_POPUP, WS_SYSMENU,
+    WS_THICKFRAME, WS_VISIBLE,
+};
 
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::check_hwnd;
-use crate::{NwgError, Icon};
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::check_hwnd;
+use crate::win32::window_helper as wh;
+use crate::{Icon, NwgError};
 
 const NOT_BOUND: &'static str = "Window is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Window handle is not HWND!";
 
-
 bitflags! {
 
     /**
-        The window flags. 
+        The window flags.
 
         Example: `WindowFlags::MAIN_WINDOW | WindowFlags::VISIBLE`
 
         Window flags:
         * MAIN_WINDOW: Combine all the top level system window decoration: A title, a system menu, a resizable frame, and the close, minimize, maximize buttons
-        * WINDOW:  A window with a title, a system menu, a close button, and a non resizable border. 
+        * WINDOW:  A window with a title, a system menu, a close button, and a non resizable border.
         * MINIMIZE_BOX: Includes a minimize button
         * MAXIMIZE_BOX: Includes a maximize button
         * SYS_MENU: Includes a system menu when the user right click the window header
@@ -42,7 +44,6 @@ bitflags! {
         const POPUP = WS_POPUP;
     }
 }
-
 
 /**
     A basic top level window. At least one top level window is required to make a NWG application.
@@ -84,11 +85,10 @@ bitflags! {
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct Window {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl Window {
-
     pub fn builder<'a>() -> WindowBuilder<'a> {
         WindowBuilder {
             title: "New Window",
@@ -102,7 +102,7 @@ impl Window {
             flags: None,
             ex_flags: 0,
             icon: None,
-            parent: None
+            parent: None,
         }
     }
 
@@ -129,7 +129,9 @@ impl Window {
         use winapi::um::winuser::InvalidateRect;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { InvalidateRect(handle, ::std::ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ::std::ptr::null(), 1);
+        }
     }
 
     /// Close the window as if the user clicked the X button.
@@ -142,24 +144,27 @@ impl Window {
 
     /// Return the icon of the window
     pub fn icon(&self) -> Option<Icon> {
-        use winapi::um::winuser::WM_GETICON;
         use winapi::um::winnt::HANDLE;
+        use winapi::um::winuser::WM_GETICON;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let handle = wh::send_message(handle, WM_GETICON, 0, 0);
         if handle == 0 {
             None
         } else {
-            Some(Icon { handle: handle as HANDLE, owned: false })
+            Some(Icon {
+                handle: handle as HANDLE,
+                owned: false,
+            })
         }
     }
 
     /// Set the icon in the window
     /// - icon: The new icon. If None, the icon is removed
     pub fn set_icon(&self, icon: Option<&Icon>) {
-        use winapi::um::winuser::WM_SETICON;
-        use winapi::shared::minwindef::LPARAM;
         use std::ptr;
+        use winapi::shared::minwindef::LPARAM;
+        use winapi::um::winuser::WM_SETICON;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -176,7 +181,9 @@ impl Window {
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -191,7 +198,7 @@ impl Window {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -229,7 +236,7 @@ impl Window {
     }
 
     /// Return window title
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -263,7 +270,7 @@ impl Drop for Window {
 }
 
 #[cfg(feature = "raw-win-handle")]
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, windows::WindowsHandle};
+use raw_window_handle::{windows::WindowsHandle, HasRawWindowHandle, RawWindowHandle};
 
 #[cfg(feature = "raw-win-handle")]
 unsafe impl HasRawWindowHandle for Window {
@@ -280,7 +287,7 @@ unsafe impl HasRawWindowHandle for Window {
                 })
             }
             // Not a valid window handle, so return an empty handle
-            _ => RawWindowHandle::Windows(WindowsHandle::empty())
+            _ => RawWindowHandle::Windows(WindowsHandle::empty()),
         }
     }
 }
@@ -297,11 +304,10 @@ pub struct WindowBuilder<'a> {
     flags: Option<WindowFlags>,
     ex_flags: u32,
     icon: Option<&'a Icon>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> WindowBuilder<'a> {
-
     pub fn flags(mut self, flags: WindowFlags) -> WindowBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -368,8 +374,12 @@ impl<'a> WindowBuilder<'a> {
         let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
 
         let mut ex_flags = self.ex_flags;
-        if self.topmost { ex_flags |= WS_EX_TOPMOST; }
-        if self.accept_files { ex_flags |= WS_EX_ACCEPTFILES; }
+        if self.topmost {
+            ex_flags |= WS_EX_TOPMOST;
+        }
+        if self.accept_files {
+            ex_flags |= WS_EX_ACCEPTFILES;
+        }
 
         *out = Default::default();
 
@@ -389,12 +399,13 @@ impl<'a> WindowBuilder<'a> {
         }
 
         if self.center {
-            let [left, top, right, bottom] = crate::Monitor::monitor_rect_from_window(out as &Window);
-            let (m_width, m_height) = unsafe { physical_to_logical(right-left, bottom-top) };
+            let [left, top, right, bottom] =
+                crate::Monitor::monitor_rect_from_window(out as &Window);
+            let (m_width, m_height) = unsafe { physical_to_logical(right - left, bottom - top) };
             let (width, height) = self.size;
 
-            let x = left + ((m_width-width)/2);
-            let y = top + ((m_height-height)/2);
+            let x = left + ((m_width - width) / 2);
+            let y = top + ((m_height - height) / 2);
 
             out.set_position(x, y);
         } else if self.maximized {
@@ -405,5 +416,4 @@ impl<'a> WindowBuilder<'a> {
 
         Ok(())
     }
-
 }

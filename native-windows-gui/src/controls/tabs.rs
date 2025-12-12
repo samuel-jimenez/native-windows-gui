@@ -1,21 +1,23 @@
-use winapi::shared::minwindef::{WPARAM, LPARAM, BOOL};
+use super::{ControlBase, ControlHandle};
+use crate::win32::{
+    base_helper::{check_hwnd, to_utf16},
+    window_helper as wh,
+};
+use crate::{unbind_raw_event_handler, Font, NwgError, RawEventHandler};
+use std::{cell::RefCell, mem};
+use winapi::shared::minwindef::{BOOL, LPARAM, WPARAM};
 use winapi::shared::windef::HWND;
 use winapi::um::winnt::LPWSTR;
-use winapi::um::winuser::{EnumChildWindows, WS_VISIBLE, WS_DISABLED, WS_EX_CONTROLPARENT};
-use crate::win32::{base_helper::{to_utf16, check_hwnd}, window_helper as wh};
-use crate::{NwgError, Font, RawEventHandler, unbind_raw_event_handler};
-use super::{ControlBase, ControlHandle};
-use std::{mem, cell::RefCell};
+use winapi::um::winuser::{EnumChildWindows, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE};
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 use crate::ImageList;
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 use std::ptr;
 
 const NOT_BOUND: &'static str = "TabsContainer/Tab is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TabsContainer/Tab handle is not HWND!";
-
 
 bitflags! {
     pub struct TabsContainerFlags: u32 {
@@ -57,7 +59,6 @@ pub struct TabsContainer {
 }
 
 impl TabsContainer {
-
     pub fn builder<'a>() -> TabsContainerBuilder<'a> {
         TabsContainerBuilder {
             size: (300, 300),
@@ -68,15 +69,15 @@ impl TabsContainer {
             ex_flags: 0,
 
             #[cfg(feature = "image-list")]
-            image_list: None
+            image_list: None,
         }
     }
 
     /// Return the index of the currently selected tab
     /// May return `usize::max_value()` if no tab is selected
     pub fn selected_tab(&self) -> usize {
-        use winapi::um::commctrl::{TCM_GETCURSEL};
-        
+        use winapi::um::commctrl::TCM_GETCURSEL;
+
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, TCM_GETCURSEL, 0, 0) as usize
     }
@@ -91,7 +92,7 @@ impl TabsContainer {
         // Update the visible state of the tabs (this is not done automatically)
         let data: (HWND, i32) = (handle, index as i32);
         let data_ptr = &data as *const (HWND, i32);
-        
+
         unsafe {
             EnumChildWindows(handle, Some(toggle_children_tabs), data_ptr as LPARAM);
         }
@@ -100,7 +101,7 @@ impl TabsContainer {
     /// Return the number of tabs in the view
     pub fn tab_count(&self) -> usize {
         use winapi::um::commctrl::TCM_GETITEMCOUNT;
-            
+
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, TCM_GETITEMCOUNT, 0, 0) as usize
     }
@@ -117,7 +118,7 @@ impl TabsContainer {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let list_handle = match list {
             None => 0,
-            Some(list) => list.handle as _
+            Some(list) => list.handle as _,
         };
 
         wh::send_message(handle, TCM_SETIMAGELIST, 0, list_handle);
@@ -140,7 +141,7 @@ impl TabsContainer {
             false => Some(ImageList {
                 handle: handle as _,
                 owned: false,
-            })
+            }),
         }
     }
 
@@ -157,7 +158,9 @@ impl TabsContainer {
     /// Set the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -172,7 +175,7 @@ impl TabsContainer {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -216,14 +219,18 @@ impl TabsContainer {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Winapi class name used during control creation
@@ -248,83 +255,104 @@ impl TabsContainer {
     // Private
     //
 
-    /// The tab widget lacks basic functionalities on it's own. This fix it. 
+    /// The tab widget lacks basic functionalities on it's own. This fix it.
     fn hook_tabs(&self) {
         use crate::bind_raw_event_handler_inner;
         use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::winuser::{NMHDR, WM_SIZE, WM_NOTIFY};
         use winapi::um::commctrl::{TCM_GETCURSEL, TCN_SELCHANGE};
         use winapi::um::winuser::SendMessageW;
+        use winapi::um::winuser::{NMHDR, WM_NOTIFY, WM_SIZE};
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let parent_handle_raw = wh::get_window_parent(handle);
         let parent_handle = ControlHandle::Hwnd(parent_handle_raw);
-       
-        let handler0 = bind_raw_event_handler_inner(&parent_handle, handle as usize, move |_hwnd, msg, _w, l| { unsafe {
-            match msg {
-                WM_NOTIFY => {
-                    let nmhdr = &*(l as *const NMHDR);
-                    if nmhdr.code == TCN_SELCHANGE {
-                        let index = SendMessageW(handle, TCM_GETCURSEL, 0, 0) as i32;
-                        let data: (HWND, i32) = (handle, index);
-                        let data_ptr = &data as *const (HWND, i32);
-                        EnumChildWindows(handle, Some(toggle_children_tabs), data_ptr as LPARAM);
+
+        let handler0 = bind_raw_event_handler_inner(
+            &parent_handle,
+            handle as usize,
+            move |_hwnd, msg, _w, l| unsafe {
+                match msg {
+                    WM_NOTIFY => {
+                        let nmhdr = &*(l as *const NMHDR);
+                        if nmhdr.code == TCN_SELCHANGE {
+                            let index = SendMessageW(handle, TCM_GETCURSEL, 0, 0) as i32;
+                            let data: (HWND, i32) = (handle, index);
+                            let data_ptr = &data as *const (HWND, i32);
+                            EnumChildWindows(
+                                handle,
+                                Some(toggle_children_tabs),
+                                data_ptr as LPARAM,
+                            );
+                        }
                     }
-                },
-                _ => {}
-            }
+                    _ => {}
+                }
 
-            None
-        } });
+                None
+            },
+        );
 
-        let handler1 = bind_raw_event_handler_inner(&self.handle, handle as usize, move |hwnd, msg, _w, l| { unsafe {
-            match msg {
-                WM_SIZE => {
-                    use winapi::shared::windef::{RECT, HGDIOBJ};
-                    use winapi::um::winuser::{GetDC, DrawTextW, ReleaseDC, DT_CALCRECT, DT_LEFT};
-                    use winapi::um::wingdi::SelectObject;
+        let handler1 =
+            bind_raw_event_handler_inner(&self.handle, handle as usize, move |hwnd, msg, _w, l| {
+                unsafe {
+                    match msg {
+                        WM_SIZE => {
+                            use winapi::shared::windef::{HGDIOBJ, RECT};
+                            use winapi::um::wingdi::SelectObject;
+                            use winapi::um::winuser::{
+                                DrawTextW, GetDC, ReleaseDC, DT_CALCRECT, DT_LEFT,
+                            };
 
-                    let size = l as u32;
-                    let width = LOWORD(size) as i32;
-                    let height = HIWORD(size) as i32;
-                    let (w, h) = crate::win32::high_dpi::physical_to_logical(width, height);
+                            let size = l as u32;
+                            let width = LOWORD(size) as i32;
+                            let height = HIWORD(size) as i32;
+                            let (w, h) = crate::win32::high_dpi::physical_to_logical(width, height);
 
-                    let mut data = ResizeDirectChildrenParams {
-                        parent: hwnd,
-                        width: w as u32,
-                        height: h as u32,
-                        tab_offset_y: 0
-                    };
+                            let mut data = ResizeDirectChildrenParams {
+                                parent: hwnd,
+                                width: w as u32,
+                                height: h as u32,
+                                tab_offset_y: 0,
+                            };
 
-                    // Get the height of the tabs
-                    let font_handle = wh::get_window_font(hwnd);
-                    let mut r: RECT = mem::zeroed();
-                    let dc = GetDC(hwnd);
-                    let old = SelectObject(dc, font_handle as HGDIOBJ);
-                    let calc: [u16;2] = [75, 121];
-                    DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
-                    SelectObject(dc, old);
-                    ReleaseDC(hwnd, dc);
+                            // Get the height of the tabs
+                            let font_handle = wh::get_window_font(hwnd);
+                            let mut r: RECT = mem::zeroed();
+                            let dc = GetDC(hwnd);
+                            let old = SelectObject(dc, font_handle as HGDIOBJ);
+                            let calc: [u16; 2] = [75, 121];
+                            DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
+                            SelectObject(dc, old);
+                            ReleaseDC(hwnd, dc);
 
-                    // Fix the width/height of the tabs
-                    const BORDER_SIZE: u32 = 11;
-                    let tab_height = r.bottom as u32 + BORDER_SIZE;
-                    if data.width > BORDER_SIZE { data.width -= BORDER_SIZE; }
-                    if data.height > tab_height { 
-                        data.height -= (tab_height + BORDER_SIZE).min(data.height);
+                            // Fix the width/height of the tabs
+                            const BORDER_SIZE: u32 = 11;
+                            let tab_height = r.bottom as u32 + BORDER_SIZE;
+                            if data.width > BORDER_SIZE {
+                                data.width -= BORDER_SIZE;
+                            }
+                            if data.height > tab_height {
+                                data.height -= (tab_height + BORDER_SIZE).min(data.height);
+                            }
+                            data.tab_offset_y = tab_height;
+
+                            let data_ptr = &data as *const ResizeDirectChildrenParams;
+                            EnumChildWindows(
+                                hwnd,
+                                Some(resize_direct_children),
+                                data_ptr as LPARAM,
+                            );
+                        }
+                        _ => {}
                     }
-                    data.tab_offset_y = tab_height;
-                    
-                    let data_ptr = &data as *const ResizeDirectChildrenParams;
-                    EnumChildWindows(hwnd, Some(resize_direct_children), data_ptr as LPARAM);
-                },
-                _ => {}
-            }
 
-            None
-        } } );
+                    None
+                }
+            });
 
         *self.handler0.borrow_mut() = Some(handler0.unwrap());
         *self.handler1.borrow_mut() = Some(handler1.unwrap());
@@ -342,7 +370,7 @@ impl Drop for TabsContainer {
         if let Some(h) = handler.as_ref() {
             drop(unbind_raw_event_handler(h));
         }
-    
+
         self.handle.destroy();
     }
 }
@@ -353,7 +381,6 @@ impl PartialEq for TabsContainer {
     }
 }
 
-
 pub struct TabsContainerBuilder<'a> {
     size: (i32, i32),
     position: (i32, i32),
@@ -363,11 +390,10 @@ pub struct TabsContainerBuilder<'a> {
     ex_flags: u32,
 
     #[cfg(feature = "image-list")]
-    image_list: Option<&'a ImageList>
+    image_list: Option<&'a ImageList>,
 }
 
 impl<'a> TabsContainerBuilder<'a> {
-
     pub fn flags(mut self, flags: TabsContainerFlags) -> TabsContainerBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -409,7 +435,7 @@ impl<'a> TabsContainerBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("TabsContainer"))
+            None => Err(NwgError::no_parent("TabsContainer")),
         }?;
 
         *out = Default::default();
@@ -449,9 +475,8 @@ impl<'a> TabsContainerBuilder<'a> {
     }
 }
 
-
 /**
-A subwindow in a `TabContainer` widget. A Tab control can only be added as a child of a `TabContainer`. 
+A subwindow in a `TabContainer` widget. A Tab control can only be added as a child of a `TabContainer`.
 
 A Tab controls doesn't do much on its own. See `TabContainer` for the tab specific events.
 
@@ -462,11 +487,10 @@ A Tab controls doesn't do much on its own. See `TabContainer` for the tab specif
 */
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct Tab {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl Tab {
-
     pub fn builder<'a>() -> TabBuilder<'a> {
         TabBuilder {
             text: "Tab",
@@ -479,10 +503,12 @@ impl Tab {
 
     /// Sets the title of the tab
     pub fn set_text<'a>(&self, text: &'a str) {
-        use winapi::um::commctrl::{TCM_SETITEMW, TCIF_TEXT, TCITEMW};
+        use winapi::um::commctrl::{TCIF_TEXT, TCITEMW, TCM_SETITEMW};
         use winapi::um::winuser::GWL_USERDATA;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let tab_index = (wh::get_window_long(handle, GWL_USERDATA) - 1) as WPARAM;
@@ -497,7 +523,7 @@ impl Tab {
             pszText: text.as_ptr() as LPWSTR,
             cchTextMax: 0,
             iImage: -1,
-            lParam: 0
+            lParam: 0,
         };
 
         let item_ptr = &item as *const TCITEMW;
@@ -511,10 +537,12 @@ impl Tab {
     */
     #[cfg(feature = "image-list")]
     pub fn set_image_index(&self, index: Option<i32>) {
-        use winapi::um::commctrl::{TCM_SETITEMW, TCIF_IMAGE, TCITEMW};
+        use winapi::um::commctrl::{TCIF_IMAGE, TCITEMW, TCM_SETITEMW};
         use winapi::um::winuser::GWL_USERDATA;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let tab_index = (wh::get_window_long(handle, GWL_USERDATA) - 1) as WPARAM;
@@ -527,7 +555,7 @@ impl Tab {
             pszText: ptr::null_mut(),
             cchTextMax: 0,
             iImage: index.unwrap_or(-1),
-            lParam: 0
+            lParam: 0,
         };
 
         let item_ptr = &item as *const TCITEMW;
@@ -545,21 +573,24 @@ impl Tab {
         None
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_visibility(handle) }
     }
 
     /// Show or hide the control to the user
     pub fn set_visible(&self, v: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_visibility(handle, v) }
     }
-    
 
     //
     // Other methods
@@ -620,9 +651,11 @@ impl Tab {
 
     /// Bind the tab to a tab view
     fn bind_container<'a>(&self, text: &'a str) {
-        use winapi::um::commctrl::{TCITEMW, TCM_INSERTITEMW, TCIF_TEXT};
+        use winapi::um::commctrl::{TCIF_TEXT, TCITEMW, TCM_INSERTITEMW};
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let tab_view_handle = wh::get_window_parent(handle);
@@ -640,13 +673,17 @@ impl Tab {
             pszText: text.as_ptr() as LPWSTR,
             cchTextMax: 0,
             iImage: -1,
-            lParam: 0
+            lParam: 0,
         };
 
         let tab_info_ptr = &tab_info as *const TCITEMW;
-        wh::send_message(tab_view_handle, TCM_INSERTITEMW, next_index as WPARAM, tab_info_ptr as LPARAM);
+        wh::send_message(
+            tab_view_handle,
+            TCM_INSERTITEMW,
+            next_index as WPARAM,
+            tab_info_ptr as LPARAM,
+        );
     }
-
 }
 
 impl Drop for Tab {
@@ -664,7 +701,6 @@ pub struct TabBuilder<'a> {
 }
 
 impl<'a> TabBuilder<'a> {
-
     pub fn text(mut self, text: &'a str) -> TabBuilder<'a> {
         self.text = text;
         self
@@ -686,7 +722,7 @@ impl<'a> TabBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("Tab"))
+            None => Err(NwgError::no_parent("Tab")),
         }?;
 
         *out = Default::default();
@@ -695,12 +731,16 @@ impl<'a> TabBuilder<'a> {
             &ControlHandle::Hwnd(h) => {
                 let class_name = unsafe { wh::get_window_class_name(h) };
                 if &class_name != WC_TABCONTROL {
-                    Err(NwgError::control_create("Tab requires a TabsContainer parent."))
+                    Err(NwgError::control_create(
+                        "Tab requires a TabsContainer parent.",
+                    ))
                 } else {
                     Ok(())
                 }
-            },
-            _ => Err(NwgError::control_create("Tab requires a TabsContainer parent."))
+            }
+            _ => Err(NwgError::control_create(
+                "Tab requires a TabsContainer parent.",
+            )),
         }?;
 
         out.handle = ControlBase::build_hwnd()
@@ -732,12 +772,11 @@ impl<'a> TabBuilder<'a> {
     }
 }
 
-
 struct ResizeDirectChildrenParams {
     parent: HWND,
     width: u32,
     height: u32,
-    tab_offset_y: u32
+    tab_offset_y: u32,
 }
 
 unsafe extern "system" fn resize_direct_children(handle: HWND, params: LPARAM) -> BOOL {
@@ -758,16 +797,16 @@ unsafe extern "system" fn count_children(handle: HWND, params: LPARAM) -> BOOL {
     if &wh::get_window_class_name(handle) == "NWG_TAB" {
         let tab_index = (wh::get_window_long(handle, GWL_USERDATA)) as WPARAM;
         let count = params as *mut usize;
-        *count = usize::max(tab_index+1, *count);
+        *count = usize::max(tab_index + 1, *count);
     }
-    
+
     1
 }
 
 /// Toggle the visibility of the active and inactive tab.
 unsafe extern "system" fn toggle_children_tabs(handle: HWND, params: LPARAM) -> BOOL {
     use winapi::um::winuser::GWL_USERDATA;
-    
+
     let (parent, index) = *(params as *const (HWND, i32));
     if wh::get_window_parent(handle) == parent {
         let tab_index = wh::get_window_long(handle, GWL_USERDATA) as i32;

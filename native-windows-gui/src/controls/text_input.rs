@@ -1,22 +1,24 @@
+use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::{check_hwnd, to_utf16};
+use crate::win32::window_helper as wh;
+use crate::{Font, HTextAlign, NwgError, RawEventHandler};
+use std::cell::RefCell;
+use std::char;
+use std::ops::Range;
 use winapi::shared::{
+    minwindef::{LPARAM, UINT, WPARAM},
     windef::HBRUSH,
-    minwindef::{UINT, WPARAM, LPARAM}
 };
 use winapi::um::{
-    winuser::{WS_VISIBLE, WS_DISABLED, ES_NUMBER, ES_LEFT, ES_CENTER, ES_RIGHT, WS_TABSTOP, ES_AUTOHSCROLL},
     wingdi::DeleteObject,
+    winuser::{
+        ES_AUTOHSCROLL, ES_CENTER, ES_LEFT, ES_NUMBER, ES_RIGHT, WS_DISABLED, WS_TABSTOP,
+        WS_VISIBLE,
+    },
 };
-use crate::win32::window_helper as wh; 
-use crate::win32::base_helper::{check_hwnd, to_utf16};
-use crate::{Font, NwgError, HTextAlign, RawEventHandler};
-use super::{ControlBase, ControlHandle};
-use std::cell::RefCell;
-use std::ops::Range;
-use std::char;
 
 const NOT_BOUND: &'static str = "TextInput is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TextInput handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -25,7 +27,7 @@ bitflags! {
         * VISIBLE:     The text input is immediatly visible after creation
         * DISABLED:    The text input cannot be interacted with by the user. It also has a grayed out look.
         * NUMBER:      The text input only accepts number
-        * AUTO_SCROLL: The text input automatically scrolls text to the right by 10 characters when the user types a character 
+        * AUTO_SCROLL: The text input automatically scrolls text to the right by 10 characters when the user types a character
                        at the end of the line. When the user presses the ENTER key, the control scrolls all text back to position zero.
         * TAB_STOP:    The text input can be selected using tab navigation
     */
@@ -38,7 +40,7 @@ bitflags! {
     }
 }
 
-/** 
+/**
 An edit control is a rectangular control window to permit the user to enter and edit text by typing on the keyboard
 This control only allow a single line input. For block of text, use `TextBox`.
 Winapi documentation: https://docs.microsoft.com/en-us/windows/win32/controls/about-edit-controls#text-and-input-styles
@@ -85,7 +87,6 @@ pub struct TextInput {
 }
 
 impl TextInput {
-
     pub fn builder<'a>() -> TextInputBuilder<'a> {
         TextInputBuilder {
             text: "",
@@ -112,14 +113,18 @@ impl TextInput {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return the password character displayed by the text input. If the input is not a password, return None.
@@ -131,7 +136,7 @@ impl TextInput {
         let raw_char = wh::send_message(handle, EM_GETPASSWORDCHAR as u32, 0, 0) as u32;
         match raw_char {
             0 => None,
-            v => char::from_u32(v)
+            v => char::from_u32(v),
         }
     }
 
@@ -141,10 +146,17 @@ impl TextInput {
         use winapi::um::winuser::{InvalidateRect, EM_SETPASSWORDCHAR};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, EM_SETPASSWORDCHAR as u32, c.map(|c| c as usize).unwrap_or(0), 0);
+        wh::send_message(
+            handle,
+            EM_SETPASSWORDCHAR as u32,
+            c.map(|c| c as usize).unwrap_or(0),
+            0,
+        );
 
         // The control needs to be manually refreshed
-        unsafe { InvalidateRect(handle, ::std::ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ::std::ptr::null(), 1);
+        }
     }
 
     /// Return the number of maximum character allowed in this text input
@@ -156,7 +168,7 @@ impl TextInput {
     }
 
     /// Set the number of maximum character allowed in this text input
-    /// If `limit` is 0, the text length is set to 0x7FFFFFFE characters 
+    /// If `limit` is 0, the text length is set to 0x7FFFFFFE characters
     pub fn set_limit(&self, limit: usize) {
         use winapi::um::winuser::EM_SETLIMITTEXT;
 
@@ -243,7 +255,9 @@ impl TextInput {
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -258,7 +272,7 @@ impl TextInput {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -296,7 +310,7 @@ impl TextInput {
     }
 
     /// Return the text displayed in the TextInput
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -311,7 +325,7 @@ impl TextInput {
     /// when it is empty and does not have focus. The string returned will be
     /// as long as the user specified, however it might be longer or shorter than
     /// the actual placeholder text.
-    pub fn placeholder_text<'a>(&self, text_length: usize) -> String { 
+    pub fn placeholder_text<'a>(&self, text_length: usize) -> String {
         use std::ffi::OsString;
         use std::os::windows::ffi::OsStringExt;
         use winapi::shared::ntdef::WCHAR;
@@ -321,8 +335,15 @@ impl TextInput {
         let mut placeholder_text: Vec<WCHAR> = Vec::with_capacity(text_length);
         unsafe {
             placeholder_text.set_len(text_length);
-            wh::send_message(handle, EM_GETCUEBANNER, placeholder_text.as_mut_ptr() as WPARAM, placeholder_text.len() as LPARAM);
-            OsString::from_wide(&placeholder_text).into_string().unwrap_or("".to_string())
+            wh::send_message(
+                handle,
+                EM_GETCUEBANNER,
+                placeholder_text.as_mut_ptr() as WPARAM,
+                placeholder_text.len() as LPARAM,
+            );
+            OsString::from_wide(&placeholder_text)
+                .into_string()
+                .unwrap_or("".to_string())
         }
     }
 
@@ -330,7 +351,7 @@ impl TextInput {
     /// when it is empty and does not have focus
     pub fn set_placeholder_text<'a>(&self, v: Option<&'a str>) {
         use winapi::um::commctrl::EM_SETCUEBANNER;
-    
+
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let placeholder_text = v.unwrap_or("");
         let text = to_utf16(placeholder_text);
@@ -350,21 +371,29 @@ impl TextInput {
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
         use winapi::um::winuser::{WS_BORDER, WS_CHILD};
-        
+
         WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL | WS_CHILD
     }
 
     /// Center the text vertically. Can't believe that must be manually hacked in.
     fn hook_non_client_size(&mut self, bg: Option<[u8; 3]>) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::windef::{HGDIOBJ, RECT, POINT};
-        use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, COLOR_WINDOW,};
-        use winapi::um::winuser::{SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOMOVE, SWP_FRAMECHANGED};
-        use winapi::um::winuser::{GetDC, DrawTextW, ReleaseDC, GetClientRect, GetWindowRect, FillRect, ScreenToClient, SetWindowPos};
-        use winapi::um::wingdi::{SelectObject, CreateSolidBrush, RGB};
         use std::{mem, ptr};
+        use winapi::shared::windef::{HGDIOBJ, POINT, RECT};
+        use winapi::um::wingdi::{CreateSolidBrush, SelectObject, RGB};
+        use winapi::um::winuser::{
+            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
+            SetWindowPos,
+        };
+        use winapi::um::winuser::{
+            COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_NCCALCSIZE, WM_NCPAINT,
+            WM_SIZE,
+        };
+        use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         self.handle.hwnd().expect(BAD_HANDLE);
 
         let brush = match bg {
@@ -372,107 +401,122 @@ impl TextInput {
                 let b = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
                 self.background_brush = Some(b);
                 b
-            },
-            None => COLOR_WINDOW as HBRUSH
+            }
+            None => COLOR_WINDOW as HBRUSH,
         };
 
         unsafe {
+            let handler = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
+                match msg {
+                    WM_NCCALCSIZE => {
+                        if w == 0 {
+                            return None;
+                        }
 
-        let handler = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
-            match msg {
-                WM_NCCALCSIZE  => {
-                    if w == 0 { return None }
+                        // Calculate client area height needed for a font
+                        let font_handle = wh::get_window_font(hwnd);
+                        let mut r: RECT = mem::zeroed();
+                        let dc = GetDC(hwnd);
 
-                    // Calculate client area height needed for a font
-                    let font_handle = wh::get_window_font(hwnd);
-                    let mut r: RECT = mem::zeroed();
-                    let dc = GetDC(hwnd);
-                    
-                    let old = SelectObject(dc, font_handle as HGDIOBJ);
-                    let calc: [u16;2] = [75, 121];
-                    DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
+                        let old = SelectObject(dc, font_handle as HGDIOBJ);
+                        let calc: [u16; 2] = [75, 121];
+                        DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
 
-                    let client_height = r.bottom;
+                        let client_height = r.bottom;
 
-                    SelectObject(dc, old);
-                    ReleaseDC(hwnd, dc);
+                        SelectObject(dc, old);
+                        ReleaseDC(hwnd, dc);
 
-                    // Calculate NC area to center text.
-                    let mut client: RECT = mem::zeroed();
-                    let mut window: RECT = mem::zeroed();
-                    GetClientRect(hwnd, &mut client);
-                    GetWindowRect(hwnd, &mut window);
+                        // Calculate NC area to center text.
+                        let mut client: RECT = mem::zeroed();
+                        let mut window: RECT = mem::zeroed();
+                        GetClientRect(hwnd, &mut client);
+                        GetWindowRect(hwnd, &mut window);
 
-                    let window_height = window.bottom - window.top;
-                    let center = ((window_height - client_height) / 2) - 4;
-                    
-                    // Save the info
-                    let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
-                    let info = &mut *info_ptr;
+                        let window_height = window.bottom - window.top;
+                        let center = ((window_height - client_height) / 2) - 4;
 
-                    info.rgrc[0].top += center;
-                    info.rgrc[0].bottom -= center;
-                },
-                WM_NCPAINT  => {
-                    let mut window: RECT = mem::zeroed();
-                    let mut client: RECT = mem::zeroed();
-                    GetWindowRect(hwnd, &mut window);
-                    GetClientRect(hwnd, &mut client);
+                        // Save the info
+                        let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
+                        let info = &mut *info_ptr;
 
-                    let mut pt1 = POINT {x: window.left, y: window.top};
-                    ScreenToClient(hwnd, &mut pt1);
+                        info.rgrc[0].top += center;
+                        info.rgrc[0].bottom -= center;
+                    }
+                    WM_NCPAINT => {
+                        let mut window: RECT = mem::zeroed();
+                        let mut client: RECT = mem::zeroed();
+                        GetWindowRect(hwnd, &mut window);
+                        GetClientRect(hwnd, &mut client);
 
-                    let mut pt2 = POINT {x: window.right, y: window.bottom};
-                    ScreenToClient(hwnd, &mut pt2);
+                        let mut pt1 = POINT {
+                            x: window.left,
+                            y: window.top,
+                        };
+                        ScreenToClient(hwnd, &mut pt1);
 
-                    let top = RECT {
-                        left: 0,
-                        top: pt1.y,
-                        right: client.right,
-                        bottom: client.top
-                    };
+                        let mut pt2 = POINT {
+                            x: window.right,
+                            y: window.bottom,
+                        };
+                        ScreenToClient(hwnd, &mut pt2);
 
-                    let bottom = RECT {
-                        left: 0,
-                        top: client.bottom,
-                        right: client.right,
-                        bottom: pt2.y
-                    };
+                        let top = RECT {
+                            left: 0,
+                            top: pt1.y,
+                            right: client.right,
+                            bottom: client.top,
+                        };
 
-                    let dc = GetDC(hwnd);
-                    FillRect(dc, &top, brush);
-                    FillRect(dc, &bottom, brush);
-                    ReleaseDC(hwnd, dc);
-                },
-                WM_SIZE => {
-                    SetWindowPos(hwnd, ptr::null_mut(), 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED);
-                },
-                _ => {}
-            }
+                        let bottom = RECT {
+                            left: 0,
+                            top: client.bottom,
+                            right: client.right,
+                            bottom: pt2.y,
+                        };
 
-            None
-        });
+                        let dc = GetDC(hwnd);
+                        FillRect(dc, &top, brush);
+                        FillRect(dc, &bottom, brush);
+                        ReleaseDC(hwnd, dc);
+                    }
+                    WM_SIZE => {
+                        SetWindowPos(
+                            hwnd,
+                            ptr::null_mut(),
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
+                        );
+                    }
+                    _ => {}
+                }
 
-        *self.handler0.borrow_mut() = Some(handler.unwrap());
+                None
+            });
 
+            *self.handler0.borrow_mut() = Some(handler.unwrap());
         }
     }
-
 }
 
 impl Drop for TextInput {
     fn drop(&mut self) {
         use crate::unbind_raw_event_handler;
-        
+
         let handler = self.handler0.borrow();
         if let Some(h) = handler.as_ref() {
             drop(unbind_raw_event_handler(h));
         }
-        
+
         if let Some(bg) = self.background_brush {
-            unsafe { DeleteObject(bg as _); }
+            unsafe {
+                DeleteObject(bg as _);
+            }
         }
-        
+
         self.handle.destroy();
     }
 }
@@ -495,7 +539,6 @@ pub struct TextInputBuilder<'a> {
 }
 
 impl<'a> TextInputBuilder<'a> {
-
     pub fn flags(mut self, flags: TextInputFlags) -> TextInputBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -551,7 +594,7 @@ impl<'a> TextInputBuilder<'a> {
         self
     }
 
-    pub fn background_color(mut self, color: Option<[u8;3]>) -> TextInputBuilder<'a> {
+    pub fn background_color(mut self, color: Option<[u8; 3]>) -> TextInputBuilder<'a> {
         self.background_color = color;
         self
     }
@@ -575,12 +618,12 @@ impl<'a> TextInputBuilder<'a> {
             HTextAlign::Right => {
                 flags |= ES_RIGHT;
                 flags &= !ES_AUTOHSCROLL;
-            },
+            }
         }
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("TextInput"))
+            None => Err(NwgError::no_parent("TextInput")),
         }?;
 
         *out = Default::default();
@@ -626,7 +669,6 @@ impl<'a> TextInputBuilder<'a> {
 
         Ok(())
     }
-
 }
 
 impl PartialEq for TextInput {

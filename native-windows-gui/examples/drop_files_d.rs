@@ -4,15 +4,13 @@
     Requires the following features: `cargo run --example drop_files_d --features "textbox"`
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 
 use std::fs;
-
 
 #[derive(Default, NwgUi)]
 pub struct DropApp {

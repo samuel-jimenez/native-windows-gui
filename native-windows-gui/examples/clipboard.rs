@@ -4,12 +4,11 @@
     Requires the following features: `cargo run --example clipboard --features "textbox listbox menu cursor clipboard"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct ClipboardCustom {
@@ -42,7 +41,6 @@ pub struct ClipboardCustom {
 }
 
 impl ClipboardCustom {
-
     fn show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.listbox_menu.popup(x, y)
@@ -68,7 +66,6 @@ impl ClipboardCustom {
 
         nwg::Clipboard::set_data_text(&self.window, &copy_data);
     }
-
 }
 
 fn main() {
@@ -77,4 +74,3 @@ fn main() {
     let _app = ClipboardCustom::build_ui(Default::default()).expect("Failed to build UI");
     nwg::dispatch_thread_events();
 }
-

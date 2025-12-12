@@ -1,13 +1,13 @@
+use crate::win32::resources_helper as rh;
+use crate::{NwgError, OemBitmap, OemImage};
+use std::ptr;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::IMAGE_BITMAP;
-use crate::win32::resources_helper as rh;
-use crate::{OemBitmap, OemImage, NwgError};
-use std::ptr;
 
 #[cfg(feature = "embed-resource")]
 use super::EmbedResource;
 
-/** 
+/**
 A wrapper over a bitmap file (*.bmp)
 
 Note that Bitmap object are only used as display resources (ie: it's impossible to read pixels or resized it).
@@ -58,11 +58,10 @@ fn load_bitmap_builder() -> nwg::Bitmap {
 #[allow(unused)]
 pub struct Bitmap {
     pub handle: HANDLE,
-    pub(crate) owned: bool
+    pub(crate) owned: bool,
 }
 
 impl Bitmap {
-
     pub fn builder<'a>() -> BitmapBuilder<'a> {
         BitmapBuilder {
             source_text: None,
@@ -79,7 +78,7 @@ impl Bitmap {
             source_embed_str: None,
 
             size: None,
-            strict: false
+            strict: false,
         }
     }
 
@@ -97,7 +96,7 @@ impl Bitmap {
             .build(&mut bitmap)
             .unwrap();
 
-            bitmap
+        bitmap
     }
 
     /**
@@ -124,9 +123,7 @@ impl Bitmap {
     pub fn from_bin(bin: &[u8]) -> Result<Bitmap, NwgError> {
         let mut bitmap = Bitmap::default();
 
-        Bitmap::builder()
-            .source_bin(Some(bin))
-            .build(&mut bitmap)?;
+        Bitmap::builder().source_bin(Some(bin)).build(&mut bitmap)?;
 
         Ok(bitmap)
     }
@@ -139,7 +136,11 @@ impl Bitmap {
         Requires the `embed-resource` feature.
     */
     #[cfg(feature = "embed-resource")]
-    pub fn from_embed(embed: &EmbedResource, embed_id: Option<usize>, embed_str: Option<&str>) -> Result<Bitmap, NwgError> {
+    pub fn from_embed(
+        embed: &EmbedResource,
+        embed_id: Option<usize>,
+        embed_str: Option<&str>,
+    ) -> Result<Bitmap, NwgError> {
         let mut bitmap = Bitmap::default();
 
         Bitmap::builder()
@@ -153,7 +154,7 @@ impl Bitmap {
 
     /**
         Creates a new icon from the bitmap data.
-        
+
         Panics if the bitmap is not initialized
     */
     pub fn copy_as_icon(&self) -> crate::Icon {
@@ -169,17 +170,16 @@ impl Bitmap {
             xHotspot: 0,
             yHotspot: 0,
             hbmMask: self.handle as _,
-            hbmColor: self.handle as _
+            hbmColor: self.handle as _,
         };
 
         let icon = unsafe { CreateIconIndirect(&mut icon_info) };
 
         crate::Icon {
             handle: icon as _,
-            owned: true
+            owned: true,
         }
     }
-
 }
 
 pub struct BitmapBuilder<'a> {
@@ -195,13 +195,12 @@ pub struct BitmapBuilder<'a> {
 
     #[cfg(feature = "embed-resource")]
     source_embed_str: Option<&'a str>,
-    
+
     size: Option<(u32, u32)>,
     strict: bool,
 }
 
 impl<'a> BitmapBuilder<'a> {
-
     pub fn source_file(mut self, t: Option<&'a str>) -> BitmapBuilder<'a> {
         self.source_text = t;
         self
@@ -247,37 +246,54 @@ impl<'a> BitmapBuilder<'a> {
 
     pub fn build(self, b: &mut Bitmap) -> Result<(), NwgError> {
         if let Some(src) = self.source_text {
-            let handle = unsafe { 
-                #[cfg(feature="image-decoder")]
+            let handle = unsafe {
+                #[cfg(feature = "image-decoder")]
                 let handle = rh::build_image_decoder(src, self.size, self.strict, IMAGE_BITMAP);
 
-                #[cfg(not(feature="image-decoder"))]
+                #[cfg(not(feature = "image-decoder"))]
                 let handle = rh::build_image(src, self.size, self.strict, IMAGE_BITMAP);
 
                 handle?
             };
 
-            *b = Bitmap { handle, owned: true };
+            *b = Bitmap {
+                handle,
+                owned: true,
+            };
         } else if let Some(src) = self.source_system {
             let handle = unsafe { rh::build_oem_image(OemImage::Bitmap(src), self.size)? };
-            *b = Bitmap { handle, owned: true };
-        } else if let Some(src) = self.source_bin { 
+            *b = Bitmap {
+                handle,
+                owned: true,
+            };
+        } else if let Some(src) = self.source_bin {
             let handle = unsafe { rh::bitmap_from_memory(src)? };
 
-            *b = Bitmap { handle, owned: true };
+            *b = Bitmap {
+                handle,
+                owned: true,
+            };
         } else {
-            #[cfg(all(feature = "embed-resource", feature="image-decoder"))]
+            #[cfg(all(feature = "embed-resource", feature = "image-decoder"))]
             fn build_embed(builder: BitmapBuilder) -> Result<Bitmap, NwgError> {
                 match builder.source_embed {
-                    Some(embed) => {
-                        match builder.source_embed_str {
-                            Some(src) => embed.image_str(src, builder.size)
-                                .ok_or_else(|| NwgError::resource_create(format!("No bitmap in embed resource identified by {}", src))),
-                            None => embed.image(builder.source_embed_id, builder.size)
-                                .ok_or_else(|| NwgError::resource_create(format!("No bitmap in embed resource identified by {}", builder.source_embed_id)))
-                        }
+                    Some(embed) => match builder.source_embed_str {
+                        Some(src) => embed.image_str(src, builder.size).ok_or_else(|| {
+                            NwgError::resource_create(format!(
+                                "No bitmap in embed resource identified by {}",
+                                src
+                            ))
+                        }),
+                        None => embed
+                            .image(builder.source_embed_id, builder.size)
+                            .ok_or_else(|| {
+                                NwgError::resource_create(format!(
+                                    "No bitmap in embed resource identified by {}",
+                                    builder.source_embed_id
+                                ))
+                            }),
                     },
-                    None => Err(NwgError::resource_create("No source provided for Bitmap"))
+                    None => Err(NwgError::resource_create("No source provided for Bitmap")),
                 }
             }
 
@@ -285,15 +301,23 @@ impl<'a> BitmapBuilder<'a> {
             #[cfg(not(feature = "image-decoder"))]
             fn build_embed(builder: BitmapBuilder) -> Result<Bitmap, NwgError> {
                 match builder.source_embed {
-                    Some(embed) => {
-                        match builder.source_embed_str {
-                            Some(src) => embed.bitmap_str(src, builder.size)
-                                .ok_or_else(|| NwgError::resource_create(format!("No bitmap in embed resource identified by {}", src))),
-                            None => embed.bitmap(builder.source_embed_id, builder.size)
-                                .ok_or_else(|| NwgError::resource_create(format!("No bitmap in embed resource identified by {}", builder.source_embed_id)))
-                        }
+                    Some(embed) => match builder.source_embed_str {
+                        Some(src) => embed.bitmap_str(src, builder.size).ok_or_else(|| {
+                            NwgError::resource_create(format!(
+                                "No bitmap in embed resource identified by {}",
+                                src
+                            ))
+                        }),
+                        None => embed
+                            .bitmap(builder.source_embed_id, builder.size)
+                            .ok_or_else(|| {
+                                NwgError::resource_create(format!(
+                                    "No bitmap in embed resource identified by {}",
+                                    builder.source_embed_id
+                                ))
+                            }),
                     },
-                    None => Err(NwgError::resource_create("No source provided for Bitmap"))
+                    None => Err(NwgError::resource_create("No source provided for Bitmap")),
                 }
             }
 
@@ -304,38 +328,30 @@ impl<'a> BitmapBuilder<'a> {
 
             *b = build_embed(self)?;
         }
-    
+
         Ok(())
     }
-
 }
 
-
 impl Default for Bitmap {
-
     fn default() -> Bitmap {
         Bitmap {
             handle: ptr::null_mut(),
-            owned: false
+            owned: false,
         }
     }
-
 }
 
 impl PartialEq for Bitmap {
-
     fn eq(&self, other: &Self) -> bool {
         self.handle == other.handle
     }
-
 }
 
 impl Drop for Bitmap {
-
     fn drop(&mut self) {
         if self.owned && !self.handle.is_null() {
             rh::destroy_obj(self.handle);
         }
     }
-
 }

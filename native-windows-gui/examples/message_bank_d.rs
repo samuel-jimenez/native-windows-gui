@@ -1,25 +1,23 @@
 /*!
-    An application that saves messages into buttons. 
+    An application that saves messages into buttons.
     Demonstrate the dynamic functions of NWG.
 
     `cargo run --example message_bank_d`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 use std::cell::RefCell;
 
-
 #[derive(Default, NwgUi)]
 pub struct MessageBank {
-    
     #[nwg_control(size:(400, 300), position:(800, 300), title: "My message bank")]
     #[nwg_events( OnWindowClose: [MessageBank::exit] )]
     window: nwg::Window,
-    
+
     #[nwg_layout(parent: window, max_row: Some(6), spacing: 3)]
     layout: nwg::GridLayout,
 
@@ -41,7 +39,6 @@ pub struct MessageBank {
 }
 
 impl MessageBank {
-
     fn add_message(&self) {
         let title = self.message_title.text();
         let content = self.message_content.text();
@@ -58,19 +55,21 @@ impl MessageBank {
 
         let blen = buttons.len() as u32;
         let (x, y) = (blen % 6, blen / 6);
-        self.layout.add_child(x, y+1, &new_button);
+        self.layout.add_child(x, y + 1, &new_button);
 
         let new_button_handle = new_button.handle;
-        let handler = nwg::bind_event_handler(&new_button.handle, &self.window.handle, move |evt, _evt_data, handle| {
-            match evt {
+        let handler = nwg::bind_event_handler(
+            &new_button.handle,
+            &self.window.handle,
+            move |evt, _evt_data, handle| match evt {
                 nwg::Event::OnButtonClick => {
                     if handle == new_button_handle {
                         nwg::simple_message(&title, &content);
                     }
-                },
+                }
                 _ => {}
-            }
-        });
+            },
+        );
 
         buttons.push(new_button);
         handlers.push(handler);
@@ -81,10 +80,9 @@ impl MessageBank {
         for handler in handlers.iter() {
             nwg::unbind_event_handler(&handler);
         }
-        
+
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {
@@ -92,8 +90,6 @@ fn main() {
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let _ui = MessageBank::build_ui(Default::default()).expect("Failed to build UI");
-    
+
     nwg::dispatch_thread_events();
 }
-
-

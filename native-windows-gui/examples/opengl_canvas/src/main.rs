@@ -4,18 +4,17 @@
 
     Requires the following features: `cargo run --example opengl_canvas --features "color-dialog extern-canvas"`
 */
-extern crate glutin;
 extern crate gl;
-#[macro_use] extern crate native_windows_gui as nwg;
+extern crate glutin;
+#[macro_use]
+extern crate native_windows_gui as nwg;
 
-use std::cell::RefCell;
 use crate::glutin::{
-    ContextBuilder, GlRequest, GlProfile, PossiblyCurrent, RawContext, Api,
-    dpi::PhysicalSize,
-    os::windows::RawContextExt
+    dpi::PhysicalSize, os::windows::RawContextExt, Api, ContextBuilder, GlProfile, GlRequest,
+    PossiblyCurrent, RawContext,
 };
 use crate::nwg::NativeUi;
-
+use std::cell::RefCell;
 
 type Ctx = RawContext<PossiblyCurrent>;
 
@@ -37,12 +36,11 @@ pub struct OpenGlCanvas {
 }
 
 impl OpenGlCanvas {
-
     /// Create an opengl canvas with glutin & gl
     pub fn create_context(&self) {
         use std::ffi::c_void;
         use std::{mem, ptr};
-        
+
         unsafe {
             let ctx = ContextBuilder::new()
                 .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
@@ -51,28 +49,28 @@ impl OpenGlCanvas {
                 .expect("Failed to build opengl context")
                 .make_current()
                 .expect("Failed to set opengl context as current");
-        
+
             // Load the function pointers
             gl::Clear::load_with(|s| ctx.get_proc_address(s) as *const _);
-            gl::ClearColor::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::CreateShader::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::ShaderSource::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::CompileShader::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::CreateProgram::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::AttachShader::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::LinkProgram::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::UseProgram::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::GenBuffers::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::BindBuffer::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::BufferData::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::GetAttribLocation::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::VertexAttribPointer::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::EnableVertexAttribArray::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::GenVertexArrays::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::BindVertexArray::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::DrawArrays::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::Viewport::load_with(|s| ctx.get_proc_address(s) as *const _ );
-            gl::BufferSubData::load_with(|s| ctx.get_proc_address(s) as *const _ );
+            gl::ClearColor::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::CreateShader::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::ShaderSource::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::CompileShader::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::CreateProgram::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::AttachShader::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::LinkProgram::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::UseProgram::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::GenBuffers::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::BindBuffer::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::BufferData::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::GetAttribLocation::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::VertexAttribPointer::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::EnableVertexAttribArray::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::GenVertexArrays::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::BindVertexArray::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::DrawArrays::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::Viewport::load_with(|s| ctx.get_proc_address(s) as *const _);
+            gl::BufferSubData::load_with(|s| ctx.get_proc_address(s) as *const _);
 
             // Init default state
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
@@ -92,9 +90,7 @@ impl OpenGlCanvas {
             gl::UseProgram(program);
 
             let vertex_data: &[f32] = &[
-                0.0,  1.0,   1.0, 1.0, 1.0,
-               -1.0, -1.0,   1.0, 1.0, 1.0,
-                1.0, -1.0,   1.0, 1.0, 1.0,
+                0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0,
             ];
             let vertex_size = vertex_data.len() * mem::size_of::<f32>();
 
@@ -116,11 +112,10 @@ impl OpenGlCanvas {
             gl::EnableVertexAttribArray(1);
 
             let stride = mem::size_of::<f32>() * 5;
-            let color_offset = 8 as *const c_void; 
+            let color_offset = 8 as *const c_void;
             gl::VertexAttribPointer(0, 2, gl::FLOAT, 0, stride as i32, ptr::null());
             gl::VertexAttribPointer(1, 4, gl::FLOAT, 0, stride as i32, color_offset);
-            
-           
+
             *self.ctx.borrow_mut() = Some(ctx);
         }
     }
@@ -143,7 +138,6 @@ impl OpenGlCanvas {
 
         self.render();
     }
-
 }
 
 subclass_control!(OpenGlCanvas, ExternCanvas, canvas);
@@ -171,8 +165,6 @@ impl PartialEq<OpenGlCanvas> for nwg::ControlHandle {
     }
 }*/
 
-
-
 /**
     The Ui application. Spoiler alert, there's nothing much different from the other examples.
 */
@@ -187,7 +179,6 @@ pub struct ExternCanvas {
 }
 
 impl ExternCanvas {
-
     pub fn show(&self) {
         self.window.set_visible(true);
         self.window.set_focus();
@@ -213,7 +204,7 @@ impl ExternCanvas {
 
         self.window.invalidate();
     }
-    
+
     pub fn select_tri_color(&self) {
         use std::mem;
 
@@ -221,43 +212,41 @@ impl ExternCanvas {
             let [r, g, b] = self.color_dialog.color();
             let [r, g, b] = [r as f32 / 225.0, g as f32 / 225.0, b as f32 / 225.0];
 
-            let vertex_data: &[f32] = &[
-                0.0,  1.0,   r, g, b,
-               -1.0, -1.0,   r, g, b,
-                1.0, -1.0,   r, g, b,
-            ];
+            let vertex_data: &[f32] = &[0.0, 1.0, r, g, b, -1.0, -1.0, r, g, b, 1.0, -1.0, r, g, b];
 
             let vertex_size = vertex_data.len() * mem::size_of::<f32>();
 
             unsafe {
-                gl::BufferSubData(gl::ARRAY_BUFFER, 0, vertex_size as gl::types::GLsizeiptr, vertex_data.as_ptr() as *const _);
+                gl::BufferSubData(
+                    gl::ARRAY_BUFFER,
+                    0,
+                    vertex_size as gl::types::GLsizeiptr,
+                    vertex_data.as_ptr() as *const _,
+                );
             }
         }
 
         self.window.invalidate();
     }
-
 }
 
-
 mod extern_canvas_ui {
-    use native_windows_gui as nwg;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct ExternCanvasUi {
         inner: Rc<ExternCanvas>,
-        default_handler: RefCell<Vec<nwg::EventHandler>>
+        default_handler: RefCell<Vec<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<ExternCanvasUi> for ExternCanvas {
         fn build_ui(mut data: ExternCanvas) -> Result<ExternCanvasUi, nwg::NwgError> {
             use nwg::Event as E;
-            
+
             // Resources
-            nwg::ColorDialog::builder()
-                .build(&mut data.color_dialog)?;
+            nwg::ColorDialog::builder().build(&mut data.color_dialog)?;
 
             // Controls
             nwg::Window::builder()
@@ -299,32 +288,32 @@ mod extern_canvas_ui {
                                 if &handle == &evt_ui.canvas {
                                     ExternCanvas::resize_canvas(&evt_ui);
                                 }
-                            },
+                            }
                             E::OnButtonClick => {
                                 if &handle == &evt_ui.choose_color_btn1 {
                                     ExternCanvas::select_bg_color(&evt_ui);
                                 } else if &handle == &evt_ui.choose_color_btn2 {
                                     ExternCanvas::select_tri_color(&evt_ui);
                                 }
-                            },
+                            }
                             E::OnWindowClose => {
                                 if &handle == &evt_ui.window {
                                     ExternCanvas::exit(&evt_ui);
                                 }
-                            },
+                            }
                             E::OnInit => {
                                 if &handle == &evt_ui.window {
                                     ExternCanvas::show(&evt_ui);
                                 }
-                            },
+                            }
                             _ => {}
                         }
                     }
                 };
 
-                ui.default_handler.borrow_mut().push(
-                    nwg::full_bind_event_handler(handle, handle_events)
-                );
+                ui.default_handler
+                    .borrow_mut()
+                    .push(nwg::full_bind_event_handler(handle, handle_events));
             }
 
             // Layouts
@@ -336,7 +325,7 @@ mod extern_canvas_ui {
                 .child(3, 0, &ui.choose_color_btn1)
                 .child(3, 1, &ui.choose_color_btn2)
                 .build(&ui.layout)?;
-            
+
             return Ok(ui);
         }
     }
@@ -358,7 +347,6 @@ mod extern_canvas_ui {
             &self.inner
         }
     }
-
 }
 
 pub fn main() {
@@ -376,7 +364,6 @@ pub fn main() {
         app.canvas.render();
     });
 }
-
 
 const VS_SRC: &'static [u8] = b"#version 330
 layout (location=0) in vec2 a_position;
@@ -396,7 +383,7 @@ precision mediump float;
 in vec4 color;
 
 out vec4 outColor;
- 
+
 void main() {
     outColor = color;
 }

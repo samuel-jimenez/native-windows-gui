@@ -1,6 +1,6 @@
-use crate::Cursor;
 use crate::controls::ControlHandle;
 use crate::win32::high_dpi;
+use crate::Cursor;
 
 /**
     A global object that wraps the system cursor.
@@ -17,16 +17,17 @@ use crate::win32::high_dpi;
 pub struct GlobalCursor;
 
 impl GlobalCursor {
-
     /**
         Return the cursor position in the screen.
     */
     pub fn position() -> (i32, i32) {
-        use winapi::um::winuser::GetCursorPos;
         use winapi::shared::windef::POINT;
+        use winapi::um::winuser::GetCursorPos;
 
-        let mut p = POINT{x: 0, y: 0};
-        unsafe { GetCursorPos(&mut p); }
+        let mut p = POINT { x: 0, y: 0 };
+        unsafe {
+            GetCursorPos(&mut p);
+        }
 
         (p.x as i32, p.y as i32)
     }
@@ -35,7 +36,10 @@ impl GlobalCursor {
         Return or map the cursor position relatively to a control.
         If point is `None`, `Cursor::position` is used.
     */
-    pub fn local_position<C: Into<ControlHandle>>(control: C, point: Option<(i32, i32)>) -> (i32, i32) {
+    pub fn local_position<C: Into<ControlHandle>>(
+        control: C,
+        point: Option<(i32, i32)>,
+    ) -> (i32, i32) {
         use winapi::shared::ntdef::LONG;
         use winapi::shared::windef::POINT;
         use winapi::um::winuser::ScreenToClient;
@@ -43,13 +47,20 @@ impl GlobalCursor {
         const MSG: &'static str = "local_position can only be used for window control";
 
         let control = control.into();
-        if control.blank() { panic!("{}", MSG); }
+        if control.blank() {
+            panic!("{}", MSG);
+        }
         let handle = control.hwnd().expect(MSG);
 
         let (x, y) = point.unwrap_or(GlobalCursor::position());
-        let mut p = POINT{x: x as LONG, y: y as LONG};
+        let mut p = POINT {
+            x: x as LONG,
+            y: y as LONG,
+        };
 
-        unsafe { ScreenToClient(handle, &mut p); }
+        unsafe {
+            ScreenToClient(handle, &mut p);
+        }
 
         (p.x as i32, p.y as i32)
     }
@@ -58,7 +69,10 @@ impl GlobalCursor {
         Return or map the cursor position relatively to a control and convert to logical.
         If point is `None`, `Cursor::position` is used.
     */
-    pub fn local_logical_position<C: Into<ControlHandle>>(control: C, point: Option<(i32, i32)>) -> (i32, i32) {
+    pub fn local_logical_position<C: Into<ControlHandle>>(
+        control: C,
+        point: Option<(i32, i32)>,
+    ) -> (i32, i32) {
         use winapi::shared::ntdef::LONG;
         use winapi::shared::windef::POINT;
         use winapi::um::winuser::ScreenToClient;
@@ -66,11 +80,16 @@ impl GlobalCursor {
         const MSG: &'static str = "local_position can only be used for window control";
 
         let control = control.into();
-        if control.blank() { panic!("{}", MSG); }
+        if control.blank() {
+            panic!("{}", MSG);
+        }
         let handle = control.hwnd().expect(MSG);
 
         let (x, y) = point.unwrap_or(GlobalCursor::position());
-        let mut p = POINT{x: x as LONG, y: y as LONG};
+        let mut p = POINT {
+            x: x as LONG,
+            y: y as LONG,
+        };
 
         unsafe {
             ScreenToClient(handle, &mut p);
@@ -87,10 +106,12 @@ impl GlobalCursor {
         • `y`: The new y coordinaets of the cursor
     */
     pub fn set_position(x: i32, y: i32) {
-        use winapi::um::winuser::SetCursorPos;
         use winapi::ctypes::c_int;
+        use winapi::um::winuser::SetCursorPos;
 
-        unsafe { SetCursorPos(x as c_int, y as c_int); }
+        unsafe {
+            SetCursorPos(x as c_int, y as c_int);
+        }
     }
 
     /**
@@ -106,7 +127,9 @@ impl GlobalCursor {
         use winapi::shared::windef::HCURSOR;
         use winapi::um::winuser::SetCursor;
 
-        unsafe { SetCursor(cursor.handle as HCURSOR); }
+        unsafe {
+            SetCursor(cursor.handle as HCURSOR);
+        }
     }
 
     /**
@@ -115,14 +138,17 @@ impl GlobalCursor {
         Returns `None` if there is no cursor.
     */
     pub fn get() -> Option<Cursor> {
-        use winapi::um::winuser::GetCursor;
         use winapi::um::winnt::HANDLE;
+        use winapi::um::winuser::GetCursor;
 
         let cursor = unsafe { GetCursor() };
 
         match cursor.is_null() {
             true => None,
-            false => Some( Cursor { handle: cursor as HANDLE, owned: false } )
+            false => Some(Cursor {
+                handle: cursor as HANDLE,
+                owned: false,
+            }),
         }
     }
 
@@ -140,10 +166,14 @@ impl GlobalCursor {
         use winapi::um::winuser::SetCapture;
         const MSG: &'static str = "Mouse capture can only be set for window control";
 
-        if control.blank() { panic!("{}", MSG); }
+        if control.blank() {
+            panic!("{}", MSG);
+        }
         let handle = control.hwnd().expect(MSG);
 
-        unsafe { SetCapture(handle); }
+        unsafe {
+            SetCapture(handle);
+        }
     }
 
     /**
@@ -151,7 +181,9 @@ impl GlobalCursor {
     */
     pub fn release() {
         use winapi::um::winuser::ReleaseCapture;
-        unsafe{ ReleaseCapture(); }
+        unsafe {
+            ReleaseCapture();
+        }
     }
 
     /**
@@ -163,10 +195,10 @@ impl GlobalCursor {
     pub fn capture() -> Option<ControlHandle> {
         use winapi::um::winuser::GetCapture;
 
-        let cap = unsafe{ GetCapture() };
+        let cap = unsafe { GetCapture() };
         match cap.is_null() {
             true => None,
-            false => Some(ControlHandle::Hwnd(cap))
+            false => Some(ControlHandle::Hwnd(cap)),
         }
     }
 
@@ -198,13 +230,17 @@ impl GlobalCursor {
 
         const MSG: &'static str = "Dragging can only be set for window control";
 
-        if control.blank() { panic!("{}", MSG); }
+        if control.blank() {
+            panic!("{}", MSG);
+        }
         let handle = control.hwnd().expect(MSG);
 
         let (x, y) = point.unwrap_or(GlobalCursor::position());
-        let c_point = POINT{x: x as LONG, y: y as LONG};
+        let c_point = POINT {
+            x: x as LONG,
+            y: y as LONG,
+        };
 
         unsafe { DragDetect(handle, c_point) == 1 }
     }
-
 }

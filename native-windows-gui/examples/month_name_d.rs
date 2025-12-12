@@ -5,12 +5,11 @@
     Requires the following features: `cargo run --example month_name_d --features "winnls textbox"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct CalendarNames {
@@ -40,7 +39,6 @@ pub struct CalendarNames {
 }
 
 impl CalendarNames {
-    
     fn init(&self) {
         let locale = nwg::Locale::user();
         self.locale_input.set_text(locale.name());
@@ -51,7 +49,7 @@ impl CalendarNames {
         match nwg::Locale::new(self.locale_input.text()) {
             Ok(loc) => {
                 self.load_months(&loc);
-            },
+            }
             Err(_) => {
                 nwg::error_message("Error", "Failed to load locale");
             }
@@ -76,7 +74,6 @@ impl CalendarNames {
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {

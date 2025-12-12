@@ -1,12 +1,11 @@
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED, WS_TABSTOP};
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::{to_utf16, check_hwnd};
-use crate::{Font, NwgError};
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::{check_hwnd, to_utf16};
+use crate::win32::window_helper as wh;
+use crate::{Font, NwgError};
+use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
 const NOT_BOUND: &'static str = "DatePicker is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: DatePicker handle is not HWND!";
-
 
 bitflags! {
 
@@ -33,16 +32,14 @@ bitflags! {
 pub struct DatePickerValue {
     pub year: u16,
     pub month: u16,
-    pub day: u16
+    pub day: u16,
 }
-
-
 
 /**
 A date and time picker (DTP) control provides a simple and intuitive interface through which to exchange date and time information with a user.
 For example, with a DTP control you can ask the user to enter a date and then easily retrieve the selection.
 
-Requires the `datetime-picker` feature. 
+Requires the `datetime-picker` feature.
 
 **Builder parameters:**
   * `parent`:   **Required.** The dtp parent container.
@@ -71,7 +68,7 @@ fn build_dtp(date: &mut nwg::DatePicker, window: &nwg::Window) {
     let v = nwg::DatePickerValue { year: 2000, month: 10, day: 5 };
     let v1 = nwg::DatePickerValue { year: 2000, month: 10, day: 5 };
     let v2 = nwg::DatePickerValue { year: 2012, month: 10, day: 5 };
-    
+
     nwg::DatePicker::builder()
         .size((200, 300))
         .position((0, 0))
@@ -85,11 +82,10 @@ fn build_dtp(date: &mut nwg::DatePicker, window: &nwg::Window) {
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct DatePicker {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl DatePicker {
-
     pub fn builder<'a>() -> DatePickerBuilder<'a> {
         DatePickerBuilder {
             size: (100, 25),
@@ -101,26 +97,26 @@ impl DatePicker {
             parent: None,
             date: None,
             format: None,
-            range: None
+            range: None,
         }
     }
 
     /**
         Sets the date format of the control
 
-        About the format string:  
-        - `d` 	    The one- or two-digit day.  
-        - `dd` 	    The two-digit day. Single-digit day values are preceded by a zero.  
-        - `ddd` 	The three-character weekday abbreviation.  
-        - `dddd` 	The full weekday name.  
-        - `M` 	    The one- or two-digit month number.  
-        - `MM` 	    The two-digit month number. Single-digit values are preceded by a zero.  
-        - `MMM` 	The three-character month abbreviation.  
-        - `MMMM` 	The full month name.  
-        - `t` 	    The one-letter AM/PM abbreviation (that is, AM is displayed as "A").  
-        - `tt` 	    The two-letter AM/PM abbreviation (that is, AM is displayed as "AM").  
-        - `yy` 	    The last two digits of the year (that is, 1996 would be displayed as "96").  
-        - `yyyy` 	The full year (that is, 1996 would be displayed as "1996").   
+        About the format string:
+        - `d` 	    The one- or two-digit day.
+        - `dd` 	    The two-digit day. Single-digit day values are preceded by a zero.
+        - `ddd` 	The three-character weekday abbreviation.
+        - `dddd` 	The full weekday name.
+        - `M` 	    The one- or two-digit month number.
+        - `MM` 	    The two-digit month number. Single-digit values are preceded by a zero.
+        - `MMM` 	The three-character month abbreviation.
+        - `MMMM` 	The full month name.
+        - `t` 	    The one-letter AM/PM abbreviation (that is, AM is displayed as "A").
+        - `tt` 	    The two-letter AM/PM abbreviation (that is, AM is displayed as "AM").
+        - `yy` 	    The last two digits of the year (that is, 1996 would be displayed as "96").
+        - `yyyy` 	The full year (that is, 1996 would be displayed as "1996").
 
         - `h` 	The one- or two-digit hour in 12-hour format.
         - `hh` 	The two-digit hour in 12-hour format. Single-digit values are preceded by a zero.
@@ -128,15 +124,15 @@ impl DatePicker {
         - `HH` 	The two-digit hour in 24-hour format. Single-digit values are preceded by a zero.
         - `m` 	The one- or two-digit minute.
         - `mm` 	The two-digit minute. Single-digit values are preceded by a zero.
-        
-        Furthermore, any string enclosed in `'` can be used in the format to display text.  
-        For example, to display the current date with the format `'Today is: Tuesday Mar 23, 1996`, the format string is `'Today is: 'dddd MMM dd', 'yyyy`. 
-    
+
+        Furthermore, any string enclosed in `'` can be used in the format to display text.
+        For example, to display the current date with the format `'Today is: Tuesday Mar 23, 1996`, the format string is `'Today is: 'dddd MMM dd', 'yyyy`.
+
         If `format` is set to `None`, use the default system format.
     */
     pub fn set_format<'a>(&self, format: Option<&'a str>) {
-        use winapi::um::commctrl::DTM_SETFORMATW;
         use winapi::shared::minwindef::LPARAM;
+        use winapi::um::commctrl::DTM_SETFORMATW;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -152,7 +148,7 @@ impl DatePicker {
     }
 
     /**
-        Return the check state of the checkbox of the control.  
+        Return the check state of the checkbox of the control.
         If the date time picker is not optional, return false.
 
         To set the check state of the control, use `set_value` method
@@ -166,7 +162,7 @@ impl DatePicker {
 
         match info.stateCheck {
             STATE_SYSTEM_CHECKED => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -178,19 +174,19 @@ impl DatePicker {
     }
 
     /**
-        Return the time set in the control in a `PickerDate` structure.  
-        Return None if `optional` was set and the checkbox is not checked.  
+        Return the time set in the control in a `PickerDate` structure.
+        Return None if `optional` was set and the checkbox is not checked.
         Note: use `get_text` to get the text value of the control.
     */
     pub fn value(&self) -> Option<DatePickerValue> {
-        use winapi::um::commctrl::{GDT_VALID, DTM_GETSYSTEMTIME};
-        use winapi::um::minwinbase::SYSTEMTIME;
-        use winapi::shared::minwindef::LPARAM;
         use std::mem;
+        use winapi::shared::minwindef::LPARAM;
+        use winapi::um::commctrl::{DTM_GETSYSTEMTIME, GDT_VALID};
+        use winapi::um::minwinbase::SYSTEMTIME;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
-        let mut syst: SYSTEMTIME = unsafe{ mem::zeroed() };
+        let mut syst: SYSTEMTIME = unsafe { mem::zeroed() };
         let syst_ptr = &mut syst as *mut _;
 
         let r = wh::send_message(handle, DTM_GETSYSTEMTIME, 0, syst_ptr as LPARAM);
@@ -198,75 +194,119 @@ impl DatePicker {
             GDT_VALID => Some(DatePickerValue {
                 year: syst.wYear,
                 month: syst.wMonth,
-                day: syst.wDay
+                day: syst.wDay,
             }),
-            _ => None
+            _ => None,
         }
     }
 
     /**
-        Set the time set in the control in a `PickerDate` structure.  
+        Set the time set in the control in a `PickerDate` structure.
         If `None` is passed, this clears the checkbox.
     */
     pub fn set_value(&self, date: Option<DatePickerValue>) {
-        use winapi::um::commctrl::{DTM_SETSYSTEMTIME, GDT_VALID, GDT_NONE};
-        use winapi::shared::minwindef::{WPARAM, LPARAM};
+        use winapi::shared::minwindef::{LPARAM, WPARAM};
+        use winapi::um::commctrl::{DTM_SETSYSTEMTIME, GDT_NONE, GDT_VALID};
         use winapi::um::minwinbase::SYSTEMTIME;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         match date {
             Some(date) => {
-                let syst: SYSTEMTIME = SYSTEMTIME{ 
-                    wYear: date.year, 
-                    wMonth: date.month, 
-                    wDay: date.day, 
-                    wDayOfWeek:0, wHour:0, wMinute:0, wSecond:0, wMilliseconds: 0 
+                let syst: SYSTEMTIME = SYSTEMTIME {
+                    wYear: date.year,
+                    wMonth: date.month,
+                    wDay: date.day,
+                    wDayOfWeek: 0,
+                    wHour: 0,
+                    wMinute: 0,
+                    wSecond: 0,
+                    wMilliseconds: 0,
                 };
 
-                wh::send_message(handle, DTM_SETSYSTEMTIME, GDT_VALID as WPARAM, &syst as *const SYSTEMTIME as LPARAM);
-            },
-            None => { 
-                wh::send_message(handle, DTM_SETSYSTEMTIME, GDT_NONE as WPARAM, 0); 
+                wh::send_message(
+                    handle,
+                    DTM_SETSYSTEMTIME,
+                    GDT_VALID as WPARAM,
+                    &syst as *const SYSTEMTIME as LPARAM,
+                );
+            }
+            None => {
+                wh::send_message(handle, DTM_SETSYSTEMTIME, GDT_NONE as WPARAM, 0);
             }
         };
     }
 
     /// Gets the current minimum and maximum allowable system times for a date and time picker control.
     pub fn range(&self) -> [DatePickerValue; 2] {
+        use std::mem;
+        use winapi::shared::minwindef::LPARAM;
         use winapi::um::commctrl::DTM_GETRANGE;
         use winapi::um::minwinbase::SYSTEMTIME;
-        use winapi::shared::minwindef::{LPARAM};
-        use std::mem;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut tr: [SYSTEMTIME; 2] = unsafe { mem::zeroed() };
 
-        wh::send_message(handle, DTM_GETRANGE, 0, &mut tr as *mut [SYSTEMTIME; 2] as LPARAM); 
-    
+        wh::send_message(
+            handle,
+            DTM_GETRANGE,
+            0,
+            &mut tr as *mut [SYSTEMTIME; 2] as LPARAM,
+        );
+
         [
-            DatePickerValue { year: tr[0].wYear, month: tr[0].wMonth, day: tr[0].wDay },
-            DatePickerValue { year: tr[1].wYear, month: tr[1].wMonth, day: tr[1].wDay },
+            DatePickerValue {
+                year: tr[0].wYear,
+                month: tr[0].wMonth,
+                day: tr[0].wDay,
+            },
+            DatePickerValue {
+                year: tr[1].wYear,
+                month: tr[1].wMonth,
+                day: tr[1].wDay,
+            },
         ]
-        
     }
-    
-    /// Sets the minimum and maximum allowable system times for a date and time picker control. 
+
+    /// Sets the minimum and maximum allowable system times for a date and time picker control.
     pub fn set_range(&self, r: &[DatePickerValue; 2]) {
+        use winapi::shared::minwindef::LPARAM;
         use winapi::um::commctrl::DTM_SETRANGE;
-        use winapi::um::commctrl::{GDTR_MIN, GDTR_MAX};
+        use winapi::um::commctrl::{GDTR_MAX, GDTR_MIN};
         use winapi::um::minwinbase::SYSTEMTIME;
-        use winapi::shared::minwindef::{LPARAM};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let values = [
-            SYSTEMTIME { wYear: r[0].year , wMonth: r[0].month, wDayOfWeek: 0, wDay: r[0].day, wHour: 0, wMinute: 0, wSecond: 0, wMilliseconds: 0 },
-            SYSTEMTIME { wYear: r[1].year , wMonth: r[1].month, wDayOfWeek: 0, wDay: r[1].day, wHour: 0, wMinute: 0, wSecond: 0, wMilliseconds: 0 }
+            SYSTEMTIME {
+                wYear: r[0].year,
+                wMonth: r[0].month,
+                wDayOfWeek: 0,
+                wDay: r[0].day,
+                wHour: 0,
+                wMinute: 0,
+                wSecond: 0,
+                wMilliseconds: 0,
+            },
+            SYSTEMTIME {
+                wYear: r[1].year,
+                wMonth: r[1].month,
+                wDayOfWeek: 0,
+                wDay: r[1].day,
+                wHour: 0,
+                wMinute: 0,
+                wSecond: 0,
+                wMilliseconds: 0,
+            },
         ];
 
-        wh::send_message(handle, DTM_SETRANGE, GDTR_MIN | GDTR_MAX, &values as *const [SYSTEMTIME; 2] as LPARAM);
+        wh::send_message(
+            handle,
+            DTM_SETRANGE,
+            GDTR_MIN | GDTR_MAX,
+            &values as *const [SYSTEMTIME; 2] as LPARAM,
+        );
     }
 
     /// Return the font of the control
@@ -276,14 +316,18 @@ impl DatePicker {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Sets the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return true if the control currently has the keyboard focus
@@ -295,7 +339,9 @@ impl DatePicker {
     /// Sets the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -310,7 +356,7 @@ impl DatePicker {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -347,7 +393,6 @@ impl DatePicker {
         unsafe { wh::set_window_position(handle, x, y) }
     }
 
-
     /// Winapi class name used during control creation
     pub fn class_name(&self) -> &'static str {
         "SysDateTimePick32"
@@ -360,12 +405,11 @@ impl DatePicker {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_CHILD};
         use winapi::um::commctrl::DTS_SHOWNONE;
+        use winapi::um::winuser::WS_CHILD;
 
         WS_CHILD | DTS_SHOWNONE
     }
-
 }
 
 impl Drop for DatePicker {
@@ -384,11 +428,10 @@ pub struct DatePickerBuilder<'a> {
     parent: Option<ControlHandle>,
     date: Option<DatePickerValue>,
     format: Option<&'a str>,
-    range: Option<[DatePickerValue; 2]>
+    range: Option<[DatePickerValue; 2]>,
 }
 
 impl<'a> DatePickerBuilder<'a> {
-
     pub fn flags(mut self, flags: DatePickerFlags) -> DatePickerBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -444,7 +487,7 @@ impl<'a> DatePickerBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("DatePicker"))
+            None => Err(NwgError::no_parent("DatePicker")),
         }?;
 
         *out = Default::default();
@@ -483,17 +526,15 @@ impl<'a> DatePickerBuilder<'a> {
 
         Ok(())
     }
-
 }
 
-
-use winapi::um::commctrl::DATETIMEPICKERINFO;
 use winapi::shared::windef::HWND;
+use winapi::um::commctrl::DATETIMEPICKERINFO;
 
 fn get_dtp_info(handle: HWND) -> DATETIMEPICKERINFO {
-    use winapi::um::commctrl::DTM_GETDATETIMEPICKERINFO;
-    use winapi::shared::minwindef::{DWORD, LPARAM};
     use std::mem;
+    use winapi::shared::minwindef::{DWORD, LPARAM};
+    use winapi::um::commctrl::DTM_GETDATETIMEPICKERINFO;
 
     let mut dtp_info: DATETIMEPICKERINFO = unsafe { mem::zeroed() };
     dtp_info.cbSize = mem::size_of::<DATETIMEPICKERINFO>() as DWORD;

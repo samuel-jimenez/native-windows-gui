@@ -1,8 +1,10 @@
-use winapi::shared::windef::HWND;
-use winapi::um::winuser::{GetSystemMetrics, MonitorFromWindow, GetMonitorInfoW, MONITORINFO,
-    SM_CXSCREEN, SM_CYSCREEN, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, MONITOR_DEFAULTTONEAREST};
 use crate::ControlHandle;
 use std::mem;
+use winapi::shared::windef::HWND;
+use winapi::um::winuser::{
+    GetMonitorInfoW, GetSystemMetrics, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    SM_CXSCREEN, SM_CXVIRTUALSCREEN, SM_CYSCREEN, SM_CYVIRTUALSCREEN,
+};
 
 /**
     Expose basic properties of the monitor(s) on the system and the virtual screen.
@@ -29,13 +31,12 @@ use std::mem;
 
         window
     }
-    
+
     ```
 */
 pub struct Monitor;
 
 impl Monitor {
-
     fn monitor_info_from_window(handle: HWND) -> MONITORINFO {
         unsafe {
             let m = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
@@ -52,7 +53,10 @@ impl Monitor {
     /// If the window does not intersect any display monitor, returns the nearest monitor width
     /// Panics if `window` is not a window like control.
     pub fn width_from_window<H: Into<ControlHandle>>(window: H) -> i32 {
-        let handle = window.into().hwnd().expect("Window to be a window-like control");
+        let handle = window
+            .into()
+            .hwnd()
+            .expect("Window to be a window-like control");
         let info = Self::monitor_info_from_window(handle);
         (info.rcMonitor.right - info.rcMonitor.left) as _
     }
@@ -61,57 +65,49 @@ impl Monitor {
     /// If the window does not intersect any display monitor, returns the nearest monitor height
     /// Panics if `window` is not a window like control.
     pub fn height_from_window<H: Into<ControlHandle>>(window: H) -> i32 {
-        let handle = window.into().hwnd().expect("Window to be a window-like control");
+        let handle = window
+            .into()
+            .hwnd()
+            .expect("Window to be a window-like control");
         let info = Self::monitor_info_from_window(handle);
         (info.rcMonitor.bottom - info.rcMonitor.top) as _
     }
 
-    /// Returns a [left, top, right, bottom] rectangle that specifies the display monitor rectangle, expressed in virtual-screen coordinates. 
+    /// Returns a [left, top, right, bottom] rectangle that specifies the display monitor rectangle, expressed in virtual-screen coordinates.
     /// Note that if the monitor is not the primary display monitor, some of the rectangle's coordinates may be negative values.
     /// Panics if `window` is not a window like control.
     pub fn monitor_rect_from_window<H: Into<ControlHandle>>(window: H) -> [i32; 4] {
-        let handle = window.into().hwnd().expect("Window to be a window-like control");
+        let handle = window
+            .into()
+            .hwnd()
+            .expect("Window to be a window-like control");
         let info = Self::monitor_info_from_window(handle);
         let m = info.rcMonitor;
 
-        [
-            m.left,
-            m.top,
-            m.right,
-            m.bottom
-        ]
+        [m.left, m.top, m.right, m.bottom]
     }
 
     /// Returns the primary monitor width in pixel
     /// Use `Monitor::virtual_width` to get the dimensions of the virtual screen
     pub fn width() -> i32 {
-        unsafe {
-            GetSystemMetrics(SM_CXSCREEN) as _
-        }
+        unsafe { GetSystemMetrics(SM_CXSCREEN) as _ }
     }
 
     /// Returns the primary monitor height in pixel
     /// Use `Monitor::virtual_height` to get the dimensions of the virtual screen
     pub fn height() -> i32 {
-        unsafe {
-            GetSystemMetrics(SM_CYSCREEN) as _
-        }
+        unsafe { GetSystemMetrics(SM_CYSCREEN) as _ }
     }
 
     /// Returns the primary monitor width in pixel
     /// Use `Monitor::width` to get the dimensions of the virtual screen
     pub fn virtual_width() -> i32 {
-        unsafe {
-            GetSystemMetrics(SM_CXVIRTUALSCREEN) as _
-        }
+        unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) as _ }
     }
 
     /// Returns the primary monitor height in pixel
     /// Use `Monitor::height` to get the dimensions of the virtual screen
     pub fn virtual_height() -> i32 {
-        unsafe {
-            GetSystemMetrics(SM_CYVIRTUALSCREEN) as _
-        }
+        unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) as _ }
     }
-
 }

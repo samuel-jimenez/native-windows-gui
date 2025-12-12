@@ -1,13 +1,12 @@
-use winapi::um::winuser::{WS_DISABLED, WS_VISIBLE, WS_TABSTOP, WS_CHILD, SBS_HORZ, SBS_VERT};
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::check_hwnd;
-use crate::{NwgError, RawEventHandler};
 use super::{ControlBase, ControlHandle};
-use std::{mem, cell::RefCell, ops::Range};
+use crate::win32::base_helper::check_hwnd;
+use crate::win32::window_helper as wh;
+use crate::{NwgError, RawEventHandler};
+use std::{cell::RefCell, mem, ops::Range};
+use winapi::um::winuser::{SBS_HORZ, SBS_VERT, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
 const NOT_BOUND: &'static str = "Scroll bar is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Scroll bar handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -33,7 +32,7 @@ bitflags! {
 /**
 A window can display a data object, such as a document or a bitmap, that is larger than the window's client area. When provided with a scroll bar, the user can scroll a data object in the client area to bring into view the portions of the object that extend beyond the borders of the window.
 
-Requires the `scroll-bar` feature. 
+Requires the `scroll-bar` feature.
 
 **Builder parameters:**
   * `parent`:    **Required.** The scroll bar parent container.
@@ -73,7 +72,6 @@ pub struct ScrollBar {
 }
 
 impl ScrollBar {
-
     pub fn builder<'a>() -> ScrollBarBuilder {
         ScrollBarBuilder {
             size: (25, 100),
@@ -84,12 +82,12 @@ impl ScrollBar {
             parent: None,
             focus: false,
             range: None,
-            pos: None
+            pos: None,
         }
     }
 
     /// Retrieves the current logical position of the slider in a scrollbar.
-    /// The logical positions are the integer values in the scrollbar's range of minimum to maximum slider positions. 
+    /// The logical positions are the integer values in the scrollbar's range of minimum to maximum slider positions.
     pub fn pos(&self) -> usize {
         use winapi::um::winuser::SBM_GETPOS;
 
@@ -114,9 +112,11 @@ impl ScrollBar {
         let mut min: u32 = 0;
         let mut max: u32 = 0;
 
-        wh::send_message(handle, SBM_GETRANGE, 
+        wh::send_message(
+            handle,
+            SBM_GETRANGE,
             &mut min as *mut u32 as _,
-            &mut max as *mut u32 as _
+            &mut max as *mut u32 as _,
         );
 
         (min as usize)..(max as usize)
@@ -127,10 +127,7 @@ impl ScrollBar {
         use winapi::um::winuser::SBM_SETRANGE;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, SBM_SETRANGE, 
-            range.start as _, 
-            range.end as _,
-        );
+        wh::send_message(handle, SBM_SETRANGE, range.start as _, range.end as _);
     }
 
     /// Returns true if the control currently has the keyboard focus
@@ -142,7 +139,9 @@ impl ScrollBar {
     /// Sets the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Returns true if the control user can interact with the control, return false otherwise
@@ -157,7 +156,7 @@ impl ScrollBar {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -212,87 +211,128 @@ impl ScrollBar {
     /// Scrollbar are useless on their own. We need to hook them and handle ALL the message ourself. yay windows...
     unsafe fn hook_scrollbar_controls(&self) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::um::winuser::{WM_HSCROLL, WM_VSCROLL, SIF_ALL, SB_CTL, SIF_POS, SB_TOP, SB_BOTTOM, SB_PAGEUP, SB_PAGEDOWN,
-            SB_LINERIGHT, SB_LINELEFT, SB_PAGELEFT, SB_PAGERIGHT, SB_THUMBTRACK, SB_LINEUP, SB_LINEDOWN, WM_MOUSEWHEEL,
-            GET_WHEEL_DELTA_WPARAM, SCROLLINFO, GetScrollInfo, SetScrollInfo};
-        use winapi::shared::{minwindef::{TRUE, LOWORD}, windef::HWND};
+        use winapi::shared::{
+            minwindef::{LOWORD, TRUE},
+            windef::HWND,
+        };
+        use winapi::um::winuser::{
+            GetScrollInfo, SetScrollInfo, GET_WHEEL_DELTA_WPARAM, SB_BOTTOM, SB_CTL, SB_LINEDOWN,
+            SB_LINELEFT, SB_LINERIGHT, SB_LINEUP, SB_PAGEDOWN, SB_PAGELEFT, SB_PAGERIGHT,
+            SB_PAGEUP, SB_THUMBTRACK, SB_TOP, SCROLLINFO, SIF_ALL, SIF_POS, WM_HSCROLL,
+            WM_MOUSEWHEEL, WM_VSCROLL,
+        };
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
 
-        let handler1 = bind_raw_event_handler_inner(&parent_handle, handle as _, move |_hwnd, msg, w, l| {
-            let mut si: SCROLLINFO = mem::zeroed();
-            match msg {
-                WM_HSCROLL => {
-                    if (l as HWND) != handle { return None; }
+        let handler1 =
+            bind_raw_event_handler_inner(&parent_handle, handle as _, move |_hwnd, msg, w, l| {
+                let mut si: SCROLLINFO = mem::zeroed();
+                match msg {
+                    WM_HSCROLL => {
+                        if (l as HWND) != handle {
+                            return None;
+                        }
 
-                    si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                    si.fMask  = SIF_ALL;
-                    GetScrollInfo(handle, SB_CTL as i32, &mut si);
+                        si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
+                        si.fMask = SIF_ALL;
+                        GetScrollInfo(handle, SB_CTL as i32, &mut si);
 
-                    let event = LOWORD(w as u32) as isize;
-                    match event {
-                        SB_LINELEFT => { si.nPos -= 1; },
-                        SB_LINERIGHT => { si.nPos += 1; },
-                        SB_PAGELEFT => { si.nPos -= si.nPage as i32; },
-                        SB_PAGERIGHT => { si.nPos += si.nPage as i32; },
-                        SB_THUMBTRACK => { si.nPos = si.nTrackPos; },
-                        _ => {},
+                        let event = LOWORD(w as u32) as isize;
+                        match event {
+                            SB_LINELEFT => {
+                                si.nPos -= 1;
+                            }
+                            SB_LINERIGHT => {
+                                si.nPos += 1;
+                            }
+                            SB_PAGELEFT => {
+                                si.nPos -= si.nPage as i32;
+                            }
+                            SB_PAGERIGHT => {
+                                si.nPos += si.nPage as i32;
+                            }
+                            SB_THUMBTRACK => {
+                                si.nPos = si.nTrackPos;
+                            }
+                            _ => {}
+                        }
+
+                        si.fMask = SIF_POS;
+                        SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
+                        //return Some(0);
                     }
+                    WM_VSCROLL => {
+                        if (l as HWND) != handle {
+                            return None;
+                        }
 
-                    si.fMask = SIF_POS;
-                    SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                    //return Some(0);
-                },
-                WM_VSCROLL => {
-                    if (l as HWND) != handle { return None; }
+                        si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
+                        si.fMask = SIF_ALL;
+                        GetScrollInfo(handle, SB_CTL as i32, &mut si);
 
-                    si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                    si.fMask  = SIF_ALL;
-                    GetScrollInfo(handle, SB_CTL as i32, &mut si);
+                        let event = LOWORD(w as u32) as isize;
+                        match event {
+                            SB_TOP => {
+                                si.nPos = si.nMin;
+                            }
+                            SB_BOTTOM => {
+                                si.nPos = si.nMax;
+                            }
+                            SB_LINEUP => {
+                                si.nPos -= 1;
+                            }
+                            SB_LINEDOWN => {
+                                si.nPos += 1;
+                            }
+                            SB_PAGEUP => {
+                                si.nPos -= si.nPage as i32;
+                            }
+                            SB_PAGEDOWN => {
+                                si.nPos += si.nPage as i32;
+                            }
+                            SB_THUMBTRACK => {
+                                si.nPos = si.nTrackPos;
+                            }
+                            _ => {}
+                        }
 
-                    let event = LOWORD(w as u32) as isize;
-                    match event {
-                        SB_TOP => {  si.nPos = si.nMin; },
-                        SB_BOTTOM => { si.nPos = si.nMax; },
-                        SB_LINEUP => { si.nPos -= 1; },
-                        SB_LINEDOWN => { si.nPos += 1; },
-                        SB_PAGEUP => { si.nPos -= si.nPage as i32; },
-                        SB_PAGEDOWN => { si.nPos += si.nPage as i32; },
-                        SB_THUMBTRACK => { si.nPos = si.nTrackPos; },
-                        _ => {},
+                        si.fMask = SIF_POS;
+                        SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
+                        //return Some(0);
                     }
+                    _ => {}
+                }
 
-                    si.fMask = SIF_POS;
-                    SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                    //return Some(0);
-                },
-                _ => {}
-            }
+                None
+            });
 
-            None
-        });
-
-        let handler2 = bind_raw_event_handler_inner(&self.handle, 0, move  |_hwnd, msg, w, _l| {
+        let handler2 = bind_raw_event_handler_inner(&self.handle, 0, move |_hwnd, msg, w, _l| {
             match msg {
                 WM_MOUSEWHEEL => {
                     let mut si: SCROLLINFO = mem::zeroed();
 
                     si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                    si.fMask  = SIF_ALL;
+                    si.fMask = SIF_ALL;
                     GetScrollInfo(handle, SB_CTL as i32, &mut si);
 
                     let delta = GET_WHEEL_DELTA_WPARAM(w);
                     match delta > 0 {
-                        true => { si.nPos -= 1;  },
-                        false => { si.nPos += 1; }
+                        true => {
+                            si.nPos -= 1;
+                        }
+                        false => {
+                            si.nPos += 1;
+                        }
                     }
 
                     si.fMask = SIF_POS;
                     SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                    return Some(0)
-                },
+                    return Some(0);
+                }
                 _ => {}
             }
 
@@ -302,13 +342,12 @@ impl ScrollBar {
         *self.handler0.borrow_mut() = Some(handler1.unwrap());
         *self.handler1.borrow_mut() = Some(handler2.unwrap());
     }
-
 }
 
 impl Drop for ScrollBar {
     fn drop(&mut self) {
         use crate::unbind_raw_event_handler;
-        
+
         let handler = self.handler0.borrow();
         if let Some(h) = handler.as_ref() {
             drop(unbind_raw_event_handler(h));
@@ -318,7 +357,7 @@ impl Drop for ScrollBar {
         if let Some(h) = handler.as_ref() {
             drop(unbind_raw_event_handler(h));
         }
-    
+
         self.handle.destroy();
     }
 }
@@ -336,7 +375,6 @@ pub struct ScrollBarBuilder {
 }
 
 impl ScrollBarBuilder {
-    
     pub fn flags(mut self, flags: ScrollBarFlags) -> ScrollBarBuilder {
         self.flags = Some(flags);
         self
@@ -387,7 +425,7 @@ impl ScrollBarBuilder {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("ScrollBar"))
+            None => Err(NwgError::no_parent("ScrollBar")),
         }?;
 
         *out = Default::default();
@@ -422,8 +460,6 @@ impl ScrollBarBuilder {
 
         Ok(())
     }
-
-
 }
 
 impl PartialEq for ScrollBar {

@@ -3,14 +3,14 @@
     To run: `cargo run --example plotting_d --features "plotting"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 #[allow(unused, deprecated)]
-use nwg::{NativeUi, set_dpi_awareness};
-use std::{time::{Duration}};
-use plotters::{prelude::*};
+use nwg::{set_dpi_awareness, NativeUi};
+use plotters::prelude::*;
+use std::time::Duration;
 
 #[derive(Default, NwgUi)]
 pub struct HdpiPlottingExample {
@@ -34,7 +34,6 @@ pub struct HdpiPlottingExample {
 }
 
 impl HdpiPlottingExample {
-
     fn simple_chart(&self) -> Result<(), Box<dyn std::error::Error>> {
         let root = self.graph.draw().unwrap();
 
@@ -45,8 +44,13 @@ impl HdpiPlottingExample {
             .y_label_area_size(30)
             .build_cartesian_2d(-1f32..1f32, -0.1f32..1f32)?;
 
-        chart.configure_mesh()
-            .light_line_style(ShapeStyle { color: TRANSPARENT, filled: false, stroke_width: 0 })
+        chart
+            .configure_mesh()
+            .light_line_style(ShapeStyle {
+                color: TRANSPARENT,
+                filled: false,
+                stroke_width: 0,
+            })
             .draw()?;
 
         chart
@@ -76,11 +80,14 @@ impl HdpiPlottingExample {
             .y_label_area_size(30)
             .build_cartesian_2d(-100..100, -200..200)?;
 
-
-        chart.configure_mesh()
-            .light_line_style(ShapeStyle { color: TRANSPARENT, filled: false, stroke_width: 0 })
+        chart
+            .configure_mesh()
+            .light_line_style(ShapeStyle {
+                color: TRANSPARENT,
+                filled: false,
+                stroke_width: 0,
+            })
             .draw()?;
-
 
         chart
             .draw_series(LineSeries::new(
@@ -90,17 +97,17 @@ impl HdpiPlottingExample {
             .label("y = x*2")
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
-        chart.configure_series_labels()
+        chart
+            .configure_series_labels()
             .border_style(&BLACK)
             .draw()?;
-
 
         // 80 = 1x margin + 1x x_label_area_size
         // 130 = 2x margin + 1x x_label_area_size
         // might introduce some errors though
         let (x, _) = nwg::GlobalCursor::local_logical_position(&self.graph, None);
         let max_x = self.graph.size().0 as i32;
-        let percent = (x-80) as f32 / (max_x-130) as f32;
+        let percent = (x - 80) as f32 / (max_x - 130) as f32;
         let value = (((percent - 0.5) * 200.0) as i32).clamp(-100, 100);
 
         chart.draw_series(PointSeries::of_element(

@@ -1,10 +1,11 @@
-use winapi::um::winnls::{GetLocaleInfoEx, GetUserDefaultLocaleName, GetSystemDefaultLocaleName, LCTYPE};
-use winapi::um::winnt::{LOCALE_NAME_MAX_LENGTH, LPWSTR};
 use super::*;
-use crate::win32::base_helper::{to_utf16, from_utf16};
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::NwgError;
 use std::{mem, ptr};
-
+use winapi::um::winnls::{
+    GetLocaleInfoEx, GetSystemDefaultLocaleName, GetUserDefaultLocaleName, LCTYPE,
+};
+use winapi::um::winnt::{LOCALE_NAME_MAX_LENGTH, LPWSTR};
 
 /**
 Represent a Windows locale. Can be used to fetch a lot of information regarding the locale.
@@ -25,17 +26,16 @@ user_locale.display_name();
 #[derive(Clone)]
 pub struct Locale {
     name: String,
-    name_buffer: Vec<u16>
+    name_buffer: Vec<u16>,
 }
 
 impl Locale {
-
     /// Create a new local from a locale name. If you have a str, use `from_str` instead.
     pub fn new(name: String) -> Result<Locale, NwgError> {
         let name_buffer = to_utf16(&name);
         match Locale::locale_valid(&name_buffer) {
             true => Ok(Locale { name, name_buffer }),
-            false => Err(NwgError::bad_locale("Locale name is not valid"))
+            false => Err(NwgError::bad_locale("Locale name is not valid")),
         }
     }
 
@@ -43,16 +43,19 @@ impl Locale {
     pub fn from_str<'a>(name: &'a str) -> Result<Locale, NwgError> {
         let name_buffer = to_utf16(name);
         match Locale::locale_valid(&name_buffer) {
-            true => Ok(Locale { name: name.to_string(), name_buffer }),
-            false => Err(NwgError::bad_locale("Locale name is not valid"))
+            true => Ok(Locale {
+                name: name.to_string(),
+                name_buffer,
+            }),
+            false => Err(NwgError::bad_locale("Locale name is not valid")),
         }
     }
 
     /// Return the identifier (ex: en-US) of every supported locales.
     pub fn all() -> Vec<String> {
-        use winapi::um::winnls::EnumSystemLocalesEx;
-        use winapi::shared::minwindef::{DWORD, BOOL, LPARAM};
         use crate::win32::base_helper::from_wide_ptr;
+        use winapi::shared::minwindef::{BOOL, DWORD, LPARAM};
+        use winapi::um::winnls::EnumSystemLocalesEx;
 
         unsafe extern "system" fn enum_locales(locale: LPWSTR, _flags: DWORD, p: LPARAM) -> BOOL {
             let locales: *mut Vec<String> = p as *mut Vec<String>;
@@ -62,7 +65,12 @@ impl Locale {
 
         unsafe {
             let mut locales: Vec<String> = Vec::with_capacity(10);
-            EnumSystemLocalesEx(Some(enum_locales), 1, &mut locales as *mut Vec<String> as LPARAM, ptr::null_mut());
+            EnumSystemLocalesEx(
+                Some(enum_locales),
+                1,
+                &mut locales as *mut Vec<String> as LPARAM,
+                ptr::null_mut(),
+            );
             locales
         }
     }
@@ -77,7 +85,7 @@ impl Locale {
 
         Locale {
             name: from_utf16(&name_buffer),
-            name_buffer
+            name_buffer,
         }
     }
 
@@ -91,7 +99,7 @@ impl Locale {
 
         Locale {
             name: from_utf16(&name_buffer),
-            name_buffer
+            name_buffer,
         }
     }
 
@@ -142,7 +150,7 @@ impl Locale {
 
     /// Returns the measurement system (metric or imperial)
     pub fn measurement_system(&self) -> MeasurementSystem {
-        match self.get_locale_info_int(0x0000000D) { 
+        match self.get_locale_info_int(0x0000000D) {
             0 => MeasurementSystem::Metric,
             _ => MeasurementSystem::Imperial,
         }
@@ -236,7 +244,7 @@ impl Locale {
         let id = self.get_locale_info_int(0x00001009) as u32;
         match id <= 15 {
             true => unsafe { mem::transmute(id) },
-            false => NegativeCurrency::Mode1
+            false => NegativeCurrency::Mode1,
         }
     }
 
@@ -270,7 +278,7 @@ impl Locale {
         let id = self.get_locale_info_int(0x00001009) as u32;
         match id <= 23 {
             true => unsafe { mem::transmute(id) },
-            false => Calendar::Gregorian
+            false => Calendar::Gregorian,
         }
     }
 
@@ -279,7 +287,7 @@ impl Locale {
         let id = self.get_locale_info_int(0x0000100B) as u32;
         match id <= 23 {
             true => unsafe { mem::transmute(id) },
-            false => Calendar::Gregorian
+            false => Calendar::Gregorian,
         }
     }
 
@@ -320,7 +328,7 @@ impl Locale {
 
     /**
         Return the localized month name. See `month_name_abv` for the abbreviated version
-        
+
         Parameters:
             month_index: The month index. 1(January) to 12 (December) or 13 (if it exists).
 
@@ -342,13 +350,13 @@ impl Locale {
             11 => self.get_locale_info_string(0x00000042),
             12 => self.get_locale_info_string(0x00000043),
             13 => self.get_locale_info_string(0x0000100E),
-            x => panic!("{} is not a valid month index", x)
+            x => panic!("{} is not a valid month index", x),
         }
     }
 
     /**
         Return the localized month name in an abbreviated version. See `month_name` for the full version
-        
+
         Parameters:
             month_index: The month index. 1(January) to 12 (December) or 13 (if it exists).
 
@@ -370,13 +378,13 @@ impl Locale {
             11 => self.get_locale_info_string(0x0000004E),
             12 => self.get_locale_info_string(0x0000004F),
             13 => self.get_locale_info_string(0x0000100F),
-            x => panic!("{} is not a valid month index", x)
+            x => panic!("{} is not a valid month index", x),
         }
     }
 
     /**
         Return the localized day name. See `day_name_abv` for the abbreviated version
-        
+
         Parameters:
             day_index: The month index. 1(Monday) to 7 (Sunday)
 
@@ -392,13 +400,13 @@ impl Locale {
             5 => self.get_locale_info_string(0x0000002E),
             6 => self.get_locale_info_string(0x0000002F),
             7 => self.get_locale_info_string(0x00000030),
-            x => panic!("{} is not a valid day index", x)
+            x => panic!("{} is not a valid day index", x),
         }
     }
 
     /**
         Return the localized day name in an abbreviated version. See `day_name` for the full version
-        
+
         Parameters:
             day_index: The month index. 1(Monday) to 7 (Sunday)
 
@@ -414,17 +422,23 @@ impl Locale {
             5 => self.get_locale_info_string(0x00000035),
             6 => self.get_locale_info_string(0x00000036),
             7 => self.get_locale_info_string(0x00000037),
-            x => panic!("{} is not a valid day index", x)
+            x => panic!("{} is not a valid day index", x),
         }
     }
 
     fn get_locale_info_string(&self, info: LCTYPE) -> String {
         unsafe {
-            let buffer_size = GetLocaleInfoEx(self.name_buffer.as_ptr(), info, ptr::null_mut(), 0) as usize;
+            let buffer_size =
+                GetLocaleInfoEx(self.name_buffer.as_ptr(), info, ptr::null_mut(), 0) as usize;
             let mut buffer: Vec<u16> = Vec::with_capacity(buffer_size);
             buffer.set_len(buffer_size);
 
-            GetLocaleInfoEx(self.name_buffer.as_ptr(), info, buffer.as_mut_ptr(), buffer_size as i32);
+            GetLocaleInfoEx(
+                self.name_buffer.as_ptr(),
+                info,
+                buffer.as_mut_ptr(),
+                buffer_size as i32,
+            );
 
             from_utf16(&buffer)
         }
@@ -436,9 +450,13 @@ impl Locale {
 
         unsafe {
             let out_ptr = &mut out as *mut i32 as *mut u16;
-            GetLocaleInfoEx(self.name_buffer.as_ptr(), info | return_number, out_ptr, mem::size_of::<i32>() as i32);
+            GetLocaleInfoEx(
+                self.name_buffer.as_ptr(),
+                info | return_number,
+                out_ptr,
+                mem::size_of::<i32>() as i32,
+            );
         }
-        
 
         out
     }
@@ -447,7 +465,6 @@ impl Locale {
         use winapi::um::winnls::IsValidLocaleName;
         unsafe { IsValidLocaleName(buffer.as_ptr()) != 0 }
     }
-
 }
 
 use std::fmt;

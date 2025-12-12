@@ -3,8 +3,8 @@
 /*!
     GLB file loader
 */
-use serde_json::{Value, Map};
-use std::{fs, ptr, str, path::Path};
+use serde_json::{Map, Value};
+use std::{fs, path::Path, ptr, str};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ComponentType {
@@ -18,13 +18,12 @@ pub enum ComponentType {
 }
 
 impl ComponentType {
-
     pub fn size(&self) -> u32 {
         use ComponentType::*;
         match self {
             Byte | UByte => 1,
             Short | UShort => 2,
-            Int | UInt | Float => 4
+            Int | UInt | Float => 4,
         }
     }
 
@@ -36,12 +35,13 @@ impl ComponentType {
             5123 => ComponentType::UShort,
             5124 => ComponentType::Int,
             5126 => ComponentType::Float,
-            _ => { return Err(format!("Unknown accessor type: {:?}", v)); }
+            _ => {
+                return Err(format!("Unknown accessor type: {:?}", v));
+            }
         };
 
         Ok(c)
     }
-
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -52,11 +52,10 @@ pub enum AccessorType {
     Vec4,
     Mat2,
     Mat3,
-    Mat4
+    Mat4,
 }
 
 impl AccessorType {
-
     pub fn from_str(v: &str) -> Result<AccessorType, String> {
         let ty = match v {
             "SCALAR" => AccessorType::Scalar,
@@ -66,12 +65,13 @@ impl AccessorType {
             "Mat2" => AccessorType::Mat2,
             "Mat3" => AccessorType::Mat3,
             "Mat4" => AccessorType::Mat4,
-            _ => { return Err(format!("Unknown accessor type: {:?}", v)); }
+            _ => {
+                return Err(format!("Unknown accessor type: {:?}", v));
+            }
         };
 
         Ok(ty)
     }
-
 }
 
 #[derive(Debug)]
@@ -83,7 +83,6 @@ pub struct AccessorData<'a> {
 }
 
 impl<'a> AccessorData<'a> {
-
     pub fn stride(&self) -> u32 {
         use AccessorType::*;
 
@@ -94,14 +93,12 @@ impl<'a> AccessorData<'a> {
             Vec4 => 4,
             Mat2 => 4,
             Mat3 => 9,
-            Mat4 => 16
+            Mat4 => 16,
         };
 
         self.component_ty.size() * acc_type_size
     }
-
 }
-
 
 #[derive(Debug)]
 pub struct SimpleMesh {
@@ -112,14 +109,17 @@ pub struct SimpleMesh {
 }
 
 impl SimpleMesh {
-
     fn from_obj(obj: &serde_json::Map<String, Value>) -> Result<SimpleMesh, String> {
-        let primitives = obj.get("primitives")
+        let primitives = obj
+            .get("primitives")
             .and_then(|p| p.as_array())
             .ok_or("SimpleMesh does not have a primitive array")?;
-        
+
         if primitives.len() != 1 {
-            return Err(format!("SimpleMesh must have on primitives group, found {}", primitives.len()));
+            return Err(format!(
+                "SimpleMesh must have on primitives group, found {}",
+                primitives.len()
+            ));
         }
 
         // Here we assume the primitve group is valid
@@ -135,12 +135,11 @@ impl SimpleMesh {
             indices,
             positions,
             normals,
-            tex_coord
+            tex_coord,
         };
 
         Ok(mesh)
     }
-
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -151,18 +150,17 @@ pub struct NodeRef<'a> {
 
 impl<'a> NodeRef<'a> {
     pub(crate) fn from_map(node: &'a Map<String, Value>) -> NodeRef<'a> {
-        let name = node.get("name")
-            .and_then(|d| d.as_str() )
+        let name = node
+            .get("name")
+            .and_then(|d| d.as_str())
             .unwrap_or("NO_NAME");
 
-        let mesh = node.get("mesh")
+        let mesh = node
+            .get("mesh")
             .and_then(|v| v.as_u64())
             .map(|v| v as usize);
 
-        NodeRef {
-            name,
-            mesh,
-        }
+        NodeRef { name, mesh }
     }
 
     pub fn name(&self) -> &'a str {
@@ -172,32 +170,34 @@ impl<'a> NodeRef<'a> {
 
 pub struct SceneRef<'a> {
     nodes: &'a Vec<Value>,
-    scene: &'a Map<String, Value>
+    scene: &'a Map<String, Value>,
 }
 
 impl<'a> SceneRef<'a> {
     pub fn name(&self) -> &'a str {
-        self.scene.get("name")
-            .and_then(|d| d.as_str() )
+        self.scene
+            .get("name")
+            .and_then(|d| d.as_str())
             .unwrap_or("NO_NAME")
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item=NodeRef<'a>> {
+    pub fn nodes(&self) -> impl Iterator<Item = NodeRef<'a>> {
         let nodes = self.nodes;
-        self.scene.get("nodes")
-            .and_then(|v| v.as_array() )
-            .and_then(move |v| Some(
-                v.iter().filter_map(move |v| {
+        self.scene
+            .get("nodes")
+            .and_then(|v| v.as_array())
+            .and_then(move |v| {
+                Some(v.iter().filter_map(move |v| {
                     let index = v.as_u64().unwrap() as usize;
-                    nodes.get(index)
+                    nodes
+                        .get(index)
                         .and_then(|v| v.as_object())
-                        .map(|node| NodeRef::from_map(node) )
-                } )
-            ))
+                        .map(|node| NodeRef::from_map(node))
+                }))
+            })
             .unwrap()
     }
 }
-
 
 /// Wraps the data of a "*.glb" file
 pub struct GlbFile {
@@ -208,12 +208,11 @@ pub struct GlbFile {
 }
 
 impl GlbFile {
-
     /// Read and parse a gltf binary file
     pub fn open<P: AsRef<Path>>(path: P) -> Result<GlbFile, String> {
         let path = path.as_ref();
-        let content = fs::read(path)
-            .map_err(|err| format!("Failed to read {:?}: {:?}", path, err) )?;
+        let content =
+            fs::read(path).map_err(|err| format!("Failed to read {:?}: {:?}", path, err))?;
 
         let mut file = GlbFile {
             bin: content.into_boxed_slice(),
@@ -238,7 +237,8 @@ impl GlbFile {
     /// Return the name of the default scene if there is one
     pub fn default_scene<'a>(&'a self) -> Option<SceneRef<'a>> {
         let json = self.json();
-        let scene_id = json.get("scene")
+        let scene_id = json
+            .get("scene")
             .and_then(|v| v.as_u64())
             .unwrap_or(u64::MAX);
 
@@ -252,21 +252,21 @@ impl GlbFile {
         scene
             .get(scene_id as usize)
             .and_then(|v| v.as_object())
-            .map(|scene| SceneRef { nodes, scene } )
+            .map(|scene| SceneRef { nodes, scene })
     }
 
     /// Find a mesh by index
     pub fn simple_mesh_by_index<'a>(&'a self, index: usize) -> Result<Option<SimpleMesh>, String> {
-        let meshes = self.json.get("meshes")
+        let meshes = self
+            .json
+            .get("meshes")
             .and_then(|m| m.as_array())
             .ok_or("meshes array was not found in json".to_owned())?;
 
         let mesh = meshes.get(index);
 
-        match mesh.map(|m| m.as_object().unwrap() ) {
-            Some(mesh_obj) => 
-                SimpleMesh::from_obj(mesh_obj)
-                    .map(|mesh| Some(mesh)),
+        match mesh.map(|m| m.as_object().unwrap()) {
+            Some(mesh_obj) => SimpleMesh::from_obj(mesh_obj).map(|mesh| Some(mesh)),
             None => Ok(None),
         }
     }
@@ -274,43 +274,48 @@ impl GlbFile {
     /// Find a mesh by name. The mesh cannot have more than 1 primitive group
     /// Returns an error if the meshes configuration of the GLB file is invalid
     pub fn simple_mesh_by_name<'a>(&'a self, name_ref: &str) -> Result<Option<SimpleMesh>, String> {
-        let meshes = self.json.get("meshes")
+        let meshes = self
+            .json
+            .get("meshes")
             .and_then(|m| m.as_array())
             .ok_or("meshes array was not found in json".to_owned())?;
 
-        let mesh = meshes.iter().find(|m| 
+        let mesh = meshes.iter().find(|m| {
             m.as_object()
-             .and_then(|mesh| mesh.get("name") )
-             .and_then(|name| name.as_str() )
-             .map(|name| name == name_ref )
-             .unwrap_or(false)
-        );
+                .and_then(|mesh| mesh.get("name"))
+                .and_then(|name| name.as_str())
+                .map(|name| name == name_ref)
+                .unwrap_or(false)
+        });
 
-        match mesh.map(|m| m.as_object().unwrap() ) {
-            Some(mesh_obj) => 
-                SimpleMesh::from_obj(mesh_obj)
-                    .map(|mesh| Some(mesh)),
+        match mesh.map(|m| m.as_object().unwrap()) {
+            Some(mesh_obj) => SimpleMesh::from_obj(mesh_obj).map(|mesh| Some(mesh)),
             None => Ok(None),
         }
     }
 
     /// Find the mesh associated with the selected node. The mesh cannot have more than 1 primitive group
     /// Returns an error if the meshes configuration of the GLB file is invalid
-    pub fn simple_mesh_by_node<'a>(&'a self, node_ref: NodeRef<'a>) -> Result<Option<SimpleMesh>, String> {
+    pub fn simple_mesh_by_node<'a>(
+        &'a self,
+        node_ref: NodeRef<'a>,
+    ) -> Result<Option<SimpleMesh>, String> {
         let mesh_index = match node_ref.mesh {
             Some(index) => index,
-            None => { return Ok(None); }
+            None => {
+                return Ok(None);
+            }
         };
-        
-        let meshes = self.json.get("meshes")
+
+        let meshes = self
+            .json
+            .get("meshes")
             .and_then(|m| m.as_array())
             .ok_or("meshes array was not found in json".to_owned())?;
-        
+
         let mesh = meshes.get(mesh_index);
-        match mesh.map(|m| m.as_object().unwrap() ) {
-            Some(mesh_obj) => 
-                SimpleMesh::from_obj(mesh_obj)
-                    .map(|mesh| Some(mesh)),
+        match mesh.map(|m| m.as_object().unwrap()) {
+            Some(mesh_obj) => SimpleMesh::from_obj(mesh_obj).map(|mesh| Some(mesh)),
             None => Ok(None),
         }
     }
@@ -318,59 +323,75 @@ impl GlbFile {
     /// Return the data associated with the accessor identified by `id`
     pub fn accessor_data<'a>(&'a self, id: u64) -> Result<AccessorData<'a>, String> {
         let json = &self.json;
-        
-        let accessor_obj = 
-            json.get("accessors")
-                .and_then(|v| v.as_array())
-                .and_then(|v| v.get(id as usize) as Option<&Value> )
-                .and_then(|v| v.as_object())
-                .ok_or(format!("Failed to read accessor with id {}", id))?;
 
-        let component_count = accessor_obj.get("count")
-            .and_then(|v| v.as_u64())
-            .ok_or(format!("Failed to read count for accessor {}", id))? as u32;
+        let accessor_obj = json
+            .get("accessors")
+            .and_then(|v| v.as_array())
+            .and_then(|v| v.get(id as usize) as Option<&Value>)
+            .and_then(|v| v.as_object())
+            .ok_or(format!("Failed to read accessor with id {}", id))?;
 
-        let component_ty = accessor_obj.get("componentType")
+        let component_count = accessor_obj
+            .get("count")
             .and_then(|v| v.as_u64())
-            .map(|v| ComponentType::from_u64(v) )
+            .ok_or(format!("Failed to read count for accessor {}", id))?
+            as u32;
+
+        let component_ty = accessor_obj
+            .get("componentType")
+            .and_then(|v| v.as_u64())
+            .map(|v| ComponentType::from_u64(v))
             .ok_or(format!("Failed to read count for accessor {}", id))??;
 
-        let ty = accessor_obj.get("type")
+        let ty = accessor_obj
+            .get("type")
             .and_then(|v| v.as_str())
-            .map(|v| AccessorType::from_str(v) )
+            .map(|v| AccessorType::from_str(v))
             .ok_or(format!("Failed to read type for accessor {}", id))??;
 
         let data = {
-            let buffer_view_id = accessor_obj.get("bufferView")
+            let buffer_view_id = accessor_obj
+                .get("bufferView")
                 .and_then(|v| v.as_u64())
                 .ok_or(format!("Failed to read buffer view for accessor {}", id))?;
 
-            let accessor_byte_offset = accessor_obj.get("byteOffset")
+            let accessor_byte_offset = accessor_obj
+                .get("byteOffset")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
 
-            let buffer_view_obj = 
-                json.get("bufferViews")
-                    .and_then(|v| v.as_array())
-                    .and_then(|v| v.get(buffer_view_id as usize) as Option<&Value> )
-                    .and_then(|v| v.as_object())
-                    .ok_or(format!("Failed to read buffer view with id {} from accessor id {}", buffer_view_id, id))?;
-            
-            let byte_length = buffer_view_obj.get("byteLength")
-                .and_then(|v| v.as_u64())
-                .ok_or(format!("Failed to read buffer view byte length for accessor {}", id))? as usize;
+            let buffer_view_obj = json
+                .get("bufferViews")
+                .and_then(|v| v.as_array())
+                .and_then(|v| v.get(buffer_view_id as usize) as Option<&Value>)
+                .and_then(|v| v.as_object())
+                .ok_or(format!(
+                    "Failed to read buffer view with id {} from accessor id {}",
+                    buffer_view_id, id
+                ))?;
 
-            let view_byte_offset = buffer_view_obj.get("byteOffset")
+            let byte_length = buffer_view_obj
+                .get("byteLength")
+                .and_then(|v| v.as_u64())
+                .ok_or(format!(
+                    "Failed to read buffer view byte length for accessor {}",
+                    id
+                ))? as usize;
+
+            let view_byte_offset = buffer_view_obj
+                .get("byteOffset")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
 
             let combined_offset = (accessor_byte_offset + view_byte_offset) as isize;
             if combined_offset as usize > self.bin_chunk_size {
-                return Err("Malformated json: mesh data points outside of the binary chunk".to_owned());
+                return Err(
+                    "Malformated json: mesh data points outside of the binary chunk".to_owned(),
+                );
             }
 
-            let file_offset = (combined_offset+self.bin_chunk_offset) as usize;
-            &self.bin[file_offset..file_offset+byte_length]
+            let file_offset = (combined_offset + self.bin_chunk_offset) as usize;
+            &self.bin[file_offset..file_offset + byte_length]
         };
 
         let data = AccessorData {
@@ -378,7 +399,7 @@ impl GlbFile {
             component_ty,
             ty,
 
-            data
+            data,
         };
 
         Ok(data)
@@ -403,7 +424,10 @@ impl GlbFile {
         unsafe {
             let magic = ptr::read::<u32>(src.offset(offset) as _);
             if magic != GLTF_MAGIC {
-                let msg = format!("Invalid magic number. Expected 0x{:X}, got 0x{:X}", GLTF_MAGIC, magic);
+                let msg = format!(
+                    "Invalid magic number. Expected 0x{:X}, got 0x{:X}",
+                    GLTF_MAGIC, magic
+                );
                 return Err(msg);
             }
 
@@ -417,7 +441,10 @@ impl GlbFile {
             offset += 4;
             let length = ptr::read::<u32>(src.offset(offset) as _) as usize;
             if length != src_size {
-                let msg = format!("Size mismatch between buffer & gltf header: {}(buffer) VS {}(file)", src_size, length);
+                let msg = format!(
+                    "Size mismatch between buffer & gltf header: {}(buffer) VS {}(file)",
+                    src_size, length
+                );
                 return Err(msg);
             }
         }
@@ -442,11 +469,11 @@ impl GlbFile {
                 }
 
                 let o = offset as usize;
-                let json_str = str::from_utf8(&self.bin[o..(o+json_size)])
-                    .map_err(|e| format!("Failed to decode json chunk: {:?}", e) )?;
-                
+                let json_str = str::from_utf8(&self.bin[o..(o + json_size)])
+                    .map_err(|e| format!("Failed to decode json chunk: {:?}", e))?;
+
                 serde_json::from_str(json_str)
-                    .map_err(|e| format!("Failed to parse json chunk: {:?}", e) )?
+                    .map_err(|e| format!("Failed to parse json chunk: {:?}", e))?
             };
 
             self.json = json;
@@ -477,9 +504,7 @@ impl GlbFile {
 
         Ok(())
     }
-
 }
-
 
 #[test]
 fn test_glb() {
@@ -493,7 +518,10 @@ fn test_glb() {
     assert!(meshes.len() == 1, "File should only have 1 mesh");
 
     let no_mesh = cube.simple_mesh_by_name("test");
-    assert!(no_mesh.is_ok(), "Failing to find a mesh should not raise an error");
+    assert!(
+        no_mesh.is_ok(),
+        "Failing to find a mesh should not raise an error"
+    );
     assert!(no_mesh.unwrap().is_none(), "no_mesh should be none");
 
     let cube_mesh = cube.simple_mesh_by_name("Mesh");
@@ -505,8 +533,8 @@ fn test_glb() {
         Some(name) => {
             assert!(name.is_string(), "Name should be string");
             assert!(name.as_str().unwrap() == "Mesh", "Name should be \"Mesh\"");
-        },
-        None => panic!("Mesh should have a name")
+        }
+        None => panic!("Mesh should have a name"),
     };
 
     let primitives = match cube_mesh.get("primitives") {
@@ -517,15 +545,17 @@ fn test_glb() {
             assert!(primitives.len() == 1, "Should only have 1 primitive");
 
             primitives.get(0).unwrap()
-        },
-        None => panic!("Mesh should have primitives")
+        }
+        None => panic!("Mesh should have primitives"),
     };
 
     let index_accessor = primitives.get("indices").unwrap().as_u64().unwrap();
-    let index_data = cube.accessor_data(index_accessor).expect("Failed to fetch accessor data");
+    let index_data = cube
+        .accessor_data(index_accessor)
+        .expect("Failed to fetch accessor data");
 
     assert!(index_data.component_count == 36);
     assert!(index_data.component_ty == ComponentType::UShort);
     assert!(index_data.ty == AccessorType::Scalar);
-    assert!(index_data.data.len() == 36*2);
+    assert!(index_data.data.len() == 36 * 2);
 }

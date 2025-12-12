@@ -5,16 +5,14 @@
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 
-
 #[derive(Debug)]
 enum Token {
     Number(i32),
     Plus,
     Minus,
     Mult,
-    Div
+    Div,
 }
-
 
 #[derive(Default)]
 pub struct Calculator {
@@ -44,7 +42,6 @@ pub struct Calculator {
 }
 
 impl Calculator {
-
     fn number(&self, button: &nwg::Button) {
         let text = self.input.text();
         self.input.set_text(&format!("{}{}", text, button.text()));
@@ -74,7 +71,7 @@ impl Calculator {
                     _ => {
                         nwg::error_message("Error", "Invalid equation!");
                         self.input.set_text("");
-                        return
+                        return;
                     }
                 }
 
@@ -83,34 +80,45 @@ impl Calculator {
                     '-' => Minus,
                     '*' => Mult,
                     '/' => Div,
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
 
                 tokens.push(tk);
 
-                last = i+1;
+                last = i + 1;
             }
         }
 
         let right = &eq[last..];
         match right.parse::<i32>() {
             Ok(i) => tokens.push(Token::Number(i)),
-            _ =>  {
+            _ => {
                 nwg::error_message("Error", "Invalid equation!");
                 self.input.set_text("");
-                return
+                return;
             }
         }
 
         let mut i = 1;
-        let mut result = match &tokens[0] { Token::Number(n) => *n, _ => unreachable!() };
+        let mut result = match &tokens[0] {
+            Token::Number(n) => *n,
+            _ => unreachable!(),
+        };
         while i < tokens.len() {
-            match [&tokens[i], &tokens[i+1]] {
-                [Plus, Number(n)] => { result += n; },
-                [Minus, Number(n)] => { result -= n;},
-                [Mult, Number(n)] => { result *= n; },
-                [Div, Number(n)] => { result /= n; },
-                _ => unreachable!()
+            match [&tokens[i], &tokens[i + 1]] {
+                [Plus, Number(n)] => {
+                    result += n;
+                }
+                [Minus, Number(n)] => {
+                    result -= n;
+                }
+                [Mult, Number(n)] => {
+                    result *= n;
+                }
+                [Div, Number(n)] => {
+                    result /= n;
+                }
+                _ => unreachable!(),
             }
             i += 2;
         }
@@ -121,28 +129,27 @@ impl Calculator {
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 //
 // ALL of this stuff is handled by native-windows-derive
 //
 mod calculator_ui {
-    use native_windows_gui as nwg;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::cell::RefCell;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct CalculatorUi {
         inner: Rc<Calculator>,
-        default_handler: RefCell<Vec<nwg::EventHandler>>
+        default_handler: RefCell<Vec<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<CalculatorUi> for Calculator {
         fn build_ui(mut data: Calculator) -> Result<CalculatorUi, nwg::NwgError> {
             use nwg::Event as E;
-            
+
             // Controls
             nwg::Window::builder()
                 .size((300, 150))
@@ -162,29 +169,73 @@ mod calculator_ui {
                 .parent(&data.window)
                 .focus(true)
                 .build(&mut data.btn1)?;
-           
-            nwg::Button::builder().text("2").parent(&data.window).build(&mut data.btn2)?;
-            nwg::Button::builder().text("3").parent(&data.window).build(&mut data.btn3)?;
-            nwg::Button::builder().text("4").parent(&data.window).build(&mut data.btn4)?;
-            nwg::Button::builder().text("5").parent(&data.window).build(&mut data.btn5)?;
-            nwg::Button::builder().text("6").parent(&data.window).build(&mut data.btn6)?;
-            nwg::Button::builder().text("7").parent(&data.window).build(&mut data.btn7)?;
-            nwg::Button::builder().text("8").parent(&data.window).build(&mut data.btn8)?;
-            nwg::Button::builder().text("9").parent(&data.window).build(&mut data.btn9)?;
-            nwg::Button::builder().text("0").parent(&data.window).build(&mut data.btn0)?;
-            
-            nwg::Button::builder().text("+").parent(&data.window).build(&mut data.btn_plus)?;
-            nwg::Button::builder().text("-").parent(&data.window).build(&mut data.btn_minus)?;
-            nwg::Button::builder().text("*").parent(&data.window).build(&mut data.btn_mult)?;
-            nwg::Button::builder().text("/").parent(&data.window).build(&mut data.btn_divide)?;
-            nwg::Button::builder().text("Clear").parent(&data.window).build(&mut data.btn_clear)?;
-            nwg::Button::builder().text("=").parent(&data.window).build(&mut data.btn_process)?;
-            
-            
+
+            nwg::Button::builder()
+                .text("2")
+                .parent(&data.window)
+                .build(&mut data.btn2)?;
+            nwg::Button::builder()
+                .text("3")
+                .parent(&data.window)
+                .build(&mut data.btn3)?;
+            nwg::Button::builder()
+                .text("4")
+                .parent(&data.window)
+                .build(&mut data.btn4)?;
+            nwg::Button::builder()
+                .text("5")
+                .parent(&data.window)
+                .build(&mut data.btn5)?;
+            nwg::Button::builder()
+                .text("6")
+                .parent(&data.window)
+                .build(&mut data.btn6)?;
+            nwg::Button::builder()
+                .text("7")
+                .parent(&data.window)
+                .build(&mut data.btn7)?;
+            nwg::Button::builder()
+                .text("8")
+                .parent(&data.window)
+                .build(&mut data.btn8)?;
+            nwg::Button::builder()
+                .text("9")
+                .parent(&data.window)
+                .build(&mut data.btn9)?;
+            nwg::Button::builder()
+                .text("0")
+                .parent(&data.window)
+                .build(&mut data.btn0)?;
+
+            nwg::Button::builder()
+                .text("+")
+                .parent(&data.window)
+                .build(&mut data.btn_plus)?;
+            nwg::Button::builder()
+                .text("-")
+                .parent(&data.window)
+                .build(&mut data.btn_minus)?;
+            nwg::Button::builder()
+                .text("*")
+                .parent(&data.window)
+                .build(&mut data.btn_mult)?;
+            nwg::Button::builder()
+                .text("/")
+                .parent(&data.window)
+                .build(&mut data.btn_divide)?;
+            nwg::Button::builder()
+                .text("Clear")
+                .parent(&data.window)
+                .build(&mut data.btn_clear)?;
+            nwg::Button::builder()
+                .text("=")
+                .parent(&data.window)
+                .build(&mut data.btn_process)?;
+
             // Wrap-up
             let ui = CalculatorUi {
                 inner: Rc::new(data),
-                default_handler: Default::default()
+                default_handler: Default::default(),
             };
 
             // Events
@@ -194,38 +245,54 @@ mod calculator_ui {
                 let handle_events = move |evt, _evt_data, handle| {
                     if let Some(evt_ui) = evt_ui.upgrade() {
                         match evt {
-                            E::OnButtonClick =>
-                                if      &handle == &evt_ui.btn0 { Calculator::number(&evt_ui, &evt_ui.btn0); }
-                                else if &handle == &evt_ui.btn1 { Calculator::number(&evt_ui, &evt_ui.btn1); }
-                                else if &handle == &evt_ui.btn2 { Calculator::number(&evt_ui, &evt_ui.btn2); }
-                                else if &handle == &evt_ui.btn3 { Calculator::number(&evt_ui, &evt_ui.btn3); }
-                                else if &handle == &evt_ui.btn4 { Calculator::number(&evt_ui, &evt_ui.btn4); }
-                                else if &handle == &evt_ui.btn5 { Calculator::number(&evt_ui, &evt_ui.btn5); }
-                                else if &handle == &evt_ui.btn6 { Calculator::number(&evt_ui, &evt_ui.btn6); }
-                                else if &handle == &evt_ui.btn7 { Calculator::number(&evt_ui, &evt_ui.btn7); }
-                                else if &handle == &evt_ui.btn8 { Calculator::number(&evt_ui, &evt_ui.btn8); }
-                                else if &handle == &evt_ui.btn9 { Calculator::number(&evt_ui, &evt_ui.btn9); }
-    
-                                else if &handle == &evt_ui.btn_plus { Calculator::number(&evt_ui, &evt_ui.btn_plus); }
-                                else if &handle == &evt_ui.btn_minus { Calculator::number(&evt_ui, &evt_ui.btn_minus); }
-                                else if &handle == &evt_ui.btn_mult { Calculator::number(&evt_ui, &evt_ui.btn_mult); }
-                                else if &handle == &evt_ui.btn_divide { Calculator::number(&evt_ui, &evt_ui.btn_divide); }
-    
-                                else if &handle == &evt_ui.btn_clear { Calculator::clear(&evt_ui); }
-    
-                                else if &handle == &evt_ui.btn_process { Calculator::compute(&evt_ui); }
-                            E::OnWindowClose => 
+                            E::OnButtonClick => {
+                                if &handle == &evt_ui.btn0 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn0);
+                                } else if &handle == &evt_ui.btn1 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn1);
+                                } else if &handle == &evt_ui.btn2 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn2);
+                                } else if &handle == &evt_ui.btn3 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn3);
+                                } else if &handle == &evt_ui.btn4 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn4);
+                                } else if &handle == &evt_ui.btn5 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn5);
+                                } else if &handle == &evt_ui.btn6 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn6);
+                                } else if &handle == &evt_ui.btn7 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn7);
+                                } else if &handle == &evt_ui.btn8 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn8);
+                                } else if &handle == &evt_ui.btn9 {
+                                    Calculator::number(&evt_ui, &evt_ui.btn9);
+                                } else if &handle == &evt_ui.btn_plus {
+                                    Calculator::number(&evt_ui, &evt_ui.btn_plus);
+                                } else if &handle == &evt_ui.btn_minus {
+                                    Calculator::number(&evt_ui, &evt_ui.btn_minus);
+                                } else if &handle == &evt_ui.btn_mult {
+                                    Calculator::number(&evt_ui, &evt_ui.btn_mult);
+                                } else if &handle == &evt_ui.btn_divide {
+                                    Calculator::number(&evt_ui, &evt_ui.btn_divide);
+                                } else if &handle == &evt_ui.btn_clear {
+                                    Calculator::clear(&evt_ui);
+                                } else if &handle == &evt_ui.btn_process {
+                                    Calculator::compute(&evt_ui);
+                                }
+                            }
+                            E::OnWindowClose => {
                                 if &handle == &evt_ui.window {
                                     Calculator::exit(&evt_ui);
-                                },
+                                }
+                            }
                             _ => {}
                         }
                     }
                 };
 
-                ui.default_handler.borrow_mut().push(
-                    nwg::full_bind_event_handler(handle, handle_events)
-                );
+                ui.default_handler
+                    .borrow_mut()
+                    .push(nwg::full_bind_event_handler(handle, handle_events));
             }
 
             // Layouts
@@ -251,7 +318,7 @@ mod calculator_ui {
                 .child_item(nwg::GridLayoutItem::new(&ui.btn_process, 3, 4, 2, 1))
                 .child_item(nwg::GridLayoutItem::new(&ui.btn0, 0, 4, 3, 1))
                 .build(&ui.layout)?;
-            
+
             return Ok(ui);
         }
     }
@@ -273,10 +340,7 @@ mod calculator_ui {
             &self.inner
         }
     }
-
 }
-
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");

@@ -3,10 +3,9 @@ use std::cell::RefCell;
 use std::thread;
 use std::time::Duration;
 
-
 #[derive(Default)]
 pub struct ThreadResources {
-    count: usize
+    count: usize,
 }
 
 #[derive(Default)]
@@ -25,7 +24,7 @@ pub struct ThreadTest {
     thread_sleep_btn: Button,
 
     timer: AnimationTimer,
-    notice: Notice
+    notice: Notice,
 }
 
 fn timer_tick(app: &ThreadTest) {
@@ -47,7 +46,8 @@ fn sleep() {
 }
 
 fn thread_sleep(app: &ThreadTest) {
-    app.counter.set_text("Sleeping for 5 sec! (off the GUI thread)");
+    app.counter
+        .set_text("Sleeping for 5 sec! (off the GUI thread)");
 
     let sender = app.notice.sender();
     thread::spawn(move || {
@@ -60,21 +60,21 @@ fn notice_me(app: &ThreadTest) {
     app.counter.set_text("Done sleeping of the main thread!");
 }
 
-
 mod partial_canvas_test_ui {
     use super::*;
-    use crate::{PartialUi, NwgError, ControlHandle};
+    use crate::{ControlHandle, NwgError, PartialUi};
     use stretch::style::*;
 
     impl PartialUi for ThreadTest {
-
-        fn build_partial<W: Into<ControlHandle>>(data: &mut ThreadTest, _parent: Option<W>) -> Result<(), NwgError> {
-            
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut ThreadTest,
+            _parent: Option<W>,
+        ) -> Result<(), NwgError> {
             Font::builder()
                 .size(40)
                 .family("Consolas")
                 .build(&mut data.font)?;
-            
+
             Window::builder()
                 .flags(WindowFlags::WINDOW)
                 .size((300, 300))
@@ -101,7 +101,7 @@ mod partial_canvas_test_ui {
                 .text("Sleep")
                 .parent(&data.window)
                 .build(&mut data.sleep_btn)?;
-            
+
             Button::builder()
                 .text("Sleep (off thread)")
                 .parent(&data.window)
@@ -135,7 +135,7 @@ mod partial_canvas_test_ui {
             use crate::Event as E;
 
             match evt {
-                E::OnButtonClick =>
+                E::OnButtonClick => {
                     if &handle == &self.timer_start_btn {
                         start_timer(self);
                     } else if &handle == &self.timer_stop_btn {
@@ -144,15 +144,18 @@ mod partial_canvas_test_ui {
                         sleep();
                     } else if &handle == &self.thread_sleep_btn {
                         thread_sleep(self);
-                    },
-                E::OnTimerTick => 
+                    }
+                }
+                E::OnTimerTick => {
                     if &handle == &self.timer {
                         timer_tick(self)
-                    },
-                E::OnNotice => 
+                    }
+                }
+                E::OnNotice => {
                     if &handle == &self.notice {
                         notice_me(self)
-                    },
+                    }
+                }
                 _ => {}
             }
         }
@@ -160,7 +163,5 @@ mod partial_canvas_test_ui {
         fn handles(&self) -> Vec<&ControlHandle> {
             vec![&self.window.handle]
         }
-
     }
-
 }

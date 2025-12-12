@@ -9,7 +9,7 @@ layout (location = 1) in vec3 inNorm;
 layout (location = 0) out vec3 outFragPos;
 layout (location = 1) out vec3 outNorm;
 
-layout (set=0, binding = 0) uniform UBO 
+layout (set=0, binding = 0) uniform UBO
 {
     mat4 mvp;
     mat4 model;
@@ -17,7 +17,7 @@ layout (set=0, binding = 0) uniform UBO
 };
 
 
-void main() 
+void main()
 {
     outFragPos = vec3(model * vec4(inPos, 1.0));
     outNorm = mat3(normal) * inNorm;

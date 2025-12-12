@@ -1,10 +1,13 @@
 #[cfg(not(feature = "high-dpi"))]
-#[deprecated(note = "Specifying the default process DPI awareness via API is not recommended. Use the '<dpiAware>true</dpiAware>' setting in the application manifest. https://docs.microsoft.com/ru-ru/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process")]
-pub unsafe fn set_dpi_awareness() {
-}
+#[deprecated(
+    note = "Specifying the default process DPI awareness via API is not recommended. Use the '<dpiAware>true</dpiAware>' setting in the application manifest. https://docs.microsoft.com/ru-ru/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process"
+)]
+pub unsafe fn set_dpi_awareness() {}
 
 #[cfg(feature = "high-dpi")]
-#[deprecated(note = "Specifying the default process DPI awareness via API is not recommended. Use the '<dpiAware>true</dpiAware>' setting in the application manifest. https://docs.microsoft.com/ru-ru/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process")]
+#[deprecated(
+    note = "Specifying the default process DPI awareness via API is not recommended. Use the '<dpiAware>true</dpiAware>' setting in the application manifest. https://docs.microsoft.com/ru-ru/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process"
+)]
 pub unsafe fn set_dpi_awareness() {
     use winapi::um::winuser::SetProcessDPIAware;
     SetProcessDPIAware();
@@ -53,9 +56,9 @@ pub unsafe fn physical_to_logical(x: i32, y: i32) -> (i32, i32) {
 }
 
 pub unsafe fn dpi() -> i32 {
-    use winapi::um::winuser::GetDC;
     use winapi::um::wingdi::GetDeviceCaps;
     use winapi::um::wingdi::LOGPIXELSX;
+    use winapi::um::winuser::GetDC;
     let screen = GetDC(std::ptr::null_mut());
     let dpi = GetDeviceCaps(screen, LOGPIXELSX);
     dpi

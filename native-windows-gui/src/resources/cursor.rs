@@ -1,8 +1,8 @@
+use crate::win32::resources_helper as rh;
+use crate::{NwgError, OemCursor, OemImage};
+use std::ptr;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::IMAGE_CURSOR;
-use crate::win32::resources_helper as rh;
-use crate::{OemCursor, OemImage, NwgError};
-use std::ptr;
 
 #[cfg(feature = "embed-resource")]
 use super::EmbedResource;
@@ -37,11 +37,10 @@ fn load_cursor_builder() -> nwg::Cursor {
 #[allow(unused)]
 pub struct Cursor {
     pub handle: HANDLE,
-    pub(crate) owned: bool
+    pub(crate) owned: bool,
 }
 
 impl Cursor {
-
     pub fn builder<'a>() -> CursorBuilder<'a> {
         CursorBuilder {
             source_text: None,
@@ -56,8 +55,8 @@ impl Cursor {
 
             #[cfg(feature = "embed-resource")]
             source_embed_str: None,
-            
-            strict: false
+
+            strict: false,
         }
     }
 
@@ -97,7 +96,11 @@ impl Cursor {
         Requires the `embed-resource` feature.
     */
     #[cfg(feature = "embed-resource")]
-    pub fn from_embed(embed: &EmbedResource, embed_id: Option<usize>, embed_str: Option<&str>) -> Result<Cursor, NwgError> {
+    pub fn from_embed(
+        embed: &EmbedResource,
+        embed_id: Option<usize>,
+        embed_str: Option<&str>,
+    ) -> Result<Cursor, NwgError> {
         let mut bitmap = Cursor::default();
 
         Cursor::builder()
@@ -108,7 +111,6 @@ impl Cursor {
 
         Ok(bitmap)
     }
-
 }
 
 pub struct CursorBuilder<'a> {
@@ -129,7 +131,6 @@ pub struct CursorBuilder<'a> {
 }
 
 impl<'a> CursorBuilder<'a> {
-
     pub fn source_file(mut self, t: Option<&'a str>) -> CursorBuilder<'a> {
         self.source_text = t;
         self
@@ -171,23 +172,35 @@ impl<'a> CursorBuilder<'a> {
     pub fn build(self, b: &mut Cursor) -> Result<(), NwgError> {
         if let Some(src) = self.source_text {
             let handle = unsafe { rh::build_image(src, self.size, self.strict, IMAGE_CURSOR)? };
-            *b = Cursor { handle, owned: true };
+            *b = Cursor {
+                handle,
+                owned: true,
+            };
         } else if let Some(src) = self.source_system {
             let handle = unsafe { rh::build_oem_image(OemImage::Cursor(src), self.size)? };
-            *b = Cursor { handle, owned: true };
+            *b = Cursor {
+                handle,
+                owned: true,
+            };
         } else {
             #[cfg(feature = "embed-resource")]
             fn build_embed(builder: CursorBuilder) -> Result<Cursor, NwgError> {
                 match builder.source_embed {
-                    Some(embed) => {
-                        match builder.source_embed_str {
-                            Some(src) => embed.cursor_str(src)
-                                .ok_or_else(|| NwgError::resource_create(format!("No cursor in embed resource identified by {}", src))),
-                            None => embed.cursor(builder.source_embed_id)
-                                .ok_or_else(|| NwgError::resource_create(format!("No cursor in embed resource identified by {}", builder.source_embed_id)))
-                        }
+                    Some(embed) => match builder.source_embed_str {
+                        Some(src) => embed.cursor_str(src).ok_or_else(|| {
+                            NwgError::resource_create(format!(
+                                "No cursor in embed resource identified by {}",
+                                src
+                            ))
+                        }),
+                        None => embed.cursor(builder.source_embed_id).ok_or_else(|| {
+                            NwgError::resource_create(format!(
+                                "No cursor in embed resource identified by {}",
+                                builder.source_embed_id
+                            ))
+                        }),
                     },
-                    None => Err(NwgError::resource_create("No source provided for Cursor"))
+                    None => Err(NwgError::resource_create("No source provided for Cursor")),
                 }
             }
 
@@ -201,35 +214,27 @@ impl<'a> CursorBuilder<'a> {
 
         Ok(())
     }
-
 }
 
-
 impl Default for Cursor {
-
     fn default() -> Cursor {
         Cursor {
             handle: ptr::null_mut(),
-            owned: false
+            owned: false,
         }
     }
-
 }
 
 impl PartialEq for Cursor {
-
     fn eq(&self, other: &Self) -> bool {
         self.handle == other.handle
     }
-
 }
 
 impl Drop for Cursor {
-
     fn drop(&mut self) {
         if self.owned && !self.handle.is_null() {
             rh::destroy_cursor(self.handle);
         }
     }
-
 }

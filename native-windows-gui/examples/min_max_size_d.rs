@@ -2,12 +2,11 @@
     Shows you how to set the maximum/minimum size of a window
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct ResizeApp {
@@ -77,12 +76,10 @@ pub struct ResizeApp {
 
     #[nwg_control(text: "Height", h_align: nwg::HTextAlign::Center)]
     #[nwg_layout_item(layout: grid, row: 0, col: 2)]
-    label6: nwg::Label
-
+    label6: nwg::Label,
 }
 
 impl ResizeApp {
-
     fn resize(&self, data: &nwg::EventData) {
         let data = data.on_min_max();
         let [old_maximized_width, old_maximized_height] = data.maximized_size();
@@ -90,13 +87,26 @@ impl ResizeApp {
         let [old_max_width, old_max_height] = data.max_size();
         let [old_min_width, old_min_height] = data.min_size();
 
-
         // Maximized size
-        let maximized_width = self.edit_maxed_size_width.text().parse::<i32>().unwrap_or(9999);
-        let maximized_height = self.edit_maxed_size_height.text().parse::<i32>().unwrap_or(9999);
+        let maximized_width = self
+            .edit_maxed_size_width
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
+        let maximized_height = self
+            .edit_maxed_size_height
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
 
-        if maximized_width == 9999  { self.edit_maxed_size_width.set_text(&format!("{}", old_maximized_width)); }
-        if maximized_height == 9999 { self.edit_maxed_size_height.set_text(&format!("{}", old_maximized_height)); }
+        if maximized_width == 9999 {
+            self.edit_maxed_size_width
+                .set_text(&format!("{}", old_maximized_width));
+        }
+        if maximized_height == 9999 {
+            self.edit_maxed_size_height
+                .set_text(&format!("{}", old_maximized_height));
+        }
         if maximized_width != 9999 && maximized_height != 9999 {
             data.set_maximized_size(maximized_width, maximized_height);
         }
@@ -105,35 +115,66 @@ impl ResizeApp {
         let maximized_x = self.edit_maxed_pos_x.text().parse::<i32>().unwrap_or(9999);
         let maximized_y = self.edit_maxed_pos_y.text().parse::<i32>().unwrap_or(9999);
 
-        if maximized_x == 9999 { self.edit_maxed_pos_x.set_text(&format!("{}", old_maximized_x)); }
-        if maximized_y == 9999 { self.edit_maxed_pos_y.set_text(&format!("{}", old_maximized_y)); }
+        if maximized_x == 9999 {
+            self.edit_maxed_pos_x
+                .set_text(&format!("{}", old_maximized_x));
+        }
+        if maximized_y == 9999 {
+            self.edit_maxed_pos_y
+                .set_text(&format!("{}", old_maximized_y));
+        }
         if maximized_x != 9999 && maximized_y != 9999 {
             data.set_maximized_pos(maximized_x, maximized_y);
         }
 
         // Max size
-        let max_width = self.edit_max_size_width.text().parse::<i32>().unwrap_or(9999);
-        let max_height = self.edit_max_size_height.text().parse::<i32>().unwrap_or(9999);
+        let max_width = self
+            .edit_max_size_width
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
+        let max_height = self
+            .edit_max_size_height
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
 
-        if max_width == 9999  { self.edit_max_size_width.set_text(&format!("{}", old_max_width)); }
-        if max_height == 9999 { self.edit_max_size_height.set_text(&format!("{}", old_max_height)); }
+        if max_width == 9999 {
+            self.edit_max_size_width
+                .set_text(&format!("{}", old_max_width));
+        }
+        if max_height == 9999 {
+            self.edit_max_size_height
+                .set_text(&format!("{}", old_max_height));
+        }
         if max_width != 9999 && max_height != 9999 {
             data.set_max_size(max_width, max_height);
         }
 
         // Min size
-        let min_width = self.edit_min_size_width.text().parse::<i32>().unwrap_or(9999);
-        let min_height = self.edit_min_size_height.text().parse::<i32>().unwrap_or(9999);
+        let min_width = self
+            .edit_min_size_width
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
+        let min_height = self
+            .edit_min_size_height
+            .text()
+            .parse::<i32>()
+            .unwrap_or(9999);
 
-        if min_width == 9999  { self.edit_min_size_width.set_text(&format!("{}", old_min_width)); }
-        if min_height == 9999 { self.edit_min_size_height.set_text(&format!("{}", old_min_height)); }
+        if min_width == 9999 {
+            self.edit_min_size_width
+                .set_text(&format!("{}", old_min_width));
+        }
+        if min_height == 9999 {
+            self.edit_min_size_height
+                .set_text(&format!("{}", old_min_height));
+        }
         if min_width != 9999 && min_height != 9999 {
             data.set_min_size(min_width, min_height);
         }
-
     }
-
-
 }
 
 fn main() {

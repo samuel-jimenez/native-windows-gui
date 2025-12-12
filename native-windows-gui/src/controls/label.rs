@@ -1,14 +1,14 @@
 use winapi::um::{
-    winuser::{WS_VISIBLE, WS_DISABLED, SS_WORDELLIPSIS},
-    wingdi::DeleteObject
+    wingdi::DeleteObject,
+    winuser::{SS_WORDELLIPSIS, WS_DISABLED, WS_VISIBLE},
 };
 
-use winapi::shared::windef::HBRUSH;
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::check_hwnd;
-use crate::{Font, NwgError, HTextAlign, VTextAlign, RawEventHandler, unbind_raw_event_handler};
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::check_hwnd;
+use crate::win32::window_helper as wh;
+use crate::{unbind_raw_event_handler, Font, HTextAlign, NwgError, RawEventHandler, VTextAlign};
 use std::cell::RefCell;
+use winapi::shared::windef::HBRUSH;
 
 const NOT_BOUND: &'static str = "Label is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Label handle is not HWND!";
@@ -79,7 +79,6 @@ pub struct Label {
 }
 
 impl Label {
-
     pub fn builder<'a>() -> LabelBuilder<'a> {
         LabelBuilder {
             text: "A label",
@@ -91,7 +90,7 @@ impl Label {
             parent: None,
             h_align: HTextAlign::Left,
             v_align: VTextAlign::Center,
-            background_color: None
+            background_color: None,
         }
     }
 
@@ -103,14 +102,18 @@ impl Label {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return true if the control currently has the keyboard focus
@@ -122,7 +125,9 @@ impl Label {
     /// Set the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -137,7 +142,7 @@ impl Label {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -175,7 +180,7 @@ impl Label {
     }
 
     /// Return the label text
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -193,7 +198,7 @@ impl Label {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        use winapi::um::winuser::{SS_NOPREFIX, SS_LEFT};
+        use winapi::um::winuser::{SS_LEFT, SS_NOPREFIX};
 
         WS_VISIBLE | SS_NOPREFIX | SS_LEFT
     }
@@ -208,15 +213,23 @@ impl Label {
     /// Center the text vertically.
     fn hook_non_client_size(&mut self, bg: Option<[u8; 3]>, v_align: VTextAlign) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::windef::{HWND, HGDIOBJ, RECT, POINT};
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT};
-        use winapi::um::winuser::{WM_CTLCOLORSTATIC, WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, COLOR_WINDOW};
-        use winapi::um::winuser::{SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOMOVE, SWP_FRAMECHANGED};
-        use winapi::um::winuser::{GetDC, DrawTextW, ReleaseDC, GetClientRect, GetWindowRect, FillRect, ScreenToClient, SetWindowPos, GetWindowTextW, GetWindowTextLengthW};
-        use winapi::um::wingdi::{SelectObject, CreateSolidBrush, RGB};
         use std::{mem, ptr};
+        use winapi::shared::windef::{HGDIOBJ, HWND, POINT, RECT};
+        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT};
+        use winapi::um::wingdi::{CreateSolidBrush, SelectObject, RGB};
+        use winapi::um::winuser::{
+            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, GetWindowTextLengthW,
+            GetWindowTextW, ReleaseDC, ScreenToClient, SetWindowPos,
+        };
+        use winapi::um::winuser::{
+            COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_CTLCOLORSTATIC,
+            WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE,
+        };
+        use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
@@ -226,138 +239,163 @@ impl Label {
                 let b = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
                 self.background_brush = Some(b);
                 b
-            },
-            None => COLOR_WINDOW as HBRUSH
+            }
+            None => COLOR_WINDOW as HBRUSH,
         };
 
         unsafe {
-
-        if bg.is_some() {
-            let handler0 = bind_raw_event_handler_inner(&parent_handle, handle as UINT_PTR, move |_hwnd, msg, _w, l| {
-                match msg {
-                    WM_CTLCOLORSTATIC => {
-                        let child = l as HWND;
-                        if child == handle {
-                            return Some(brush as LRESULT);
-                        }
-                    },
-                    _ => {}
-                }
-    
-                None
-            });
-
-            *self.handler0.borrow_mut() = Some(handler0.unwrap());
-        }
-
-        let handler1 = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
-            match msg {
-                WM_NCCALCSIZE  => {
-                    if w == 0 { return None }
-
-                    // Calculate client area height needed for a font
-                    let font_handle = wh::get_window_font(hwnd);
-                    let mut r: RECT = mem::zeroed();
-                    let dc = GetDC(hwnd);
-                    
-                    let old = SelectObject(dc, font_handle as HGDIOBJ);
-
-                    let mut newline_count = 1;
-                    let buffer_size = GetWindowTextLengthW(handle) as usize;
-                    match buffer_size == 0 { 
-                        true => {
-                            let calc: [u16;2] = [75, 121];
-                            DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
-                        },
-                        false => {
-                            let mut buffer: Vec<u16> = vec![0; buffer_size + 1];
-                            if GetWindowTextW(handle, buffer.as_mut_ptr(), buffer_size as _) == 0 {
-                                let calc: [u16;2] = [75, 121];
-                                DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
-                            } else {
-                                for &c in buffer.iter() {
-                                    if c == b'\n' as u16 {
-                                        newline_count += 1;
-                                    }
+            if bg.is_some() {
+                let handler0 = bind_raw_event_handler_inner(
+                    &parent_handle,
+                    handle as UINT_PTR,
+                    move |_hwnd, msg, _w, l| {
+                        match msg {
+                            WM_CTLCOLORSTATIC => {
+                                let child = l as HWND;
+                                if child == handle {
+                                    return Some(brush as LRESULT);
                                 }
-                                DrawTextW(dc, buffer.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
+                            }
+                            _ => {}
+                        }
+
+                        None
+                    },
+                );
+
+                *self.handler0.borrow_mut() = Some(handler0.unwrap());
+            }
+
+            let handler1 = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
+                match msg {
+                    WM_NCCALCSIZE => {
+                        if w == 0 {
+                            return None;
+                        }
+
+                        // Calculate client area height needed for a font
+                        let font_handle = wh::get_window_font(hwnd);
+                        let mut r: RECT = mem::zeroed();
+                        let dc = GetDC(hwnd);
+
+                        let old = SelectObject(dc, font_handle as HGDIOBJ);
+
+                        let mut newline_count = 1;
+                        let buffer_size = GetWindowTextLengthW(handle) as usize;
+                        match buffer_size == 0 {
+                            true => {
+                                let calc: [u16; 2] = [75, 121];
+                                DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
+                            }
+                            false => {
+                                let mut buffer: Vec<u16> = vec![0; buffer_size + 1];
+                                if GetWindowTextW(handle, buffer.as_mut_ptr(), buffer_size as _)
+                                    == 0
+                                {
+                                    let calc: [u16; 2] = [75, 121];
+                                    DrawTextW(dc, calc.as_ptr(), 2, &mut r, DT_CALCRECT | DT_LEFT);
+                                } else {
+                                    for &c in buffer.iter() {
+                                        if c == b'\n' as u16 {
+                                            newline_count += 1;
+                                        }
+                                    }
+                                    DrawTextW(
+                                        dc,
+                                        buffer.as_ptr(),
+                                        2,
+                                        &mut r,
+                                        DT_CALCRECT | DT_LEFT,
+                                    );
+                                }
+                            }
+                        }
+
+                        let client_height = r.bottom * newline_count;
+
+                        SelectObject(dc, old);
+                        ReleaseDC(hwnd, dc);
+
+                        // Calculate NC area to center text.
+                        let mut client: RECT = mem::zeroed();
+                        let mut window: RECT = mem::zeroed();
+                        GetClientRect(hwnd, &mut client);
+                        GetWindowRect(hwnd, &mut window);
+
+                        let window_height = window.bottom - window.top;
+                        let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
+                        let info = &mut *info_ptr;
+                        match v_align {
+                            VTextAlign::Top => {
+                                info.rgrc[0].bottom -= window_height - client_height;
+                            }
+                            VTextAlign::Center => {
+                                let center = ((window_height - client_height) / 2) - 1;
+                                info.rgrc[0].top += center;
+                                info.rgrc[0].bottom -= center;
+                            }
+                            VTextAlign::Bottom => {
+                                info.rgrc[0].top += window_height - client_height;
                             }
                         }
                     }
+                    WM_NCPAINT => {
+                        let mut window: RECT = mem::zeroed();
+                        let mut client: RECT = mem::zeroed();
+                        GetWindowRect(hwnd, &mut window);
+                        GetClientRect(hwnd, &mut client);
 
-                    let client_height = r.bottom * newline_count;
+                        let mut pt1 = POINT {
+                            x: window.left,
+                            y: window.top,
+                        };
+                        ScreenToClient(hwnd, &mut pt1);
 
-                    SelectObject(dc, old);
-                    ReleaseDC(hwnd, dc);
+                        let mut pt2 = POINT {
+                            x: window.right,
+                            y: window.bottom,
+                        };
+                        ScreenToClient(hwnd, &mut pt2);
 
-                    // Calculate NC area to center text.
-                    let mut client: RECT = mem::zeroed();
-                    let mut window: RECT = mem::zeroed();
-                    GetClientRect(hwnd, &mut client);
-                    GetWindowRect(hwnd, &mut window);
+                        let top = RECT {
+                            left: 0,
+                            top: pt1.y,
+                            right: client.right,
+                            bottom: client.top,
+                        };
 
-                    let window_height = window.bottom - window.top;
-                    let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
-                    let info = &mut *info_ptr;
-                    match v_align {
-                        VTextAlign::Top => {
-                            info.rgrc[0].bottom -= window_height - client_height;
-                        },
-                        VTextAlign::Center => {
-                            let center = ((window_height - client_height) / 2) - 1;
-                            info.rgrc[0].top += center;
-                            info.rgrc[0].bottom -= center;
-                        },
-                        VTextAlign::Bottom => {
-                            info.rgrc[0].top += window_height - client_height;
-                        },
+                        let bottom = RECT {
+                            left: 0,
+                            top: client.bottom,
+                            right: client.right,
+                            bottom: pt2.y,
+                        };
+
+                        let dc = GetDC(hwnd);
+                        FillRect(dc, &top, brush);
+                        FillRect(dc, &bottom, brush);
+                        ReleaseDC(hwnd, dc);
                     }
-                },
-                WM_NCPAINT  => {
-                    let mut window: RECT = mem::zeroed();
-                    let mut client: RECT = mem::zeroed();
-                    GetWindowRect(hwnd, &mut window);
-                    GetClientRect(hwnd, &mut client);
+                    WM_SIZE => {
+                        SetWindowPos(
+                            hwnd,
+                            ptr::null_mut(),
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
+                        );
+                    }
+                    _ => {}
+                }
 
-                    let mut pt1 = POINT {x: window.left, y: window.top};
-                    ScreenToClient(hwnd, &mut pt1);
+                None
+            });
 
-                    let mut pt2 = POINT {x: window.right, y: window.bottom};
-                    ScreenToClient(hwnd, &mut pt2);
-
-                    let top = RECT {
-                        left: 0,
-                        top: pt1.y,
-                        right: client.right,
-                        bottom: client.top
-                    };
-
-                    let bottom = RECT {
-                        left: 0,
-                        top: client.bottom,
-                        right: client.right,
-                        bottom: pt2.y
-                    };
-
-                    let dc = GetDC(hwnd);
-                    FillRect(dc, &top, brush);
-                    FillRect(dc, &bottom, brush);
-                    ReleaseDC(hwnd, dc);
-                },
-                WM_SIZE => {
-                    SetWindowPos(hwnd, ptr::null_mut(), 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED);
-                },
-                _ => {}
-            }
-
-            None
-        });
-
-        *self.handler1.borrow_mut() = Some(handler1.unwrap());
-
+            *self.handler1.borrow_mut() = Some(handler1.unwrap());
         }
     }
-
 }
 
 impl PartialEq for Label {
@@ -365,7 +403,6 @@ impl PartialEq for Label {
         self.handle == other.handle
     }
 }
-
 
 impl Drop for Label {
     fn drop(&mut self) {
@@ -380,7 +417,9 @@ impl Drop for Label {
         }
 
         if let Some(bg) = self.background_brush {
-            unsafe { DeleteObject(bg as _); }
+            unsafe {
+                DeleteObject(bg as _);
+            }
         }
 
         self.handle.destroy();
@@ -397,11 +436,10 @@ pub struct LabelBuilder<'a> {
     font: Option<&'a Font>,
     h_align: HTextAlign,
     v_align: VTextAlign,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> LabelBuilder<'a> {
-
     pub fn flags(mut self, flags: LabelFlags) -> LabelBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -432,7 +470,7 @@ impl<'a> LabelBuilder<'a> {
         self
     }
 
-    pub fn background_color(mut self, color: Option<[u8;3]>) -> LabelBuilder<'a> {
+    pub fn background_color(mut self, color: Option<[u8; 3]>) -> LabelBuilder<'a> {
         self.background_color = color;
         self
     }
@@ -453,19 +491,25 @@ impl<'a> LabelBuilder<'a> {
     }
 
     pub fn build(self, out: &mut Label) -> Result<(), NwgError> {
-        use winapi::um::winuser::{SS_LEFT, SS_RIGHT, SS_CENTER};
+        use winapi::um::winuser::{SS_CENTER, SS_LEFT, SS_RIGHT};
 
         let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
 
         match self.h_align {
-            HTextAlign::Left => { flags |= SS_LEFT; },
-            HTextAlign::Right => { flags |= SS_RIGHT; },
-            HTextAlign::Center => { flags |= SS_CENTER; },
+            HTextAlign::Left => {
+                flags |= SS_LEFT;
+            }
+            HTextAlign::Right => {
+                flags |= SS_RIGHT;
+            }
+            HTextAlign::Center => {
+                flags |= SS_CENTER;
+            }
         }
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("Label"))
+            None => Err(NwgError::no_parent("Label")),
         }?;
 
         // Drop the old object
@@ -492,6 +536,4 @@ impl<'a> LabelBuilder<'a> {
 
         Ok(())
     }
-
 }
-

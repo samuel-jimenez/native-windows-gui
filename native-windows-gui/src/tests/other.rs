@@ -11,12 +11,12 @@ pub struct OtherTests {
 mod other_tests_ui {
     use super::*;
     use crate::{NativeUi, NwgError};
-    use std::rc::Rc;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct OtherTestsUi {
         inner: Rc<OtherTests>,
-        default_handler: RefCell<Option<EventHandler>>
+        default_handler: RefCell<Option<EventHandler>>,
     }
 
     impl NativeUi<OtherTestsUi> for OtherTests {
@@ -35,35 +35,41 @@ mod other_tests_ui {
                 .focus(true)
                 .parent(&data.window)
                 .build(&mut data.test)?;
-            
-            let ui = OtherTestsUi { inner: Rc::new(data), default_handler: Default::default() };
+
+            let ui = OtherTestsUi {
+                inner: Rc::new(data),
+                default_handler: Default::default(),
+            };
 
             // Events
             let evt_ui = Rc::downgrade(&ui.inner);
             let handle_events = move |evt, _evt_data, handle| {
                 if let Some(evt_ui) = evt_ui.upgrade() {
                     match evt {
-                        E::OnButtonClick => 
+                        E::OnButtonClick => {
                             if &handle == &evt_ui.test {
                                 test_stuff(&evt_ui);
-                            },
-                        E::OnWindowClose => 
+                            }
+                        }
+                        E::OnWindowClose => {
                             if &handle == &evt_ui.window {
                                 stop_thread_dispatch();
-                            },
+                            }
+                        }
                         _ => {}
                     }
                 }
             };
 
-           *ui.default_handler.borrow_mut() = Some(full_bind_event_handler(&ui.window.handle, handle_events));
+            *ui.default_handler.borrow_mut() =
+                Some(full_bind_event_handler(&ui.window.handle, handle_events));
 
             FlexboxLayout::builder()
                 .parent(&ui.window)
                 .flex_direction(stretch::style::FlexDirection::Column)
                 .child(&ui.test)
                 .build(&ui.layout)?;
-            
+
             Ok(ui)
         }
     }
@@ -85,13 +91,9 @@ mod other_tests_ui {
             &self.inner
         }
     }
-
 }
 
-fn test_stuff(_t: &OtherTests) {
-
-}
-
+fn test_stuff(_t: &OtherTests) {}
 
 /// Just some scaffolding if I ever want to add new specific tests
 #[test]

@@ -1,6 +1,5 @@
-use syn::parse::{Parse, ParseStream, ParseBuffer};
+use syn::parse::{Parse, ParseBuffer, ParseStream};
 use syn::punctuated::Punctuated;
-
 
 #[derive(Debug)]
 pub struct Param {
@@ -21,7 +20,7 @@ impl Parse for Param {
 
 #[derive(Debug)]
 pub struct Parameters {
-    pub params: Punctuated<Param, Token![,]>
+    pub params: Punctuated<Param, Token![,]>,
 }
 
 impl Parse for Parameters {
@@ -33,13 +32,11 @@ impl Parse for Parameters {
         }
 
         let parameters = match maybe_parse_parens(input) {
-            Ok(parse_buffer) => {
-                Parameters { 
-                    params: parse_buffer.parse_terminated(Param::parse)?
-                }
+            Ok(parse_buffer) => Parameters {
+                params: parse_buffer.parse_terminated(Param::parse)?,
             },
             Err(_) => Parameters {
-                params: Punctuated::new()
+                params: Punctuated::new(),
             },
         };
 

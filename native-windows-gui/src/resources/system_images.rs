@@ -2,7 +2,6 @@
     Identifier for built-in system resoucres
 */
 
-
 /**
     List of built-in system images identifiers. To use with the `Image` resource.
 */
@@ -31,7 +30,7 @@ pub enum OemCursor {
     SizeNS = 32645,
     SizeALL = 32646,
     No = 32648,
-    AppStarting = 32650
+    AppStarting = 32650,
 }
 
 /**
@@ -85,5 +84,5 @@ pub enum OemIcon {
     WinLogo = 32517,
     Warning = 32515,
     Error = 32513,
-    Information = 32516
+    Information = 32516,
 }

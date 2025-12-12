@@ -3,8 +3,8 @@ extern crate proc_macro2 as pm2;
 
 #[macro_use]
 extern crate syn;
-use syn::{DeriveInput, GenericParam, TypeParam, LifetimeDef};
 use syn::punctuated::Punctuated;
+use syn::{DeriveInput, GenericParam, LifetimeDef, TypeParam};
 
 #[macro_use]
 extern crate quote;
@@ -18,7 +18,6 @@ mod shared;
 
 mod ui;
 use ui::NwgUi;
-
 
 struct BaseNames {
     n_module: syn::Ident,
@@ -61,7 +60,7 @@ fn parse_base_names(d: &DeriveInput) -> BaseNames {
 fn parse_ui_data(d: &DeriveInput) -> Option<&syn::DataStruct> {
     match &d.data {
         syn::Data::Struct(ds) => Some(ds),
-        _ => None
+        _ => None,
     }
 }
 
@@ -69,12 +68,16 @@ fn parse_ui_data(d: &DeriveInput) -> Option<&syn::DataStruct> {
 /// It is useful to erase definition and generate `impl<T: Trait1> Struct<T> {...}` tokens.
 ///
 /// For example `<'a: 'b, T: Trait1, const C: usize = 10>` becomes `<'a, T, C>`
-fn extract_generic_names(generics: &Punctuated<GenericParam, Token![,]>) -> Punctuated<GenericParam, Token![,]> {
+fn extract_generic_names(
+    generics: &Punctuated<GenericParam, Token![,]>,
+) -> Punctuated<GenericParam, Token![,]> {
     let mut generic_names: Punctuated<GenericParam, Token![,]> = Punctuated::new();
     for generic_param in generics {
         let ident = match generic_param {
             GenericParam::Type(t) => GenericParam::Type(TypeParam::from(t.ident.clone())),
-            GenericParam::Lifetime(l) => GenericParam::Lifetime(LifetimeDef::new(l.lifetime.clone())),
+            GenericParam::Lifetime(l) => {
+                GenericParam::Lifetime(LifetimeDef::new(l.lifetime.clone()))
+            }
             GenericParam::Const(c) => GenericParam::Type(TypeParam::from(c.ident.clone())), // a little hack
         };
         generic_names.push(ident);
@@ -121,7 +124,7 @@ The macro creates a new struct named `[StructName]Ui` in a submodule named `[str
 The trait `NativeUi` is implemented on this struct and the boilerplate code is generated for every field tagged by attributes.
 Fields without attributes, even `nwg` types, are left untouched.
 
-Finally, the derive macro also creates a default event handler that will live through the ui struct lifetime. 
+Finally, the derive macro also creates a default event handler that will live through the ui struct lifetime.
 
 
 # Attributes usage
@@ -143,7 +146,7 @@ also has built-in helpers: auto parent detection and compressed flags syntax (se
 #[nwg_control(text: "Heisenberg", size: (280, 25), position: (10, 10))]
 name_edit: nwg::TextInput,
 
-// is the same as 
+// is the same as
 
 nwg::TextInput::builder()
     .text("Heisenberg")
@@ -154,7 +157,7 @@ nwg::TextInput::builder()
 
 ## Resources
 
-Use the `nwg_resource` to generate a resource from a struct field. It works the exact same way as `nwg_controls`. 
+Use the `nwg_resource` to generate a resource from a struct field. It works the exact same way as `nwg_controls`.
 Resources are always instanced before the controls.
 
 ## Events
@@ -173,7 +176,7 @@ where:
 
 ## Events arguments
 
-By default, native windows derive assumes the callback is a method of the Ui structure. So for example, 
+By default, native windows derive assumes the callback is a method of the Ui structure. So for example,
 `TestApp::callback1` assumes the method has the following signature `callback1(&self)`.
 
 That's very limiting. For example, if the same callback is used by two different controls, there's no way to differenciate them. In order to fix this, NWD lets you define the callbacks parameters using those identifiers:
@@ -185,7 +188,7 @@ That's very limiting. For example, if the same callback is used by two different
  - **EVT**: Sends the event that was triggered. `&Event`
  - **EVT_DATA**: Sends the data of the event that was triggered. `&EventData`
 
-It's also possible to not use any parameters, ex: `TestApp::callback1()`. 
+It's also possible to not use any parameters, ex: `TestApp::callback1()`.
 
 Different event types:
 
@@ -242,7 +245,17 @@ struct Ui {
 ```
 
 */
-#[proc_macro_derive(NwgUi, attributes(nwg_control, nwg_resource, nwg_events, nwg_layout, nwg_layout_item, nwg_partial))]
+#[proc_macro_derive(
+    NwgUi,
+    attributes(
+        nwg_control,
+        nwg_resource,
+        nwg_events,
+        nwg_layout,
+        nwg_layout_item,
+        nwg_partial
+    )
+)]
 pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
     let base = parse_macro_input!(input as DeriveInput);
     let names = parse_base_names(&base);
@@ -273,7 +286,7 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
     // Returns an error in the examples, so we try a default value
     let nwg = match nwg_name {
         Ok(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
-        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),   
+        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),
     };
 
     let derive_ui = quote! {
@@ -302,7 +315,7 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
 
                     #events
                     #layouts
-                    
+
                     Ok(ui)
                 }
             }
@@ -336,13 +349,12 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
     pm::TokenStream::from(derive_ui)
 }
 
-
 /**
 The `NwgPartial` macro implements the native-windows-gui `PartialUi` trait on the selected struct
 
 `NwgPartial` accepts the same attributes as `NwgUi`. See the docs of the `NwgUi` trait for detailed usage. There are some particularities though:
 
- - Partials cannot be used by independently. They must be included in a UI that implements `NwgUi`. 
+ - Partials cannot be used by independently. They must be included in a UI that implements `NwgUi`.
  - Partials do not require a top level window. If no window is defined, the partial will require a parent value passed from the `nwg_partial` attribute
  - It's possible to derive both `NwgUi` and `NwgPartial` from the same struct as long as the partial do not need a parent.
  - Partials can contains other partials
@@ -370,7 +382,17 @@ pub struct MyApp {
 ```
 
 */
-#[proc_macro_derive(NwgPartial, attributes(nwg_control, nwg_resource, nwg_events, nwg_layout, nwg_layout_item, nwg_partial))]
+#[proc_macro_derive(
+    NwgPartial,
+    attributes(
+        nwg_control,
+        nwg_resource,
+        nwg_events,
+        nwg_layout,
+        nwg_layout_item,
+        nwg_partial
+    )
+)]
 pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
     let base = parse_macro_input!(input as DeriveInput);
 
@@ -397,11 +419,11 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
     let events = ui.events();
 
     let nwg_name = crate_name("native-windows-gui");
-    
+
     // Returns an error in the examples, so we try a default value
     let nwg = match nwg_name {
         Ok(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
-        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),   
+        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),
     };
 
     let partial_ui = quote! {
@@ -409,14 +431,14 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
             extern crate #nwg as nwg;
             use nwg::*;
             use super::*;
-        
+
             impl #generics PartialUi for #struct_name #generic_names #where_clause {
 
                 #[allow(unused)]
                 fn build_partial<W: Into<ControlHandle>>(data: &mut Self, _parent: Option<W>) -> Result<(), NwgError> {
                     let parent = _parent.map(|p| p.into());
                     let parent_ref = parent.as_ref();
-                    
+
                     #resources
                     #controls
                     #partials

@@ -5,20 +5,21 @@
     Requires the following features: `cargo run --example partials_generic_d --features "listbox frame combobox"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
-use std::fmt::Display;
 use std::cell::RefCell;
+use std::fmt::Display;
 
-use nwd::{NwgUi, NwgPartial};
+use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;
-
 
 #[derive(NwgUi)]
 pub struct PartialGenericDemo<T1: Display + Default + 'static, T2, T3>
-    where T2: Display + Default + 'static,
-          T3: Display + Default + 'static {
+where
+    T2: Display + Default + 'static,
+    T3: Display + Default + 'static,
+{
     #[nwg_control(size: (500, 200), position: (300, 300), title: "Many generic UI", flags: "WINDOW|VISIBLE")]
     #[nwg_events(OnWindowClose: [PartialGenericDemo::exit])]
     window: nwg::Window,
@@ -50,9 +51,11 @@ pub struct PartialGenericDemo<T1: Display + Default + 'static, T2, T3>
 }
 
 impl<T1, T2, T3> PartialGenericDemo<T1, T2, T3>
-    where T1: Display + Default,
-          T2: Display + Default,
-          T3: Display + Default {
+where
+    T1: Display + Default,
+    T2: Display + Default,
+    T3: Display + Default,
+{
     fn change_interface(&self) {
         let frames = [&self.frame1, &self.frame2, &self.frame3];
         frames.iter().for_each(|f| f.set_visible(false));
@@ -66,7 +69,11 @@ impl<T1, T2, T3> PartialGenericDemo<T1, T2, T3>
 
     fn show<T: Display + Default>(&self, frame: &GenericFrameUi<T>) {
         let message = match frame.combobox.selection() {
-            Some(v) => format!("'{}' is our choice from '{}' frame", frame.combobox.collection()[v], frame.title),
+            Some(v) => format!(
+                "'{}' is our choice from '{}' frame",
+                frame.combobox.collection()[v],
+                frame.title
+            ),
             None => "Please choose something".to_owned(),
         };
         nwg::simple_message("Show message", &message);

@@ -1,34 +1,32 @@
-use winapi::um::winuser::{WS_CHILD, WS_VISIBLE, WS_CLIPCHILDREN, WS_CLIPSIBLINGS};
+use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
 use crate::NwgError;
-use super::{ControlBase, ControlHandle};
+use winapi::um::winuser::{WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE};
 
-use plotters::prelude::DrawingArea;
+pub use crate::win32::plotters_d2d::{PlottersBackend, PlottersError};
 use plotters::coord::Shift;
-pub use crate::win32::plotters_d2d::{PlottersError, PlottersBackend};
+use plotters::prelude::DrawingArea;
 use std::ops::Deref;
 
 const NOT_BOUND: &'static str = "Plotters control is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Plotters control handle is not HWND!";
 
-
 /**
     An object that can be used as a drawing area by the plotters library.
 
     This is needed because direct 2D needs to wrap the drawing command between a `begin_draw` and `end_draw` call
-    but it is impossible to do that within the DrawingBackend trait. 
+    but it is impossible to do that within the DrawingBackend trait.
 */
 pub struct PlottersDrawingArea<'a> {
     inner: &'a Plotters,
-    area: DrawingArea<&'a PlottersBackend, Shift>
+    area: DrawingArea<&'a PlottersBackend, Shift>,
 }
 
 impl<'a> PlottersDrawingArea<'a> {
-
     pub fn new(inner: &'a Plotters) -> Result<PlottersDrawingArea<'a>, PlottersError> {
         let backend = inner.d2d_backend.as_ref().unwrap();
-        
+
         backend.rebuild(inner.handle.hwnd().unwrap())?;
         backend.begin_draw();
         backend.clear();
@@ -40,7 +38,6 @@ impl<'a> PlottersDrawingArea<'a> {
 
         Ok(area)
     }
-
 }
 
 impl<'a> Deref for PlottersDrawingArea<'a> {
@@ -53,9 +50,7 @@ impl<'a> Deref for PlottersDrawingArea<'a> {
 
 impl<'a> Drop for PlottersDrawingArea<'a> {
     fn drop(&mut self) {
-        self.inner.d2d_backend.as_ref()
-            .unwrap()
-            .end_draw();
+        self.inner.d2d_backend.as_ref().unwrap().end_draw();
     }
 }
 
@@ -70,7 +65,6 @@ pub struct Plotters {
 }
 
 impl Plotters {
-
     pub fn builder() -> PlottersBuilder {
         PlottersBuilder {
             size: (500, 500),
@@ -96,7 +90,9 @@ impl Plotters {
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -111,7 +107,7 @@ impl Plotters {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -166,10 +162,8 @@ impl Plotters {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        WS_CLIPCHILDREN | WS_CLIPSIBLINGS 
+        WS_CLIPCHILDREN | WS_CLIPSIBLINGS
     }
-
-
 }
 
 impl PartialEq for Plotters {
@@ -186,7 +180,6 @@ pub struct PlottersBuilder {
 }
 
 impl PlottersBuilder {
-
     pub fn ex_flags(mut self, flags: u32) -> PlottersBuilder {
         self.ex_flags = flags;
         self
@@ -209,7 +202,7 @@ impl PlottersBuilder {
 
     pub fn build(self, out: &mut Plotters) -> Result<(), NwgError> {
         *out = Default::default();
-        
+
         out.handle = ControlBase::build_hwnd()
             .class_name(out.class_name())
             .forced_flags(out.forced_flags())
@@ -226,12 +219,11 @@ impl PlottersBuilder {
             Ok(b) => {
                 out.d2d_backend = Some(b);
                 Ok(())
-            },
+            }
             Err(e) => {
                 *out = Default::default();
                 Err(NwgError::from(e))
             }
         }
     }
-
 }

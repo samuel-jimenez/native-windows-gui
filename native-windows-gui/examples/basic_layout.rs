@@ -6,47 +6,52 @@
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 
-
 #[derive(Default)]
 pub struct BasicApp {
     window: nwg::Window,
     layout: nwg::GridLayout,
     name_edit: nwg::TextInput,
-    hello_button: nwg::Button
+    hello_button: nwg::Button,
 }
 
 impl BasicApp {
-
     fn say_hello(&self) {
-        nwg::modal_info_message(&self.window, "Hello", &format!("Hello {}", self.name_edit.text()));
+        nwg::modal_info_message(
+            &self.window,
+            "Hello",
+            &format!("Hello {}", self.name_edit.text()),
+        );
     }
-    
+
     fn say_goodbye(&self) {
-        nwg::modal_info_message(&self.window, "Goodbye", &format!("Goodbye {}", self.name_edit.text()));
+        nwg::modal_info_message(
+            &self.window,
+            "Goodbye",
+            &format!("Goodbye {}", self.name_edit.text()),
+        );
         nwg::stop_thread_dispatch();
     }
-
 }
 
 //
 // ALL of this stuff is handled by native-windows-derive
 //
 mod basic_app_ui {
-    use native_windows_gui as nwg;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::cell::RefCell;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct BasicAppUi {
         inner: Rc<BasicApp>,
-        default_handler: RefCell<Option<nwg::EventHandler>>
+        default_handler: RefCell<Option<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<BasicAppUi> for BasicApp {
         fn build_ui(mut data: BasicApp) -> Result<BasicAppUi, nwg::NwgError> {
             use nwg::Event as E;
-            
+
             // Controls
             nwg::Window::builder()
                 .flags(nwg::WindowFlags::WINDOW | nwg::WindowFlags::VISIBLE)
@@ -77,28 +82,33 @@ mod basic_app_ui {
             let handle_events = move |evt, _evt_data, handle| {
                 if let Some(evt_ui) = evt_ui.upgrade() {
                     match evt {
-                        E::OnButtonClick => 
+                        E::OnButtonClick => {
                             if &handle == &evt_ui.hello_button {
                                 BasicApp::say_hello(&evt_ui);
-                            },
-                        E::OnWindowClose => 
+                            }
+                        }
+                        E::OnWindowClose => {
                             if &handle == &evt_ui.window {
                                 BasicApp::say_goodbye(&evt_ui);
-                            },
+                            }
+                        }
                         _ => {}
                     }
                 }
             };
 
-           *ui.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(&ui.window.handle, handle_events));
+            *ui.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
+                &ui.window.handle,
+                handle_events,
+            ));
 
-           // Layouts
-           nwg::GridLayout::builder()
-            .parent(&ui.window)
-            .spacing(1)
-            .child(0, 0, &ui.name_edit)
-            .child_item(nwg::GridLayoutItem::new(&ui.hello_button, 0, 1, 1, 2))
-            .build(&ui.layout)?;
+            // Layouts
+            nwg::GridLayout::builder()
+                .parent(&ui.window)
+                .spacing(1)
+                .child(0, 0, &ui.name_edit)
+                .child_item(nwg::GridLayoutItem::new(&ui.hello_button, 0, 1, 1, 2))
+                .build(&ui.layout)?;
 
             return Ok(ui);
         }

@@ -1,12 +1,11 @@
 /*!
-    An application that saves messages into buttons. 
+    An application that saves messages into buttons.
     Demonstrate the dynamic functions of NWG.
 */
 
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
-
 
 #[derive(Default)]
 pub struct MessageBank {
@@ -22,7 +21,6 @@ pub struct MessageBank {
 }
 
 impl MessageBank {
-
     fn add_message(&self) {
         let title = self.message_title.text();
         let content = self.message_content.text();
@@ -39,20 +37,22 @@ impl MessageBank {
 
         let blen = buttons.len() as u32;
         let (x, y) = (blen % 6, blen / 6);
-        self.layout.add_child(x, y+1, &new_button);
+        self.layout.add_child(x, y + 1, &new_button);
 
         // You can share controls handle with events handlers
         let new_button_handle = new_button.handle;
-        let handler = nwg::bind_event_handler(&new_button.handle, &self.window.handle, move |evt, _evt_data, handle| {
-            match evt {
+        let handler = nwg::bind_event_handler(
+            &new_button.handle,
+            &self.window.handle,
+            move |evt, _evt_data, handle| match evt {
                 nwg::Event::OnButtonClick => {
                     if handle == new_button_handle {
                         nwg::simple_message(&title, &content);
                     }
-                },
+                }
                 _ => {}
-            }
-        });
+            },
+        );
 
         buttons.push(new_button);
         handlers.push(handler);
@@ -66,28 +66,27 @@ impl MessageBank {
 
         nwg::stop_thread_dispatch();
     }
-
 }
 
 //
 // ALL of this stuff is handled by native-windows-derive
 //
 mod message_bank_ui {
-    use native_windows_gui as nwg;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::cell::RefCell;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct MessageBankUi {
         inner: Rc<MessageBank>,
-        default_handler: RefCell<Vec<nwg::EventHandler>>
+        default_handler: RefCell<Vec<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<MessageBankUi> for MessageBank {
         fn build_ui(mut data: MessageBank) -> Result<MessageBankUi, nwg::NwgError> {
             use nwg::Event as E;
-            
+
             // Controls
             nwg::Window::builder()
                 .flags(nwg::WindowFlags::MAIN_WINDOW | nwg::WindowFlags::VISIBLE)
@@ -127,30 +126,34 @@ mod message_bank_ui {
                     if let Some(evt_ui) = evt_ui.upgrade() {
                         match evt {
                             E::OnButtonClick => {
-                                if &handle == &evt_ui.add_message_btn { MessageBank::add_message(&evt_ui); }
-                            },
+                                if &handle == &evt_ui.add_message_btn {
+                                    MessageBank::add_message(&evt_ui);
+                                }
+                            }
                             E::OnWindowClose => {
-                                if &handle == &evt_ui.window { MessageBank::exit(&evt_ui); }
-                            },
+                                if &handle == &evt_ui.window {
+                                    MessageBank::exit(&evt_ui);
+                                }
+                            }
                             _ => {}
                         }
                     }
                 };
 
-                ui.default_handler.borrow_mut().push(
-                    nwg::full_bind_event_handler(handle, handle_events)
-                );
+                ui.default_handler
+                    .borrow_mut()
+                    .push(nwg::full_bind_event_handler(handle, handle_events));
             }
 
             // Layout
             nwg::GridLayout::builder()
-              .parent(&ui.window)
-              .max_row(Some(6))
-              .child(0, 0, &ui.add_message_btn)
-              .child_item(nwg::GridLayoutItem::new(&ui.message_title, 1, 0, 2, 1))
-              .child_item(nwg::GridLayoutItem::new(&ui.message_content, 3, 0, 3, 1))
-              .build(&ui.layout)?;
-            
+                .parent(&ui.window)
+                .max_row(Some(6))
+                .child(0, 0, &ui.add_message_btn)
+                .child_item(nwg::GridLayoutItem::new(&ui.message_title, 1, 0, 2, 1))
+                .child_item(nwg::GridLayoutItem::new(&ui.message_content, 3, 0, 3, 1))
+                .build(&ui.layout)?;
+
             return Ok(ui);
         }
     }
@@ -172,10 +175,7 @@ mod message_bank_ui {
             &self.inner
         }
     }
-
 }
-
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");

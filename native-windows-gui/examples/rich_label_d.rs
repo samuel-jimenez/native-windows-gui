@@ -4,13 +4,11 @@
     Requires the following features: `cargo run --example drop_files_d --features "textbox"`
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct RichText {
@@ -34,18 +32,17 @@ pub struct RichText {
     #[nwg_control(font: Some(&data.font), flags: "VISIBLE|MULTI_LINE")]
     #[nwg_events(MousePressRightUp: [RichText::show_menu])]
     #[nwg_layout_item(layout: grid, row: 0, col: 0)]
-    rich_text_box: nwg::RichLabel
+    rich_text_box: nwg::RichLabel,
 }
 
 impl RichText {
-
     fn init_text(&self) {
         let text = concat!(
             "Russian political jokes\r\n",  //0..24  //0..24
 
             // 25..187
             "Russian political jokes are a part of Russian humour and can be grouped into the major time periods: Imperial Russia, Soviet Union and finally post-Soviet Russia.\r\n",
-            
+
             "Imperial Russia\r\n", // 187..203
 
             // 203..411
@@ -58,7 +55,7 @@ impl RichText {
             "A respected merchant, Sevenassov (Semizhopov in the original Russian), wants to change his surname, and asks the Tsar for permission. The Tsar gives his decision in writing: \"Permitted to subtract two asses\"\r\n",
 
             // 861..873
-            "Soviet Union\r\n", 
+            "Soviet Union\r\n",
 
             // 873..1106
             "Every nation enjoys political jokes, but in the Soviet Union telling political jokes could be regarded as type of extreme sport: according to Article 58 (RSFSR Penal Code), \"anti-Soviet propaganda\" was a potentially capital offense.\r\n",
@@ -67,74 +64,107 @@ impl RichText {
         let rich = &self.rich_text_box;
         rich.set_text(text);
 
-        rich.set_char_format(0..24, &nwg::CharFormat {
-            height: Some(500),
-            text_color: Some([50, 50, 150]),
-            font_face_name: Some("Comic Sans MS".to_string()),
-            ..Default::default()
-        });
+        rich.set_char_format(
+            0..24,
+            &nwg::CharFormat {
+                height: Some(500),
+                text_color: Some([50, 50, 150]),
+                font_face_name: Some("Comic Sans MS".to_string()),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(0..24,&nwg::ParaFormat {
-            alignment: Some(nwg::ParaAlignment::Center),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            0..24,
+            &nwg::ParaFormat {
+                alignment: Some(nwg::ParaAlignment::Center),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(25..187, &nwg::ParaFormat {
-            space_before: Some(200),
-            space_after: Some(200),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            25..187,
+            &nwg::ParaFormat {
+                space_before: Some(200),
+                space_after: Some(200),
+                ..Default::default()
+            },
+        );
 
-        rich.set_char_format(187..203, &nwg::CharFormat {
-            effects: Some(nwg::CharEffects::BOLD),
-            height: Some(350),
-            text_color: Some([50, 50, 50]),
-            ..Default::default()
-        });
+        rich.set_char_format(
+            187..203,
+            &nwg::CharFormat {
+                effects: Some(nwg::CharEffects::BOLD),
+                height: Some(350),
+                text_color: Some([50, 50, 50]),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(187..203, &nwg::ParaFormat {
-            alignment: Some(nwg::ParaAlignment::Center),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            187..203,
+            &nwg::ParaFormat {
+                alignment: Some(nwg::ParaAlignment::Center),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(203..411, &nwg::ParaFormat {
-            space_before: Some(200),
-            space_after: Some(200),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            203..411,
+            &nwg::ParaFormat {
+                space_before: Some(200),
+                space_after: Some(200),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(411..412, &nwg::ParaFormat {
-            space_after: Some(100),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            411..412,
+            &nwg::ParaFormat {
+                space_after: Some(100),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(411..861, &nwg::ParaFormat {
-            start_indent: Some(300),
-            right_indent: Some(300),
-            line_spacing: Some(nwg::ParaLineSpacing::Single),
-            numbering: Some(nwg::ParaNumbering::Seq('1')),
-            numbering_style: Some(nwg::ParaNumberingStyle::Period),
-            numbering_tab: Some(300),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            411..861,
+            &nwg::ParaFormat {
+                start_indent: Some(300),
+                right_indent: Some(300),
+                line_spacing: Some(nwg::ParaLineSpacing::Single),
+                numbering: Some(nwg::ParaNumbering::Seq('1')),
+                numbering_style: Some(nwg::ParaNumberingStyle::Period),
+                numbering_tab: Some(300),
+                ..Default::default()
+            },
+        );
 
-        rich.set_char_format(861..873, &nwg::CharFormat {
-            effects: Some(nwg::CharEffects::BOLD | nwg::CharEffects::ITALIC),
-            height: Some(350),
-            text_color: Some([150, 50, 50]),
-            ..Default::default()
-        });
+        rich.set_char_format(
+            861..873,
+            &nwg::CharFormat {
+                effects: Some(nwg::CharEffects::BOLD | nwg::CharEffects::ITALIC),
+                height: Some(350),
+                text_color: Some([150, 50, 50]),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(861..873, &nwg::ParaFormat {
-            alignment: Some(nwg::ParaAlignment::Center),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            861..873,
+            &nwg::ParaFormat {
+                alignment: Some(nwg::ParaAlignment::Center),
+                ..Default::default()
+            },
+        );
 
-        rich.set_para_format(873..1106, &nwg::ParaFormat {
-            space_before: Some(200),
-            space_after: Some(200),
-            ..Default::default()
-        });
+        rich.set_para_format(
+            873..1106,
+            &nwg::ParaFormat {
+                space_before: Some(200),
+                space_after: Some(200),
+                ..Default::default()
+            },
+        );
     }
 
     fn set_resize(&self, data: &nwg::EventData) {
@@ -153,7 +183,6 @@ impl RichText {
         let selected_text = &current_text[current_selection];
         nwg::Clipboard::set_data_text(&self.window, &selected_text);
     }
-
 }
 
 fn main() {

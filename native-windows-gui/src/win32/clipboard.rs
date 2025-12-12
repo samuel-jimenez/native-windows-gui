@@ -1,8 +1,7 @@
+use super::base_helper::to_utf16;
 use crate::controls::ControlHandle;
-use super::base_helper::{to_utf16};
-use winapi::um::winuser::{CF_BITMAP, CF_TEXT, CF_UNICODETEXT};
 use winapi::um::winnt::HANDLE;
-
+use winapi::um::winuser::{CF_BITMAP, CF_TEXT, CF_UNICODETEXT};
 
 #[derive(Copy, Clone)]
 pub enum ClipboardFormat {
@@ -17,15 +16,13 @@ pub enum ClipboardFormat {
 
     /// Global clipboard format to share data between applications
     /// The format name comparison is case-insensitive.
-    Global(&'static str)
+    Global(&'static str),
 }
 
-
 impl ClipboardFormat {
-
     fn into_raw(&self) -> u32 {
-        use ClipboardFormat::*;
         use winapi::um::winuser::RegisterClipboardFormatW;
+        use ClipboardFormat::*;
 
         match self {
             Text => CF_TEXT,
@@ -34,10 +31,9 @@ impl ClipboardFormat {
             Global(v) => unsafe {
                 let v = to_utf16(v);
                 RegisterClipboardFormatW(v.as_ptr())
-            }
+            },
         }
     }
-
 }
 
 /// Wrapper over a clipboard global allocation handle.
@@ -45,16 +41,20 @@ impl ClipboardFormat {
 pub struct ClipboardData(HANDLE);
 
 impl ClipboardData {
-    pub unsafe fn cast<D: Copy>(&self) -> *const D { self.0 as *const D }
-    pub fn release(self) { /* See drop implementation */ }
+    pub unsafe fn cast<D: Copy>(&self) -> *const D {
+        self.0 as *const D
+    }
+    pub fn release(self) { /* See drop implementation */
+    }
 }
 
 impl Drop for ClipboardData {
     fn drop(&mut self) {
-        unsafe { ::winapi::um::winbase::GlobalUnlock(self.0); }
+        unsafe {
+            ::winapi::um::winbase::GlobalUnlock(self.0);
+        }
     }
 }
-
 
 /**
 A global object that wraps the system clipboard. It can be used to set or get the system cliboard content.
@@ -145,7 +145,6 @@ fn read_custom_data_handle(window: &nwg::Window) -> Option<Hello> {
 pub struct Clipboard;
 
 impl Clipboard {
-
     /**
         Fill the clipboard with the selected text.
         The data use the `ClipboardFormat::UnicodeText` format.
@@ -153,15 +152,24 @@ impl Clipboard {
         This is a high level function that handles `open` and `close`
     */
     pub fn set_data_text<'a, C: Into<ControlHandle>>(handle: C, text: &'a str) {
-        use winapi::um::winuser::SetClipboardData;
-        use winapi::um::stringapiset::MultiByteToWideChar;
-        use winapi::um::winnls::CP_UTF8;
-        use winapi::shared::basetsd::SIZE_T;
-        use winapi::um::winbase::{GlobalAlloc, GlobalLock, GlobalFree, GlobalUnlock, GMEM_MOVEABLE};
         use core::{mem, ptr};
+        use winapi::shared::basetsd::SIZE_T;
+        use winapi::um::stringapiset::MultiByteToWideChar;
+        use winapi::um::winbase::{
+            GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
+        };
+        use winapi::um::winnls::CP_UTF8;
+        use winapi::um::winuser::SetClipboardData;
 
         let size = unsafe {
-            MultiByteToWideChar(CP_UTF8, 0, text.as_ptr() as *const _, text.len() as _, ptr::null_mut(), 0)
+            MultiByteToWideChar(
+                CP_UTF8,
+                0,
+                text.as_ptr() as *const _,
+                text.len() as _,
+                ptr::null_mut(),
+                0,
+            )
         };
 
         if size == 0 {
@@ -174,7 +182,14 @@ impl Clipboard {
         unsafe {
             let locked_ptr = GlobalLock(alloc) as *mut u16;
             assert!(!locked_ptr.is_null());
-            MultiByteToWideChar(CP_UTF8, 0, text.as_ptr() as *const _, text.len() as _, locked_ptr, size);
+            MultiByteToWideChar(
+                CP_UTF8,
+                0,
+                text.as_ptr() as *const _,
+                text.len() as _,
+                locked_ptr,
+                size,
+            );
             ptr::write(locked_ptr.offset(size as isize), 0);
             GlobalUnlock(alloc);
         }
@@ -224,8 +239,8 @@ impl Clipboard {
         Remove the current data in the clipboard
     */
     pub fn clear<C: Into<ControlHandle>>() {
-        use winapi::um::winuser::{OpenClipboard, EmptyClipboard, CloseClipboard};
         use std::ptr;
+        use winapi::um::winuser::{CloseClipboard, EmptyClipboard, OpenClipboard};
         unsafe {
             OpenClipboard(ptr::null_mut());
             EmptyClipboard();
@@ -245,7 +260,9 @@ impl Clipboard {
     pub fn open<C: Into<ControlHandle>>(handle: C) {
         use winapi::um::winuser::OpenClipboard;
         let handle = handle.into().hwnd().expect("Control should be a window");
-        unsafe { OpenClipboard(handle); }
+        unsafe {
+            OpenClipboard(handle);
+        }
     }
 
     /**
@@ -262,10 +279,12 @@ impl Clipboard {
         * Note 2: When copying text, the null byte must be included.
     */
     pub unsafe fn set_data<D: Copy>(fmt: ClipboardFormat, data: *const D, count: usize) {
-        use winapi::um::winuser::SetClipboardData;
-        use winapi::um::winbase::{GlobalAlloc, GlobalLock, GlobalFree, GlobalUnlock, GMEM_MOVEABLE};
-        use winapi::shared::basetsd::SIZE_T;
         use std::{mem, ptr};
+        use winapi::shared::basetsd::SIZE_T;
+        use winapi::um::winbase::{
+            GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
+        };
+        use winapi::um::winuser::SetClipboardData;
 
         let fmt = fmt.into_raw();
         let alloc_size = (mem::size_of::<D>() * count) as SIZE_T;
@@ -298,9 +317,9 @@ impl Clipboard {
         If no data is found with the selected clipboard format, `None` is returned.
     */
     pub unsafe fn data<D: Copy>(fmt: ClipboardFormat) -> Option<D> {
-        use winapi::um::winuser::GetClipboardData;
+        use std::{mem, ptr};
         use winapi::um::winbase::{GlobalLock, GlobalUnlock};
-        use std::{ptr, mem};
+        use winapi::um::winuser::GetClipboardData;
 
         let fmt = fmt.into_raw();
         let handle = GetClipboardData(fmt);
@@ -324,14 +343,14 @@ impl Clipboard {
         If no data is found with the selected clipboard format, `None` is returned.
     */
     pub unsafe fn data_handle(fmt: ClipboardFormat) -> Option<ClipboardData> {
-        use winapi::um::winuser::GetClipboardData;
         use winapi::um::winbase::GlobalLock;
+        use winapi::um::winuser::GetClipboardData;
 
         let fmt = fmt.into_raw();
         let handle = GetClipboardData(fmt);
         match handle.is_null() {
             true => None,
-            false => Some(ClipboardData(GlobalLock(handle)))
+            false => Some(ClipboardData(GlobalLock(handle))),
         }
     }
 
@@ -351,7 +370,9 @@ impl Clipboard {
     */
     pub fn empty() {
         use winapi::um::winuser::EmptyClipboard;
-        unsafe { EmptyClipboard(); }
+        unsafe {
+            EmptyClipboard();
+        }
     }
 
     /**
@@ -359,7 +380,9 @@ impl Clipboard {
     */
     pub fn close() {
         use winapi::um::winuser::CloseClipboard;
-        unsafe { CloseClipboard(); }
+        unsafe {
+            CloseClipboard();
+        }
     }
 
     /**
@@ -369,14 +392,12 @@ impl Clipboard {
         let handle = unsafe { ::winapi::um::winuser::GetClipboardOwner() };
         ControlHandle::Hwnd(handle)
     }
-
 }
 
-
 unsafe fn from_wide_ptr(ptr: *const u16) -> Option<String> {
-    use std::slice::from_raw_parts;
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
+    use std::slice::from_raw_parts;
 
     let mut length: isize = 0;
     while *&*ptr.offset(length) != 0 {
@@ -385,9 +406,7 @@ unsafe fn from_wide_ptr(ptr: *const u16) -> Option<String> {
 
     let array: &[u16] = from_raw_parts(ptr, length as usize);
 
-    OsString::from_wide(&array)
-        .into_string()
-        .ok()
+    OsString::from_wide(&array).into_string().ok()
 }
 
 unsafe fn from_ptr(ptr: *const u8) -> Option<String> {
@@ -401,7 +420,5 @@ unsafe fn from_ptr(ptr: *const u8) -> Option<String> {
 
     let array: &[u8] = from_raw_parts(ptr, length as usize);
 
-    str::from_utf8(array)
-        .map(|s| s.into())
-        .ok()
+    str::from_utf8(array).map(|s| s.into()).ok()
 }

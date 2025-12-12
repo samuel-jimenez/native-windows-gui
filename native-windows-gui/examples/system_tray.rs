@@ -6,7 +6,6 @@
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 
-
 #[derive(Default)]
 pub struct SystemTray {
     window: nwg::MessageWindow,
@@ -19,7 +18,6 @@ pub struct SystemTray {
 }
 
 impl SystemTray {
-
     fn show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.tray_menu.popup(x, y);
@@ -28,32 +26,35 @@ impl SystemTray {
     fn hello1(&self) {
         nwg::modal_info_message(&self.window, "Hello", "Hello World!");
     }
-    
+
     fn hello2(&self) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
-        self.tray.show("Hello World", Some("Welcome to my application"), Some(flags), Some(&self.icon));
+        self.tray.show(
+            "Hello World",
+            Some("Welcome to my application"),
+            Some(flags),
+            Some(&self.icon),
+        );
     }
-    
+
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
-
 
 //
 // ALL of this stuff is handled by native-windows-derive
 //
 mod system_tray_ui {
-    use native_windows_gui as nwg;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::cell::RefCell;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct SystemTrayUi {
         inner: Rc<SystemTray>,
-        default_handler: RefCell<Vec<nwg::EventHandler>>
+        default_handler: RefCell<Vec<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<SystemTrayUi> for SystemTray {
@@ -64,10 +65,9 @@ mod system_tray_ui {
             nwg::Icon::builder()
                 .source_file(Some("./test_rc/cog.ico"))
                 .build(&mut data.icon)?;
-            
+
             // Controls
-            nwg::MessageWindow::builder()
-                .build(&mut data.window)?;
+            nwg::MessageWindow::builder().build(&mut data.window)?;
 
             nwg::TrayNotification::builder()
                 .parent(&data.window)
@@ -106,26 +106,31 @@ mod system_tray_ui {
             let handle_events = move |evt, _evt_data, handle| {
                 if let Some(evt_ui) = evt_ui.upgrade() {
                     match evt {
-                        E::OnContextMenu => 
+                        E::OnContextMenu => {
                             if &handle == &evt_ui.tray {
                                 SystemTray::show_menu(&evt_ui);
                             }
-                        E::OnMenuItemSelected => 
+                        }
+                        E::OnMenuItemSelected => {
                             if &handle == &evt_ui.tray_item1 {
                                 SystemTray::hello1(&evt_ui);
                             } else if &handle == &evt_ui.tray_item2 {
                                 SystemTray::hello2(&evt_ui);
                             } else if &handle == &evt_ui.tray_item3 {
                                 SystemTray::exit(&evt_ui);
-                            },
+                            }
+                        }
                         _ => {}
                     }
                 }
             };
 
-            ui.default_handler.borrow_mut().push(
-                nwg::full_bind_event_handler(&ui.window.handle, handle_events)
-            );
+            ui.default_handler
+                .borrow_mut()
+                .push(nwg::full_bind_event_handler(
+                    &ui.window.handle,
+                    handle_events,
+                ));
 
             return Ok(ui);
         }
@@ -148,9 +153,7 @@ mod system_tray_ui {
             &self.inner
         }
     }
-
 }
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");

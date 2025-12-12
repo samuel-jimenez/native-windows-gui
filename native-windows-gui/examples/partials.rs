@@ -8,7 +8,6 @@
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 
-
 #[derive(Default)]
 pub struct PartialDemo {
     window: nwg::Window,
@@ -24,35 +23,46 @@ pub struct PartialDemo {
 }
 
 impl PartialDemo {
-
     fn change_interface(&self) {
         self.frame1.set_visible(false);
         self.frame2.set_visible(false);
         self.frame3.set_visible(false);
 
         let layout = &self.layout;
-        if layout.has_child(&self.frame1) { layout.remove_child(&self.frame1); }
-        if layout.has_child(&self.frame2) { layout.remove_child(&self.frame2); }
-        if layout.has_child(&self.frame3) { layout.remove_child(&self.frame3); }
+        if layout.has_child(&self.frame1) {
+            layout.remove_child(&self.frame1);
+        }
+        if layout.has_child(&self.frame2) {
+            layout.remove_child(&self.frame2);
+        }
+        if layout.has_child(&self.frame3) {
+            layout.remove_child(&self.frame3);
+        }
 
-        use nwg::stretch::{geometry::Size, style::{Style, Dimension as D}};
+        use nwg::stretch::{
+            geometry::Size,
+            style::{Dimension as D, Style},
+        };
         let mut style = Style::default();
-        style.size = Size { width: D::Percent(1.0), height: D::Auto };
+        style.size = Size {
+            width: D::Percent(1.0),
+            height: D::Auto,
+        };
 
         match self.menu.selection() {
             None | Some(0) => {
                 layout.add_child(&self.frame1, style).unwrap();
                 self.frame1.set_visible(true);
-            },
+            }
             Some(1) => {
                 layout.add_child(&self.frame2, style).unwrap();
                 self.frame2.set_visible(true);
-            },
+            }
             Some(2) => {
                 layout.add_child(&self.frame3, style).unwrap();
                 self.frame3.set_visible(true);
-            },
-            Some(_) => unreachable!()
+            }
+            Some(_) => unreachable!(),
         }
     }
 
@@ -111,27 +121,26 @@ pub struct FoodUi {
     save_btn: nwg::Button,
 }
 
-
 //
 // ALL of this stuff is handled by native-windows-derive
 //
 mod partial_demo_ui {
-    use native_windows_gui as nwg;
     use self::nwg::PartialUi;
     use super::*;
-    use std::rc::Rc;
+    use native_windows_gui as nwg;
     use std::cell::RefCell;
     use std::ops::Deref;
+    use std::rc::Rc;
 
     pub struct PartialDemoUi {
         inner: PartialDemo,
-        default_handler: RefCell<Vec<nwg::EventHandler>>
+        default_handler: RefCell<Vec<nwg::EventHandler>>,
     }
 
     impl nwg::NativeUi<Rc<PartialDemoUi>> for PartialDemo {
         fn build_ui(mut data: PartialDemo) -> Result<Rc<PartialDemoUi>, nwg::NwgError> {
             use nwg::Event as E;
-            
+
             // Controls
             nwg::Window::builder()
                 .size((500, 400))
@@ -167,7 +176,7 @@ mod partial_demo_ui {
             // Wrap-up
             let ui = Rc::new(PartialDemoUi {
                 inner: data,
-                default_handler: Default::default()
+                default_handler: Default::default(),
             });
 
             // Events
@@ -182,40 +191,52 @@ mod partial_demo_ui {
                     evt_ui.people_ui.process_event(evt, &evt_data, handle);
                     evt_ui.animal_ui.process_event(evt, &evt_data, handle);
                     evt_ui.food_ui.process_event(evt, &evt_data, handle);
-                    
+
                     match evt {
-                        E::OnListBoxSelect => 
+                        E::OnListBoxSelect => {
                             if &handle == &evt_ui.menu {
                                 PartialDemo::change_interface(&evt_ui.inner);
-                            },
-                        E::OnWindowClose => 
+                            }
+                        }
+                        E::OnWindowClose => {
                             if &handle == &evt_ui.window {
                                 PartialDemo::exit(&evt_ui.inner);
-                            },
-                        E::OnButtonClick => 
-                            if &handle == &evt_ui.people_ui.save_btn || &handle == &evt_ui.animal_ui.save_btn ||&handle == &evt_ui.food_ui.save_btn  {
+                            }
+                        }
+                        E::OnButtonClick => {
+                            if &handle == &evt_ui.people_ui.save_btn
+                                || &handle == &evt_ui.animal_ui.save_btn
+                                || &handle == &evt_ui.food_ui.save_btn
+                            {
                                 PartialDemo::save(&evt_ui.inner);
-                            },
+                            }
+                        }
                         _ => {}
                     }
                 };
 
-                ui.default_handler.borrow_mut().push(
-                    nwg::full_bind_event_handler(handle, handle_events)
-                );
+                ui.default_handler
+                    .borrow_mut()
+                    .push(nwg::full_bind_event_handler(handle, handle_events));
             }
 
             // Layout
             use nwg::stretch::{geometry::Size, style::Dimension as D};
 
-           nwg::FlexboxLayout::builder()
+            nwg::FlexboxLayout::builder()
                 .parent(&ui.window)
                 .child(&ui.menu)
-                    .child_size(Size { width: D::Percent(0.3), height: D::Auto })
+                .child_size(Size {
+                    width: D::Percent(0.3),
+                    height: D::Auto,
+                })
                 .child(&ui.frame1)
-                    .child_size(Size { width: D::Percent(1.0), height: D::Auto })
+                .child_size(Size {
+                    width: D::Percent(1.0),
+                    height: D::Auto,
+                })
                 .build(&ui.layout)?;
-            
+
             return Ok(ui);
         }
     }
@@ -237,17 +258,18 @@ mod partial_demo_ui {
             &self.inner
         }
     }
-
 }
 
 mod partial_people_ui {
-    use native_windows_gui as nwg;
-    use self::nwg::{PartialUi, NwgError, ControlHandle};
+    use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
-    
-    impl PartialUi for PeopleUi {
+    use native_windows_gui as nwg;
 
-        fn build_partial<W: Into<ControlHandle>>(data: &mut PeopleUi, parent: Option<W>) -> Result<(), NwgError> {
+    impl PartialUi for PeopleUi {
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut PeopleUi,
+            parent: Option<W>,
+        ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 
             nwg::Label::builder()
@@ -288,7 +310,7 @@ mod partial_people_ui {
                 .text("Save")
                 .parent(&parent)
                 .build(&mut data.save_btn)?;
-                
+
             nwg::GridLayout::builder()
                 .parent(&parent)
                 .max_size([1000, 150])
@@ -312,7 +334,12 @@ mod partial_people_ui {
             Ok(())
         }
 
-        fn process_event<'a>(&self, _evt: nwg::Event, _evt_data: &nwg::EventData, _handle: ControlHandle) {
+        fn process_event<'a>(
+            &self,
+            _evt: nwg::Event,
+            _evt_data: &nwg::EventData,
+            _handle: ControlHandle,
+        ) {
         }
 
         fn handles(&self) -> Vec<&ControlHandle> {
@@ -322,13 +349,15 @@ mod partial_people_ui {
 }
 
 mod partial_animal_ui {
-    use native_windows_gui as nwg;
-    use self::nwg::{PartialUi, NwgError, ControlHandle};
+    use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
+    use native_windows_gui as nwg;
 
     impl PartialUi for AnimalUi {
-
-        fn build_partial<W: Into<ControlHandle>>(data: &mut AnimalUi, parent: Option<W>) -> Result<(), NwgError> {
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut AnimalUi,
+            parent: Option<W>,
+        ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 
             nwg::Label::builder()
@@ -394,7 +423,12 @@ mod partial_animal_ui {
             Ok(())
         }
 
-        fn process_event<'a>(&self, _evt: nwg::Event, _evt_data: &nwg::EventData, _handle: ControlHandle) {
+        fn process_event<'a>(
+            &self,
+            _evt: nwg::Event,
+            _evt_data: &nwg::EventData,
+            _handle: ControlHandle,
+        ) {
         }
 
         fn handles(&self) -> Vec<&ControlHandle> {
@@ -404,12 +438,15 @@ mod partial_animal_ui {
 }
 
 mod partial_food_ui {
-    use native_windows_gui as nwg;
-    use self::nwg::{PartialUi, NwgError, ControlHandle};
+    use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
+    use native_windows_gui as nwg;
 
     impl PartialUi for FoodUi {
-        fn build_partial<W: Into<ControlHandle>>(data: &mut FoodUi, parent: Option<W>) -> Result<(), NwgError> {
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut FoodUi,
+            parent: Option<W>,
+        ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 
             nwg::Label::builder()
@@ -461,7 +498,12 @@ mod partial_food_ui {
             Ok(())
         }
 
-        fn process_event<'a>(&self, _evt: nwg::Event, _evt_data: &nwg::EventData, _handle: ControlHandle) {
+        fn process_event<'a>(
+            &self,
+            _evt: nwg::Event,
+            _evt_data: &nwg::EventData,
+            _handle: ControlHandle,
+        ) {
         }
 
         fn handles(&self) -> Vec<&ControlHandle> {
@@ -469,8 +511,6 @@ mod partial_food_ui {
         }
     }
 }
-
-
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");

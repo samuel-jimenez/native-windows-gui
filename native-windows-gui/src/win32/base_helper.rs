@@ -1,22 +1,27 @@
-use std::ptr;
-use winapi::shared::windef::HWND;
-use winapi::shared::minwindef::DWORD;
 use crate::ControlHandle;
 use std::ffi::OsString;
+use std::ptr;
+use winapi::shared::minwindef::DWORD;
+use winapi::shared::windef::HWND;
 
 pub const CUSTOM_ID_BEGIN: u32 = 10000;
-
 
 pub fn check_hwnd(handle: &ControlHandle, not_bound: &str, bad_handle: &str) -> HWND {
     use winapi::um::winuser::IsWindow;
 
-    if handle.blank() { panic!("{}", not_bound); }
+    if handle.blank() {
+        panic!("{}", not_bound);
+    }
     match handle.hwnd() {
         Some(hwnd) => match unsafe { IsWindow(hwnd) } {
-            0 => { panic!("The window handle is no longer valid. This usually means the control was freed by the OS"); },
-            _ => hwnd
+            0 => {
+                panic!("The window handle is no longer valid. This usually means the control was freed by the OS");
+            }
+            _ => hwnd,
         },
-        None => { panic!("{}", bad_handle); }
+        None => {
+            panic!("{}", bad_handle);
+        }
     }
 }
 
@@ -25,9 +30,9 @@ pub fn to_utf16<'a>(s: &'a str) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
 
     OsStr::new(s)
-      .encode_wide()
-      .chain(Some(0u16).into_iter())
-      .collect()
+        .encode_wide()
+        .chain(Some(0u16).into_iter())
+        .collect()
 }
 
 /**
@@ -36,10 +41,12 @@ pub fn to_utf16<'a>(s: &'a str) -> Vec<u16> {
 pub fn from_utf16(s: &[u16]) -> String {
     use std::os::windows::ffi::OsStringExt;
 
-    let null_index = s.iter().position(|&i| i==0).unwrap_or(s.len());
+    let null_index = s.iter().position(|&i| i == 0).unwrap_or(s.len());
     let os_string = OsString::from_wide(&s[0..null_index]);
 
-    os_string.into_string().unwrap_or("Decoding error".to_string())
+    os_string
+        .into_string()
+        .unwrap_or("Decoding error".to_string())
 }
 
 /**
@@ -92,20 +99,28 @@ pub unsafe fn os_string_from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> O
     (ERROR ID, Error message localized)
 */
 #[allow(unused)]
-pub unsafe fn get_system_error() -> (DWORD, String) { 
-    use winapi::um::errhandlingapi::GetLastError;
-    use winapi::um::winbase::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM};
-    use winapi::um::winnt::{MAKELANGID, LANG_NEUTRAL, SUBLANG_DEFAULT};
+pub unsafe fn get_system_error() -> (DWORD, String) {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
+    use winapi::um::errhandlingapi::GetLastError;
+    use winapi::um::winbase::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM};
+    use winapi::um::winnt::{LANG_NEUTRAL, MAKELANGID, SUBLANG_DEFAULT};
 
     let code = GetLastError();
     let lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT) as DWORD;
     let mut buf: Vec<u16> = Vec::with_capacity(1024);
     buf.set_len(1024);
-    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, ptr::null(), code, lang, buf.as_mut_ptr(), 1024, ptr::null_mut());
+    FormatMessageW(
+        FORMAT_MESSAGE_FROM_SYSTEM,
+        ptr::null(),
+        code,
+        lang,
+        buf.as_mut_ptr(),
+        1024,
+        ptr::null_mut(),
+    );
 
-    let end = buf.iter().position(|&i| i==0).unwrap_or(1024);
+    let end = buf.iter().position(|&i| i == 0).unwrap_or(1024);
     let error_message = OsString::from_wide(&buf[..end])
         .into_string()
         .unwrap_or("Error while decoding system error message".to_string());

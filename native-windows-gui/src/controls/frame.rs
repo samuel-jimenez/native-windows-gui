@@ -1,12 +1,13 @@
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED, WS_BORDER, WS_CHILD, WS_CLIPCHILDREN, WS_EX_CONTROLPARENT};
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::check_hwnd;
-use crate::NwgError;
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::check_hwnd;
+use crate::win32::window_helper as wh;
+use crate::NwgError;
+use winapi::um::winuser::{
+    WS_BORDER, WS_CHILD, WS_CLIPCHILDREN, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE,
+};
 
 const NOT_BOUND: &'static str = "Frame is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Frame handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -28,7 +29,7 @@ bitflags! {
 /**
 A frame is a rectangle containing children controls. Frame is implemented as a custom control.
 
-Requires the `frame` feature. 
+Requires the `frame` feature.
 
 **Builder parameters:**
   * `parent`:   **Required.** The frame parent container.
@@ -45,11 +46,10 @@ Requires the `frame` feature.
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct Frame {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl Frame {
-
     pub fn builder() -> FrameBuilder {
         FrameBuilder {
             size: (100, 25),
@@ -70,7 +70,9 @@ impl Frame {
     /// Sets the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Returns true if the control user can interact with the control, return false otherwise
@@ -85,7 +87,7 @@ impl Frame {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -136,7 +138,6 @@ impl Frame {
     pub fn forced_flags(&self) -> u32 {
         WS_CHILD | WS_CLIPCHILDREN
     }
-
 }
 
 impl Drop for Frame {
@@ -150,11 +151,10 @@ pub struct FrameBuilder {
     enabled: bool,
     flags: Option<FrameFlags>,
     ex_flags: u32,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl FrameBuilder {
-
     pub fn flags(mut self, flags: FrameFlags) -> FrameBuilder {
         self.flags = Some(flags);
         self
@@ -190,7 +190,7 @@ impl FrameBuilder {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("Frame"))
+            None => Err(NwgError::no_parent("Frame")),
         }?;
 
         *out = Default::default();
@@ -209,5 +209,4 @@ impl FrameBuilder {
 
         Ok(())
     }
-
 }

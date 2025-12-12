@@ -1,6 +1,6 @@
+use super::{ControlBase, ControlHandle};
 use crate::win32::menu as mh;
 use crate::NwgError;
-use super::{ControlBase, ControlHandle};
 use std::ptr;
 
 const NOT_BOUND: &'static str = "Menu/MenuItem is not yet bound to a winapi object";
@@ -14,24 +14,24 @@ bitflags! {
         Aligment flags:
 
         * ALIGN_LEFT:     Positions the shortcut menu so that its left side is aligned with the coordinate specified by the x parameter.
-        * ALIGN_H_CENTER: Centers the shortcut menu horizontally relative to the coordinate specified by the x parameter. 
+        * ALIGN_H_CENTER: Centers the shortcut menu horizontally relative to the coordinate specified by the x parameter.
         * ALIGN_RIGHT:    Positions the shortcut menu so that its right side is aligned with the coordinate specified by the x parameter.
-        * ALIGN_BOTTOM:   Positions the shortcut menu so that its bottom side is aligned with the coordinate specified by the y parameter. 
-        * ALIGN_TOP:      Positions the shortcut menu so that its top side is aligned with the coordinate specified by the y parameter. 
-        * ALIGN_V_CENTER: Centers the shortcut menu vertically relative to the coordinate specified by the y parameter. 
-        
+        * ALIGN_BOTTOM:   Positions the shortcut menu so that its bottom side is aligned with the coordinate specified by the y parameter.
+        * ALIGN_TOP:      Positions the shortcut menu so that its top side is aligned with the coordinate specified by the y parameter.
+        * ALIGN_V_CENTER: Centers the shortcut menu vertically relative to the coordinate specified by the y parameter.
+
         Button flags:
 
-        * LEFT_BUTTON:    The user can select menu items with only the left mouse button. 
-        * RIGHT_BUTTON:   The user can select menu items with both the left **AND** right mouse buttons. 
-        
+        * LEFT_BUTTON:    The user can select menu items with only the left mouse button.
+        * RIGHT_BUTTON:   The user can select menu items with both the left **AND** right mouse buttons.
+
         Animations flags:
 
-        * ANIMATE_NONE:   Displays menu without animation. 
-        * ANIMATE_RIGHT_TO_LEFT:  Animates the menu from right to left. 
-        * ANIMATE_LEFT_TO_RIGHT:  Animates the menu from left to right. 
-        * ANIMATE_BOTTOM_TO_TOP:  Animates the menu from bottom to top. 
-        * ANIMATE_TOP_TO_BOTTOM: Animates the menu from top to bottom. 
+        * ANIMATE_NONE:   Displays menu without animation.
+        * ANIMATE_RIGHT_TO_LEFT:  Animates the menu from right to left.
+        * ANIMATE_LEFT_TO_RIGHT:  Animates the menu from left to right.
+        * ANIMATE_BOTTOM_TO_TOP:  Animates the menu from bottom to top.
+        * ANIMATE_TOP_TO_BOTTOM: Animates the menu from top to bottom.
     */
     pub struct PopupMenuFlags: u32 {
         const ALIGN_LEFT = 0x0000;
@@ -94,27 +94,30 @@ bitflags! {
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct Menu {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl Menu {
-
     pub fn builder<'a>() -> MenuBuilder<'a> {
         MenuBuilder {
             text: "Menu",
             disabled: false,
             popup: false,
-            parent: None
+            parent: None,
         }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
     pub fn enabled(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, handle) = match self.handle {
             ControlHandle::Menu(parent, menu) => (parent, menu),
-            ControlHandle::PopMenu(_, _) => { return true; },
-            _ => panic!("{}", BAD_HANDLE)
+            ControlHandle::PopMenu(_, _) => {
+                return true;
+            }
+            _ => panic!("{}", BAD_HANDLE),
         };
 
         unsafe { mh::is_menu_enabled(parent_handle, handle) }
@@ -123,28 +126,38 @@ impl Menu {
     /// Enable or disable the control
     /// A popup menu cannot be disabled
     pub fn set_enabled(&self, v: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, handle) = match self.handle {
             ControlHandle::Menu(parent, menu) => (parent, menu),
-            ControlHandle::PopMenu(_, _) => { return; },
-            _ => panic!("{}", BAD_HANDLE)
+            ControlHandle::PopMenu(_, _) => {
+                return;
+            }
+            _ => panic!("{}", BAD_HANDLE),
         };
 
-        unsafe { mh::enable_menu(parent_handle, handle, v); }
+        unsafe {
+            mh::enable_menu(parent_handle, handle, v);
+        }
     }
 
     /// Show a popup menu as the selected position. Do nothing for menubar menu.
     pub fn popup_with_flags(&self, x: i32, y: i32, flags: PopupMenuFlags) {
-        use winapi::um::winuser::{TrackPopupMenu, SetForegroundWindow};
         use winapi::ctypes::c_int;
+        use winapi::um::winuser::{SetForegroundWindow, TrackPopupMenu};
 
-        if self.handle.blank() { panic!("Menu is not bound"); }
+        if self.handle.blank() {
+            panic!("Menu is not bound");
+        }
         let (parent_handle, handle) = match self.handle.pop_hmenu() {
             Some(v) => v,
-            None => { return; }
+            None => {
+                return;
+            }
         };
 
-        unsafe { 
+        unsafe {
             SetForegroundWindow(parent_handle);
             TrackPopupMenu(
                 handle,
@@ -153,7 +166,7 @@ impl Menu {
                 y as c_int,
                 0,
                 parent_handle,
-                ptr::null()
+                ptr::null(),
             );
         }
     }
@@ -162,7 +175,6 @@ impl Menu {
     pub fn popup(&self, x: i32, y: i32) {
         self.popup_with_flags(x, y, PopupMenuFlags::empty())
     }
-
 }
 
 impl Drop for Menu {
@@ -175,11 +187,10 @@ pub struct MenuBuilder<'a> {
     text: &'a str,
     disabled: bool,
     popup: bool,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> MenuBuilder<'a> {
-
     pub fn text(mut self, text: &'a str) -> MenuBuilder<'a> {
         self.text = text;
         self
@@ -220,11 +231,10 @@ impl<'a> MenuBuilder<'a> {
     }
 }
 
-
-/** 
+/**
     A windows menu item. Can be added to a menubar or another menu.
 
-    Requires the `menu` feature. 
+    Requires the `menu` feature.
 
    **Builder parameters:**
       - text: The text of the menu, including access key and shortcut label
@@ -282,52 +292,62 @@ impl<'a> MenuBuilder<'a> {
 */
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct MenuItem {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl MenuItem {
-
     pub fn builder<'a>() -> MenuItemBuilder<'a> {
         MenuItemBuilder {
             text: "Menu Item",
             disabled: false,
             check: false,
-            parent: None
+            parent: None,
         }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
     pub fn enabled(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, id) = self.handle.hmenu_item().expect(BAD_HANDLE);
-        
+
         unsafe { mh::is_menuitem_enabled(parent_handle, None, Some(id)) }
     }
 
     /// Enable or disable the control
     pub fn set_enabled(&self, v: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, id) = self.handle.hmenu_item().expect(BAD_HANDLE);
 
-        unsafe { mh::enable_menuitem(parent_handle, None, Some(id), v); }
+        unsafe {
+            mh::enable_menuitem(parent_handle, None, Some(id), v);
+        }
     }
 
     /// Sets the check state of a menu item
     pub fn set_checked(&self, check: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, id) = self.handle.hmenu_item().expect(BAD_HANDLE);
 
-        unsafe { mh::check_menu_item(parent_handle, id, check); }
+        unsafe {
+            mh::check_menu_item(parent_handle, id, check);
+        }
     }
 
     /// Returns the check state of a menu item
     pub fn checked(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (parent_handle, id) = self.handle.hmenu_item().expect(BAD_HANDLE);
 
         unsafe { mh::menu_item_checked(parent_handle, id) }
     }
-
 }
 
 impl Drop for MenuItem {
@@ -340,11 +360,10 @@ pub struct MenuItemBuilder<'a> {
     text: &'a str,
     disabled: bool,
     check: bool,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> MenuItemBuilder<'a> {
-
     pub fn text(mut self, text: &'a str) -> MenuItemBuilder<'a> {
         self.text = text;
         self
@@ -391,7 +410,7 @@ impl<'a> MenuItemBuilder<'a> {
 /**
     A menu separator. Can be added between two menu item to separte them. Cannot be added to a menubar.
 
-    Requires the `menu` feature. 
+    Requires the `menu` feature.
 
     **Builder parameters:**
       - parent: A top level window or a menu. With a top level window, the menu item is added to the menu bar.
@@ -411,25 +430,20 @@ impl<'a> MenuItemBuilder<'a> {
 */
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct MenuSeparator {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl MenuSeparator {
-
     pub fn builder() -> MenuSeparatorBuilder {
-        MenuSeparatorBuilder {
-            parent: None
-        }
+        MenuSeparatorBuilder { parent: None }
     }
-
 }
 
 pub struct MenuSeparatorBuilder {
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl MenuSeparatorBuilder {
-
     pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> MenuSeparatorBuilder {
         self.parent = Some(p.into());
         self

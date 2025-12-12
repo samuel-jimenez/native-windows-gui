@@ -5,7 +5,7 @@
 pub enum HTextAlign {
     Left,
     Center,
-    Right
+    Right,
 }
 
 /**
@@ -15,12 +15,12 @@ pub enum HTextAlign {
 pub enum VTextAlign {
     Top,
     Center,
-    Bottom
+    Bottom,
 }
 
 pub mod keys {
     //! Windows virtual key code
-    
+
     pub const BACK: u32 = 0x08;
     pub const TAB: u32 = 0x09;
     pub const CLEAR: u32 = 0x0C;

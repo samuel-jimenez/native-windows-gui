@@ -1,24 +1,25 @@
-use winapi::shared::windef::{HBITMAP, HBRUSH};
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED, WS_TABSTOP};
-use winapi::um::commctrl::{
-    LVS_ICON, LVS_SMALLICON, LVS_LIST, LVS_REPORT, LVS_NOCOLUMNHEADER, LVCOLUMNW, LVCFMT_LEFT, LVCFMT_RIGHT, LVCFMT_CENTER, LVCFMT_JUSTIFYMASK,
-    LVCFMT_IMAGE, LVCFMT_BITMAP_ON_RIGHT, LVCFMT_COL_HAS_IMAGES, LVITEMW, LVIF_TEXT, LVCF_WIDTH, LVCF_TEXT, LVS_EX_GRIDLINES, LVS_EX_BORDERSELECT,
-    LVS_EX_AUTOSIZECOLUMNS, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_SINGLESEL, LVCF_FMT, LVIF_IMAGE, LVS_SHOWSELALWAYS,
-    LVS_EX_HEADERDRAGDROP, LVS_EX_HEADERINALLVIEWS, LVM_GETHEADER, HDITEMW, HDI_FORMAT, HDM_GETITEMW, HDF_SORTUP, HDF_SORTDOWN, HDM_SETITEMW
-};
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
 use crate::win32::window_helper as wh;
-use crate::win32::base_helper::{to_utf16, from_utf16, check_hwnd};
-use crate::{NwgError, RawEventHandler, unbind_raw_event_handler};
-use std::{mem, ptr, rc::Rc, cell::RefCell};
+use crate::{unbind_raw_event_handler, NwgError, RawEventHandler};
+use std::{cell::RefCell, mem, ptr, rc::Rc};
+use winapi::shared::windef::{HBITMAP, HBRUSH};
+use winapi::um::commctrl::{
+    HDF_SORTDOWN, HDF_SORTUP, HDITEMW, HDI_FORMAT, HDM_GETITEMW, HDM_SETITEMW,
+    LVCFMT_BITMAP_ON_RIGHT, LVCFMT_CENTER, LVCFMT_COL_HAS_IMAGES, LVCFMT_IMAGE, LVCFMT_JUSTIFYMASK,
+    LVCFMT_LEFT, LVCFMT_RIGHT, LVCF_FMT, LVCF_TEXT, LVCF_WIDTH, LVCOLUMNW, LVIF_IMAGE, LVIF_TEXT,
+    LVITEMW, LVM_GETHEADER, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_AUTOSIZECOLUMNS,
+    LVS_EX_BORDERSELECT, LVS_EX_FULLROWSELECT, LVS_EX_GRIDLINES, LVS_EX_HEADERDRAGDROP,
+    LVS_EX_HEADERINALLVIEWS, LVS_ICON, LVS_LIST, LVS_NOCOLUMNHEADER, LVS_REPORT, LVS_SHOWSELALWAYS,
+    LVS_SINGLESEL, LVS_SMALLICON,
+};
+use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 use crate::ImageList;
-
 
 const NOT_BOUND: &'static str = "ListView is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ListView handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -54,8 +55,8 @@ bitflags! {
         * GRID:  The list view has a grid. Only if the list view is in report mode.
         * BORDER_SELECT: Only highlight the border instead of the full item. COMMCTRL version 4.71 or later
         * AUTO_COLUMN_SIZE: Automatically resize to column
-        * FULL_ROW_SELECT: When an item is selected, the item and all its subitems are highlighted. Only in detailed view 
-        * HEADER_DRAG_DROP: The user can drag and drop the headers to rearrage them 
+        * FULL_ROW_SELECT: When an item is selected, the item and all its subitems are highlighted. Only in detailed view
+        * HEADER_DRAG_DROP: The user can drag and drop the headers to rearrage them
         * HEADER_IN_ALL_VIEW: Show the header in all view (not just report)
     */
     pub struct ListViewExFlags: u32 {
@@ -75,10 +76,10 @@ bitflags! {
         The format flags for a list view column. Not all combination are valid.
         The alignment of the leftmost column is always LEFT.
 
-        * LEFT: Text is left-aligned. 
+        * LEFT: Text is left-aligned.
         * RIGHT: Text is right-aligned
         * CENTER: Text is centered
-        * JUSTIFY_MASK: A bitmask used to select those bits of fmt that control field justification. 
+        * JUSTIFY_MASK: A bitmask used to select those bits of fmt that control field justification.
         * IMAGE: The items under to column displays an image from an image list
         * IMAGE_RIGHT: The bitmap appears to the right of text
         * IMAGE_COL: The header item contains an image in the image list.
@@ -114,7 +115,7 @@ impl ListViewStyle {
             LVS_REPORT => ListViewStyle::Detailed,
             LVS_SMALLICON => ListViewStyle::SmallIcon,
             LVS_LIST => ListViewStyle::Simple,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -132,7 +133,7 @@ impl ListViewStyle {
     Items in a list view can be associated with multiple image list.
     This identify which image list to set/get using the ListView api.
 */
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 #[derive(Copy, Clone, Debug)]
 pub enum ListViewImageListType {
     /// Normal sized icons
@@ -145,14 +146,13 @@ pub enum ListViewImageListType {
     State,
 
     /// Group header list (not yet implemented)
-    GroupHeader
+    GroupHeader,
 }
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 impl ListViewImageListType {
-
     fn to_raw(&self) -> i32 {
-        use winapi::um::commctrl::{LVSIL_NORMAL, LVSIL_SMALL, LVSIL_STATE, LVSIL_GROUPHEADER};
+        use winapi::um::commctrl::{LVSIL_GROUPHEADER, LVSIL_NORMAL, LVSIL_SMALL, LVSIL_STATE};
 
         match self {
             Self::Normal => LVSIL_NORMAL,
@@ -161,7 +161,6 @@ impl ListViewImageListType {
             Self::GroupHeader => LVSIL_GROUPHEADER,
         }
     }
-
 }
 
 #[derive(Default, Clone, Debug)]
@@ -177,7 +176,7 @@ pub struct InsertListViewColumn {
     pub width: Option<i32>,
 
     /// Text of the column to insert
-    pub text: Option<String>
+    pub text: Option<String>,
 }
 
 /// The data of a list view column
@@ -195,7 +194,6 @@ pub enum ListViewColumnSortArrow {
     Down,
 }
 
-
 /// Represents a list view item parameters
 #[derive(Default, Clone, Debug)]
 pub struct InsertListViewItem {
@@ -211,8 +209,8 @@ pub struct InsertListViewItem {
 
     /// Index of the image in the image list
     /// Icons are only supported at column 0
-    #[cfg(feature="image-list")]
-    pub image: Option<i32>
+    #[cfg(feature = "image-list")]
+    pub image: Option<i32>,
 }
 
 /// The data of a list view item
@@ -225,7 +223,7 @@ pub struct ListViewItem {
     /// If the item is currently selected
     pub selected: bool,
 
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub image: i32,
 }
 
@@ -239,7 +237,7 @@ struct ListViewDoubleBuffer {
 A list-view control is a window that displays a collection of items.
 List-view controls provide several ways to arrange and display items and are much more flexible than simple ListBox.
 
-Requires the `list-view` feature. 
+Requires the `list-view` feature.
 
 Builder parameters:
   * `parent`:           **Required.** The list view parent container.
@@ -249,7 +247,7 @@ Builder parameters:
   * `double_buffer`:    If the list view should be double buffered (defaults to true)
   * `text_color`:       The list view text color in RGB format
   * `flags`:            A combination of the ListViewFlags values.
-  * `ex_flags`:         A combination of the ListViewExFlags values. Not to be confused with `ex_window_flags` 
+  * `ex_flags`:         A combination of the ListViewExFlags values. Not to be confused with `ex_window_flags`
   * `ex_window_flags`:  A combination of win32 window extended flags. This is the equivalent to `ex_flags` in the other controls
   * `style`:            One of the value of `ListViewStyle`
   * `item_count`:       Number of item to preallocate
@@ -283,7 +281,6 @@ pub struct ListView {
 }
 
 impl ListView {
-
     pub fn builder() -> ListViewBuilder {
         ListViewBuilder {
             size: (300, 300),
@@ -297,27 +294,32 @@ impl ListView {
             ex_window_flags: 0,
             style: ListViewStyle::Simple,
             parent: None,
-            item_count: 0
+            item_count: 0,
         }
     }
 
     /// Sets the image list of the listview
     /// A listview can accept different kinds of image list. See `ListViewImageListType`
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn set_image_list(&self, list: Option<&ImageList>, list_type: ListViewImageListType) {
         use winapi::um::commctrl::LVM_SETIMAGELIST;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let list_handle = list.map(|l| l.handle).unwrap_or(ptr::null_mut());
-        wh::send_message(handle, LVM_SETIMAGELIST, list_type.to_raw() as _, list_handle as _);
-        
+        wh::send_message(
+            handle,
+            LVM_SETIMAGELIST,
+            list_type.to_raw() as _,
+            list_handle as _,
+        );
+
         self.invalidate();
     }
 
     /// Returns the current image list for the selected type. The returned image list will not be owned.
     /// Can return `None` if there is no assocaited image list
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn image_list(&self, list_type: ListViewImageListType) -> Option<ImageList> {
         use winapi::um::commctrl::LVM_GETIMAGELIST;
 
@@ -325,10 +327,10 @@ impl ListView {
 
         match wh::send_message(handle, LVM_GETIMAGELIST, list_type.to_raw() as _, 0) {
             0 => None,
-            handle => Some( ImageList {
+            handle => Some(ImageList {
                 handle: handle as _,
-                owned: false
-            })
+                owned: false,
+            }),
         }
     }
 
@@ -349,16 +351,12 @@ impl ListView {
     /// Returns the current text color
     pub fn text_color(&self) -> [u8; 3] {
         use winapi::um::commctrl::LVM_GETTEXTCOLOR;
-        use winapi::um::wingdi::{GetRValue, GetGValue, GetBValue};
+        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let col = wh::send_message(handle, LVM_GETTEXTCOLOR, 0, 0) as u32;
 
-        [
-            GetRValue(col),
-            GetGValue(col),
-            GetBValue(col),
-        ]
+        [GetRValue(col), GetGValue(col), GetBValue(col)]
     }
 
     /// Sets the background color of the list view
@@ -378,16 +376,12 @@ impl ListView {
     /// Returns the background color of the list view
     pub fn background_color(&self) -> [u8; 3] {
         use winapi::um::commctrl::LVM_GETBKCOLOR;
-        use winapi::um::wingdi::{GetRValue, GetGValue, GetBValue};
+        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let col = wh::send_message(handle, LVM_GETBKCOLOR, 0, 0) as u32;
 
-        [
-            GetRValue(col),
-            GetGValue(col),
-            GetBValue(col),
-        ]
+        [GetRValue(col), GetGValue(col), GetBValue(col)]
     }
 
     /// Returns the index of the selected column. Only available if Comclt32.dll version is >= 6.0.
@@ -421,8 +415,10 @@ impl ListView {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         match self.list_style() {
-            ListViewStyle::Detailed => {},
-            _ => { return; }
+            ListViewStyle::Detailed => {}
+            _ => {
+                return;
+            }
         }
 
         let insert = insert.into();
@@ -434,7 +430,9 @@ impl ListView {
 
         let col_width = insert.width.unwrap_or(100) as f64 * crate::win32::high_dpi::scale_factor();
 
-        if insert.fmt.is_some() { mask |= LVCF_FMT; }
+        if insert.fmt.is_some() {
+            mask |= LVCF_FMT;
+        }
 
         let mut item: LVCOLUMNW = unsafe { mem::zeroed() };
         item.mask = mask;
@@ -444,12 +442,12 @@ impl ListView {
         item.cchTextMax = text.len() as i32;
 
         let col_count = self.column_len() as i32;
-    
+
         wh::send_message(
-            handle, 
-            LVM_INSERTCOLUMNW, 
-            insert.index.unwrap_or(col_count) as usize, 
-            (&item as *const LVCOLUMNW) as _
+            handle,
+            LVM_INSERTCOLUMNW,
+            insert.index.unwrap_or(col_count) as usize,
+            (&item as *const LVCOLUMNW) as _,
         );
     }
 
@@ -461,7 +459,12 @@ impl ListView {
 
         let mut col: LVCOLUMNW = unsafe { mem::zeroed() };
 
-        wh::send_message(handle, LVM_GETCOLUMNW, index as _, &mut col as *mut LVCOLUMNW as _) != 0
+        wh::send_message(
+            handle,
+            LVM_GETCOLUMNW,
+            index as _,
+            &mut col as *mut LVCOLUMNW as _,
+        ) != 0
     }
 
     /// Returns the information of a column.
@@ -472,20 +475,28 @@ impl ListView {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut text_buffer: Vec<u16> = Vec::with_capacity(text_buffer_size as _);
-        unsafe { text_buffer.set_len(text_buffer_size as _); }
+        unsafe {
+            text_buffer.set_len(text_buffer_size as _);
+        }
 
         let mut col: LVCOLUMNW = unsafe { mem::zeroed() };
         col.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
         col.pszText = text_buffer.as_mut_ptr();
         col.cchTextMax = text_buffer_size;
 
-        match wh::send_message(handle, LVM_GETCOLUMNW, index as _, &mut col as *mut LVCOLUMNW as _) == 0 {
+        match wh::send_message(
+            handle,
+            LVM_GETCOLUMNW,
+            index as _,
+            &mut col as *mut LVCOLUMNW as _,
+        ) == 0
+        {
             true => None,
             false => Some(ListViewColumn {
                 fmt: col.fmt,
                 width: col.cx,
                 text: from_utf16(&text_buffer),
-            })
+            }),
         }
     }
 
@@ -505,9 +516,15 @@ impl ListView {
         let use_fmt = insert.fmt.is_some();
 
         let mut mask = 0;
-        if use_text { mask |= LVCF_TEXT; }
-        if use_width { mask |= LVCF_WIDTH; }
-        if use_fmt { mask |= LVCF_FMT; }
+        if use_text {
+            mask |= LVCF_TEXT;
+        }
+        if use_width {
+            mask |= LVCF_WIDTH;
+        }
+        if use_fmt {
+            mask |= LVCF_FMT;
+        }
 
         let text = insert.text.unwrap_or("".to_string());
         let mut text = to_utf16(&text);
@@ -522,7 +539,12 @@ impl ListView {
             item.cchTextMax = text.len() as i32;
         }
 
-        wh::send_message(handle, LVM_SETCOLUMNW, index as _, &mut item as *mut LVCOLUMNW as _);
+        wh::send_message(
+            handle,
+            LVM_SETCOLUMNW,
+            index as _,
+            &mut item as *mut LVCOLUMNW as _,
+        );
     }
 
     /// Deletes a column in a list view. Removing the column at index 0 is only available if ComCtl32.dll is version 6 or later.
@@ -530,15 +552,14 @@ impl ListView {
         use winapi::um::commctrl::LVM_DELETECOLUMN;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, LVM_DELETECOLUMN , column_index as _, 0);
+        wh::send_message(handle, LVM_DELETECOLUMN, column_index as _, 0);
     }
 
     /// Returns true if list view headers are visible
     pub fn headers_enabled(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let style = wh::get_style(handle);
-        (style & LVS_REPORT == LVS_REPORT) &&
-            (style & LVS_NOCOLUMNHEADER != LVS_NOCOLUMNHEADER)
+        (style & LVS_REPORT == LVS_REPORT) && (style & LVS_NOCOLUMNHEADER != LVS_NOCOLUMNHEADER)
     }
 
     /// Enable or disable list view headers
@@ -559,7 +580,9 @@ impl ListView {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let headers = wh::send_message(handle, LVM_GETHEADER, 0, 0);
-        if headers == 0 { return None; }
+        if headers == 0 {
+            return None;
+        }
 
         let mut header: HDITEMW = unsafe { mem::zeroed() };
         header.mask = HDI_FORMAT;
@@ -575,7 +598,11 @@ impl ListView {
     }
 
     /// Enable or disable column sort indicator. Draws a up-arrow / down-arrow.
-    pub fn set_column_sort_arrow(&self, column_index: usize, sort: Option<ListViewColumnSortArrow>) {
+    pub fn set_column_sort_arrow(
+        &self,
+        column_index: usize,
+        sort: Option<ListViewColumnSortArrow>,
+    ) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let headers = wh::send_message(handle, LVM_GETHEADER, 0, 0);
@@ -603,7 +630,7 @@ impl ListView {
         use winapi::um::commctrl::LVM_SETCOLUMNWIDTH;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, LVM_SETCOLUMNWIDTH , column_index as _, width);
+        wh::send_message(handle, LVM_SETCOLUMNWIDTH, column_index as _, width);
     }
 
     /// Returns the width of a column
@@ -616,7 +643,7 @@ impl ListView {
 
     /// Select or unselect an item at `row_index`. Does nothing if the index is out of bounds.
     pub fn select_item(&self, row_index: usize, selected: bool) {
-        use winapi::um::commctrl::{LVM_SETITEMW, LVIF_STATE, LVIS_SELECTED};
+        use winapi::um::commctrl::{LVIF_STATE, LVIS_SELECTED, LVM_SETITEMW};
 
         if !self.has_item(row_index, 0) {
             return;
@@ -627,23 +654,35 @@ impl ListView {
         let mut item: LVITEMW = unsafe { mem::zeroed() };
         item.iItem = row_index as _;
         item.mask = LVIF_STATE;
-        item.state = match selected { true => LVIS_SELECTED, false => 0 };
+        item.state = match selected {
+            true => LVIS_SELECTED,
+            false => 0,
+        };
         item.stateMask = LVIS_SELECTED;
 
-        wh::send_message(handle, LVM_SETITEMW , 0, &mut item as *mut LVITEMW as _);
+        wh::send_message(handle, LVM_SETITEMW, 0, &mut item as *mut LVITEMW as _);
     }
 
     /// Returns the index of the first selected item.
     /// If there's more than one item selected, use `selected_items`
     pub fn selected_item(&self) -> Option<usize> {
-        use winapi::um::commctrl::{LVM_GETNEXTITEMINDEX, LVNI_SELECTED, LVITEMINDEX};
+        use winapi::um::commctrl::{LVITEMINDEX, LVM_GETNEXTITEMINDEX, LVNI_SELECTED};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut index = None;
 
-        let mut i_data = LVITEMINDEX { iItem: -1, iGroup: -1 };
+        let mut i_data = LVITEMINDEX {
+            iItem: -1,
+            iGroup: -1,
+        };
 
-        if wh::send_message(handle, LVM_GETNEXTITEMINDEX, &mut i_data as *mut LVITEMINDEX as _, LVNI_SELECTED) != 0 {
+        if wh::send_message(
+            handle,
+            LVM_GETNEXTITEMINDEX,
+            &mut i_data as *mut LVITEMINDEX as _,
+            LVNI_SELECTED,
+        ) != 0
+        {
             index = Some(i_data.iItem as usize);
         }
 
@@ -652,14 +691,23 @@ impl ListView {
 
     /// Returns the indices of every selected items.
     pub fn selected_items(&self) -> Vec<usize> {
-        use winapi::um::commctrl::{LVM_GETNEXTITEMINDEX, LVNI_SELECTED, LVITEMINDEX};
+        use winapi::um::commctrl::{LVITEMINDEX, LVM_GETNEXTITEMINDEX, LVNI_SELECTED};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut indices = Vec::with_capacity(self.len());
 
-        let mut i_data = LVITEMINDEX { iItem: -1, iGroup: -1 };
-        
-        while wh::send_message(handle, LVM_GETNEXTITEMINDEX, &mut i_data as *mut LVITEMINDEX as _, LVNI_SELECTED) != 0 {
+        let mut i_data = LVITEMINDEX {
+            iItem: -1,
+            iGroup: -1,
+        };
+
+        while wh::send_message(
+            handle,
+            LVM_GETNEXTITEMINDEX,
+            &mut i_data as *mut LVITEMINDEX as _,
+            LVNI_SELECTED,
+        ) != 0
+        {
             indices.push(i_data.iItem as usize);
         }
 
@@ -676,12 +724,12 @@ impl ListView {
         let row_insert = insert.index.unwrap_or(i32::max_value());
         let column_insert = insert.column_index;
         if column_insert > 0 && !self.has_item(row_insert as _, 0) {
-            self.insert_item(InsertListViewItem { 
+            self.insert_item(InsertListViewItem {
                 index: Some(row_insert),
                 column_index: 0,
                 text: None,
 
-                #[cfg(feature="image-list")]
+                #[cfg(feature = "image-list")]
                 image: None,
             });
         }
@@ -700,9 +748,9 @@ impl ListView {
         item.cchTextMax = text.len() as i32;
 
         if column_insert == 0 {
-            wh::send_message(handle, LVM_INSERTITEMW , 0, &mut item as *mut LVITEMW as _);
+            wh::send_message(handle, LVM_INSERTITEMW, 0, &mut item as *mut LVITEMW as _);
         } else {
-            wh::send_message(handle, LVM_SETITEMW , 0, &mut item as *mut LVITEMW as _);
+            wh::send_message(handle, LVM_SETITEMW, 0, &mut item as *mut LVITEMW as _);
         }
     }
 
@@ -711,7 +759,7 @@ impl ListView {
         use winapi::um::commctrl::LVM_ISITEMVISIBLE;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, LVM_ISITEMVISIBLE , index as _, 0) == 1
+        wh::send_message(handle, LVM_ISITEMVISIBLE, index as _, 0) == 1
     }
 
     /// Returns `true` if an item exists at the selected index or `false` otherwise.
@@ -724,13 +772,18 @@ impl ListView {
         item.iItem = row_index as _;
         item.iSubItem = column_index as _;
 
-        wh::send_message(handle, LVM_GETITEMW , 0, &mut item as *mut LVITEMW as _) == 1
+        wh::send_message(handle, LVM_GETITEMW, 0, &mut item as *mut LVITEMW as _) == 1
     }
 
     /// Returns data of an item in the list view. Returns `None` if there is no data at the selected index
     /// Because there is no way to fetch the actual text size, `text_buffer_size` must be set manually
-    pub fn item(&self, row_index: usize, column_index: usize, text_buffer_size: usize) -> Option<ListViewItem> {
-        use winapi::um::commctrl::{LVM_GETITEMW, LVIF_STATE, LVIS_SELECTED};
+    pub fn item(
+        &self,
+        row_index: usize,
+        column_index: usize,
+        text_buffer_size: usize,
+    ) -> Option<ListViewItem> {
+        use winapi::um::commctrl::{LVIF_STATE, LVIS_SELECTED, LVM_GETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -741,17 +794,24 @@ impl ListView {
         item.stateMask = LVIS_SELECTED;
 
         let mut text_buffer: Vec<u16> = Vec::with_capacity(text_buffer_size);
-        unsafe { text_buffer.set_len(text_buffer_size); }
+        unsafe {
+            text_buffer.set_len(text_buffer_size);
+        }
         item.pszText = text_buffer.as_mut_ptr();
         item.cchTextMax = text_buffer_size as _;
 
-
-        let found = wh::send_message(handle, LVM_GETITEMW , 0, &mut item as *mut LVITEMW as _) == 1;
+        let found = wh::send_message(handle, LVM_GETITEMW, 0, &mut item as *mut LVITEMW as _) == 1;
         if !found {
             return None;
         }
 
-        Some ( build_list_view_image(row_index, column_index, item.state, &text_buffer, item.iImage)  )
+        Some(build_list_view_image(
+            row_index,
+            column_index,
+            item.state,
+            &text_buffer,
+            item.iImage,
+        ))
     }
 
     /// Updates the item at the selected position
@@ -787,8 +847,8 @@ impl ListView {
             item.pszText = text.as_mut_ptr();
             item.cchTextMax = text.len() as i32;
         }
-        
-        wh::send_message(handle, LVM_SETITEMW , 0, &mut item as *mut LVITEMW as _);
+
+        wh::send_message(handle, LVM_SETITEMW, 0, &mut item as *mut LVITEMW as _);
     }
 
     /// Remove all items on the seleted row. Returns `true` if an item was removed or false otherwise.
@@ -797,11 +857,11 @@ impl ListView {
         use winapi::um::commctrl::LVM_DELETEITEM;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, LVM_DELETEITEM , row_index as _, 0) == 1
+        wh::send_message(handle, LVM_DELETEITEM, row_index as _, 0) == 1
     }
 
     /// Inserts multiple items into the control. Basically a loop over `insert_item`.
-    pub fn insert_items<I: Clone+Into<InsertListViewItem>>(&self, insert: &[I]) {
+    pub fn insert_items<I: Clone + Into<InsertListViewItem>>(&self, insert: &[I]) {
         for i in insert.iter() {
             self.insert_item(i.clone());
         }
@@ -810,10 +870,14 @@ impl ListView {
     /// Insert multiple item at the selected row or at the end of the list if `None` was used.
     /// This method overrides the `index` and the `column_index` of the items.
     /// Useful when inserting strings into a single row. Ex: `list.insert_items_row(None, &["Hello", "World"]);`
-    pub fn insert_items_row<I: Clone+Into<InsertListViewItem>>(&self, row_index: Option<i32>, insert: &[I]) {
+    pub fn insert_items_row<I: Clone + Into<InsertListViewItem>>(
+        &self,
+        row_index: Option<i32>,
+        insert: &[I],
+    ) {
         let mut column_index = 0;
         let row_index = row_index.or(Some(self.len() as _));
-        
+
         for i in insert.iter() {
             let mut item: InsertListViewItem = i.clone().into();
             item.index = row_index;
@@ -845,7 +909,7 @@ impl ListView {
     pub fn len(&self) -> usize {
         use winapi::um::commctrl::LVM_GETITEMCOUNT;
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, LVM_GETITEMCOUNT , 0, 0) as usize
+        wh::send_message(handle, LVM_GETITEMCOUNT, 0, 0) as usize
     }
 
     /// Returns the number of columns in the list view
@@ -884,8 +948,8 @@ impl ListView {
     /// `dx` specifies the distance, in pixels, to set between icons on the x-axis
     /// `dy` specifies the distance, in pixels, to set between icons on the y-axis
     pub fn set_icon_spacing(&self, dx: u16, dy: u16) {
-        use winapi::um::commctrl::LVM_SETICONSPACING;
         use winapi::shared::minwindef::MAKELONG;
+        use winapi::um::commctrl::LVM_SETICONSPACING;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let spacing = MAKELONG(dx, dy);
@@ -900,7 +964,9 @@ impl ListView {
     pub fn invalidate(&self) {
         use winapi::um::winuser::InvalidateRect;
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { InvalidateRect(handle, ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ptr::null(), 1);
+        }
     }
 
     /// Removes all item from the listview
@@ -920,7 +986,9 @@ impl ListView {
     /// Sets the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Returns true if the control user can interact with the control, return false otherwise
@@ -935,7 +1003,7 @@ impl ListView {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Returns true if the control is visible to the user. Will return true even if the 
+    /// Returns true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -984,7 +1052,7 @@ impl ListView {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_CHILD, WS_BORDER};
+        use winapi::um::winuser::{WS_BORDER, WS_CHILD};
 
         WS_CHILD | WS_BORDER | LVS_NOCOLUMNHEADER
     }
@@ -992,7 +1060,7 @@ impl ListView {
     fn set_double_buffered(&mut self) {
         use crate::bind_raw_event_handler_inner;
         use winapi::um::wingdi::{CreateSolidBrush, RGB};
-        
+
         let double_buffer = ListViewDoubleBuffer {
             buffer: ptr::null_mut(),
             size: [0, 0],
@@ -1003,10 +1071,16 @@ impl ListView {
         let callback_double_buffer = rc_double_buffer.clone();
 
         let handler = bind_raw_event_handler_inner(&self.handle, 0x020, move |hwnd, msg, _, _| {
-            use winapi::um::winuser::{GetClientRect, BeginPaint, EndPaint, FillRect, SendMessageW, RedrawWindow, RDW_ERASENOW, RDW_UPDATENOW, RDW_INVALIDATE};
-            use winapi::um::winuser::{WM_PAINT, WM_ERASEBKGND, WM_PRINTCLIENT, PAINTSTRUCT};
-            use winapi::um::wingdi::{CreateCompatibleDC, CreateCompatibleBitmap, SelectObject, BitBlt, DeleteDC, DeleteObject, SRCCOPY};
-     
+            use winapi::um::wingdi::{
+                BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject,
+                SelectObject, SRCCOPY,
+            };
+            use winapi::um::winuser::{
+                BeginPaint, EndPaint, FillRect, GetClientRect, RedrawWindow, SendMessageW,
+                RDW_ERASENOW, RDW_INVALIDATE, RDW_UPDATENOW,
+            };
+            use winapi::um::winuser::{PAINTSTRUCT, WM_ERASEBKGND, WM_PAINT, WM_PRINTCLIENT};
+
             match msg {
                 WM_PAINT => unsafe {
                     let mut double_buffer = callback_double_buffer.borrow_mut();
@@ -1019,13 +1093,16 @@ impl ListView {
                     let mut paint: PAINTSTRUCT = mem::zeroed();
                     BeginPaint(hwnd, &mut paint);
 
-                    if double_buffer.buffer.is_null() || double_buffer.size != [client_width, client_height] {
+                    if double_buffer.buffer.is_null()
+                        || double_buffer.size != [client_width, client_height]
+                    {
                         if !double_buffer.buffer.is_null() {
                             DeleteObject(double_buffer.buffer as _);
                         }
-                        
+
                         double_buffer.size = [client_width, client_height];
-                        double_buffer.buffer = CreateCompatibleBitmap(paint.hdc, client_width, client_height);   
+                        double_buffer.buffer =
+                            CreateCompatibleBitmap(paint.hdc, client_width, client_height);
                     }
 
                     let backbuffer = double_buffer.buffer;
@@ -1039,11 +1116,14 @@ impl ListView {
                     SendMessageW(hwnd, WM_PRINTCLIENT, backbuffer_dc as _, 0);
                     BitBlt(
                         paint.hdc as _,
-                        0, 0,
-                        client_width, client_height,
+                        0,
+                        0,
+                        client_width,
+                        client_height,
                         backbuffer_dc,
-                        0, 0,
-                        SRCCOPY
+                        0,
+                        0,
+                        SRCCOPY,
                     );
 
                     // Cleanup
@@ -1056,22 +1136,25 @@ impl ListView {
                     if header != 0 {
                         let mut r = mem::zeroed();
                         GetClientRect(header as _, &mut r);
-                        RedrawWindow(header as _, ptr::null_mut(), ptr::null_mut(), RDW_ERASENOW|RDW_UPDATENOW|RDW_INVALIDATE);
+                        RedrawWindow(
+                            header as _,
+                            ptr::null_mut(),
+                            ptr::null_mut(),
+                            RDW_ERASENOW | RDW_UPDATENOW | RDW_INVALIDATE,
+                        );
                     }
 
                     Some(1)
                 },
-                WM_ERASEBKGND => {
-                    Some(1)
-                },
-                _ => None
+                WM_ERASEBKGND => Some(1),
+                _ => None,
             }
-        }).unwrap();
+        })
+        .unwrap();
 
         self.handler0 = Some(handler);
         self.double_buffer = Some(rc_double_buffer);
     }
-
 }
 
 impl Drop for ListView {
@@ -1106,11 +1189,10 @@ pub struct ListViewBuilder {
     ex_window_flags: u32,
     style: ListViewStyle,
     item_count: u32,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl ListViewBuilder {
-
     pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> ListViewBuilder {
         self.parent = Some(p.into());
         self
@@ -1130,7 +1212,6 @@ impl ListViewBuilder {
         self.ex_window_flags = flags;
         self
     }
-
 
     pub fn size(mut self, size: (i32, i32)) -> ListViewBuilder {
         self.size = size;
@@ -1178,7 +1259,7 @@ impl ListViewBuilder {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("ListView"))
+            None => Err(NwgError::no_parent("ListView")),
         }?;
 
         *out = Default::default();
@@ -1208,7 +1289,12 @@ impl ListViewBuilder {
 
         if let Some(flags) = self.ex_flags {
             let flags = flags.bits();
-            wh::send_message(out.handle.hwnd().unwrap(), LVM_SETEXTENDEDLISTVIEWSTYLE, flags as _, flags as _);
+            wh::send_message(
+                out.handle.hwnd().unwrap(),
+                LVM_SETEXTENDEDLISTVIEWSTYLE,
+                flags as _,
+                flags as _,
+            );
         }
 
         if let Some([r, g, b]) = self.background_color {
@@ -1221,7 +1307,6 @@ impl ListViewBuilder {
 
         Ok(())
     }
-
 }
 
 impl<'a> From<&'a str> for InsertListViewItem {
@@ -1231,8 +1316,8 @@ impl<'a> From<&'a str> for InsertListViewItem {
             column_index: 0,
             text: Some(i.to_string()),
 
-            #[cfg(feature="image-list")]
-            image: None
+            #[cfg(feature = "image-list")]
+            image: None,
         }
     }
 }
@@ -1244,8 +1329,8 @@ impl From<String> for InsertListViewItem {
             column_index: 0,
             text: Some(i),
 
-            #[cfg(feature="image-list")]
-            image: None
+            #[cfg(feature = "image-list")]
+            image: None,
         }
     }
 }
@@ -1256,7 +1341,7 @@ impl<'a> From<&'a str> for InsertListViewColumn {
             index: None,
             fmt: None,
             width: Some(100),
-            text: Some(i.to_string())
+            text: Some(i.to_string()),
         }
     }
 }
@@ -1267,46 +1352,64 @@ impl From<String> for InsertListViewColumn {
             index: None,
             fmt: None,
             width: Some(100),
-            text: Some(i)
+            text: Some(i),
         }
     }
 }
 
- // Feature check
+// Feature check
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 fn check_image_mask(i: &InsertListViewItem) -> u32 {
-    if i.image.is_some() { 
+    if i.image.is_some() {
         LVIF_IMAGE
     } else {
         0
     }
 }
 
-#[cfg(feature="image-list")]
-fn check_image(i: &InsertListViewItem) -> i32 { i.image.unwrap_or(0) }
+#[cfg(feature = "image-list")]
+fn check_image(i: &InsertListViewItem) -> i32 {
+    i.image.unwrap_or(0)
+}
 
-#[cfg(not(feature="image-list"))]
-fn check_image_mask(_i: &InsertListViewItem) -> u32 { 0 }
+#[cfg(not(feature = "image-list"))]
+fn check_image_mask(_i: &InsertListViewItem) -> u32 {
+    0
+}
 
-#[cfg(not(feature="image-list"))]
-fn check_image(_i: &InsertListViewItem) -> i32 { 0 }
+#[cfg(not(feature = "image-list"))]
+fn check_image(_i: &InsertListViewItem) -> i32 {
+    0
+}
 
-#[cfg(feature="image-list")]
-fn build_list_view_image(row_index: usize, column_index: usize, state: u32, text_buffer: &[u16], image: i32) -> ListViewItem {
+#[cfg(feature = "image-list")]
+fn build_list_view_image(
+    row_index: usize,
+    column_index: usize,
+    state: u32,
+    text_buffer: &[u16],
+    image: i32,
+) -> ListViewItem {
     use winapi::um::commctrl::LVIS_SELECTED;
-    
+
     ListViewItem {
         row_index: row_index as _,
         column_index: column_index as _,
         text: from_utf16(&text_buffer),
         selected: state & LVIS_SELECTED == LVIS_SELECTED,
-        image
+        image,
     }
 }
 
-#[cfg(not(feature="image-list"))]
-fn build_list_view_image(row_index: usize, column_index: usize, state: u32, text_buffer: &[u16], _image: i32) -> ListViewItem {
+#[cfg(not(feature = "image-list"))]
+fn build_list_view_image(
+    row_index: usize,
+    column_index: usize,
+    state: u32,
+    text_buffer: &[u16],
+    _image: i32,
+) -> ListViewItem {
     use winapi::um::commctrl::LVIS_SELECTED;
 
     ListViewItem {

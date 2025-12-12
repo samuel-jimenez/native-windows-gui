@@ -4,21 +4,28 @@ extern crate native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use nwg::NativeUi;
 use nwd::NwgUi;
+use nwg::NativeUi;
 
-use nwg::stretch::{geometry::{Size, Rect},style::{Dimension, FlexDirection, JustifyContent, Style},};
+use nwg::stretch::{
+    geometry::{Rect, Size},
+    style::{Dimension, FlexDirection, JustifyContent, Style},
+};
 
 const PT_10: Dimension = Dimension::Points(10.0);
-const PAD: Rect<Dimension> = Rect { start: PT_10, end: PT_10, top: PT_10, bottom: PT_10 };
+const PAD: Rect<Dimension> = Rect {
+    start: PT_10,
+    end: PT_10,
+    top: PT_10,
+    bottom: PT_10,
+};
 
 #[derive(Default, NwgUi)]
 pub struct MyApp {
-
     #[nwg_control(title: "test", size: (400, 300), position: (80, 60))]
     #[nwg_events(OnWindowClose: [nwg::stop_thread_dispatch()], OnInit: [MyApp::setup_combo_callback(RC_SELF)])]
     window: nwg::Window,
-    
+
     #[nwg_layout(parent: window, padding: PAD, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
     main_layout: nwg::FlexboxLayout,
 
@@ -39,33 +46,38 @@ pub struct MyApp {
 }
 
 impl MyApp {
-
     fn setup_combo_callback(app_rc: &Rc<MyApp>) {
         // Clone the app and store it in our own callback
         let app = app_rc.clone();
-        let handler = nwg::bind_event_handler(&app_rc.frame.handle, &app_rc.window.handle, move |evt, _evt_data, handle| {
-            match evt {
-                nwg::Event::OnComboxBoxSelection => { 
-
-                    // Fetch the combobox here
-                    let boxes = app.combo_boxes.borrow();
-                    for (index, combo) in boxes.iter().enumerate() {
-                        if combo.handle == handle {
-                            println!("Accessed combobox #{}", index);
+        let handler = nwg::bind_event_handler(
+            &app_rc.frame.handle,
+            &app_rc.window.handle,
+            move |evt, _evt_data, handle| {
+                match evt {
+                    nwg::Event::OnComboxBoxSelection => {
+                        // Fetch the combobox here
+                        let boxes = app.combo_boxes.borrow();
+                        for (index, combo) in boxes.iter().enumerate() {
+                            if combo.handle == handle {
+                                println!("Accessed combobox #{}", index);
+                            }
                         }
                     }
-
-                },
-                _ => {}
-            }
-        });
+                    _ => {}
+                }
+            },
+        );
 
         *app_rc.combo_box_handler.borrow_mut() = Some(handler);
     }
 
     fn add_combobox(&self) {
         let mut new_dd: nwg::ComboBox<String> = nwg::ComboBox::<String>::default();
-        let coll = vec![String::from("one"), String::from("two"), String::from("three")];
+        let coll = vec![
+            String::from("one"),
+            String::from("two"),
+            String::from("three"),
+        ];
         nwg::ComboBox::builder()
             .collection(coll)
             .parent(&self.frame)
@@ -73,7 +85,10 @@ impl MyApp {
             .expect("Failed to create token");
 
         let style = Style {
-            size: Size { width: Dimension::Percent(1.0), height: Dimension::Points(40.0) },
+            size: Size {
+                width: Dimension::Percent(1.0),
+                height: Dimension::Points(40.0),
+            },
             ..Default::default()
         };
 

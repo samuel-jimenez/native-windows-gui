@@ -4,13 +4,12 @@
     `cargo run --example subclassing_d --features "flexbox"`
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::NativeUi;
 use nwg::stretch::style::FlexDirection;
+use nwg::NativeUi;
 
 type UserButton = nwg::Button;
 
@@ -18,7 +17,7 @@ type UserButton = nwg::Button;
 #[derive(Default)]
 pub struct CustomButton {
     base: nwg::Button,
-    data: usize
+    data: usize,
 }
 
 // Implements default trait so that the control can be used by native windows derive
@@ -33,14 +32,14 @@ impl CustomButton {
     fn builder<'a>() -> CustomButtonBuilder<'a> {
         CustomButtonBuilder {
             button_builder: nwg::Button::builder().text("Custom button with builder"),
-            data: 0
+            data: 0,
         }
     }
 }
 
 pub struct CustomButtonBuilder<'a> {
     button_builder: nwg::ButtonBuilder<'a>,
-    data: usize
+    data: usize,
 }
 
 impl<'a> CustomButtonBuilder<'a> {
@@ -95,25 +94,33 @@ pub struct SubclassApp {
     button4: CustomButton,
 }
 
-
 impl SubclassApp {
-
     fn button_click1(&self) {
         nwg::modal_info_message(&self.window, "Simple button", "Hey, I'm a simple button!");
     }
 
     fn button_click2(&self) {
-        nwg::modal_info_message(&self.window, "User type button", "Hey, I'm a button with a user type def!");
+        nwg::modal_info_message(
+            &self.window,
+            "User type button",
+            "Hey, I'm a button with a user type def!",
+        );
     }
 
     fn button_click3(&self, button: &CustomButton) {
-        nwg::modal_info_message(&self.window, "Custom button", &format!("Hey, I'm a button with custom data! The data is {}!", button.data) );
+        nwg::modal_info_message(
+            &self.window,
+            "Custom button",
+            &format!(
+                "Hey, I'm a button with custom data! The data is {}!",
+                button.data
+            ),
+        );
     }
 
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {

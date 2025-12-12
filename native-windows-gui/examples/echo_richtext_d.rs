@@ -2,13 +2,13 @@
     Small example that shows how to append text to a rich text box with styling
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-use std::fs;
 use std::cell::RefCell;
+use std::fs;
 
 #[derive(Default)]
 pub struct StyleSection {
@@ -21,11 +21,11 @@ pub struct StyleSection {
 #[derive(Default, NwgUi)]
 pub struct EchoApp {
     #[nwg_control(size: (1000, 420), position: (300, 300), title: "Echo", accept_files: true)]
-    #[nwg_events( 
+    #[nwg_events(
         OnInit: [EchoApp::init_text],
-        OnWindowClose: [nwg::stop_thread_dispatch()], 
-        OnFileDrop: [EchoApp::load_text(SELF, EVT_DATA)], 
-        OnKeyEnter: [EchoApp::submit], 
+        OnWindowClose: [nwg::stop_thread_dispatch()],
+        OnFileDrop: [EchoApp::load_text(SELF, EVT_DATA)],
+        OnKeyEnter: [EchoApp::submit],
     )]
     window: nwg::Window,
 
@@ -76,21 +76,28 @@ impl EchoApp {
         for file in drop.files() {
             text.push_str(&fs::read_to_string(file).unwrap_or("Invalid file".into()));
         }
-        
+
         self.rich_text_box.appendln(&text);
         self.apply_styles();
     }
 
     pub fn init_text(&self) {
-        self.rich_text_box.set_text_unix2dos("Each button on the right does one of the following:\n");
-        self.rich_text_box.append("\r\nClears the rich text box, removing all text and associated formatting.\r\n");
-        self.text_input.set_text("Echoes the text in the input box with underline styling.");
+        self.rich_text_box
+            .set_text_unix2dos("Each button on the right does one of the following:\n");
+        self.rich_text_box.append(
+            "\r\nClears the rich text box, removing all text and associated formatting.\r\n",
+        );
+        self.text_input
+            .set_text("Echoes the text in the input box with underline styling.");
         self.underline();
-        self.text_input.set_text("Echoes the text in the input box as a bullet point.");
+        self.text_input
+            .set_text("Echoes the text in the input box as a bullet point.");
         self.bullet();
-        self.text_input.set_text("Echoes the text in the input box with header styling.");
+        self.text_input
+            .set_text("Echoes the text in the input box with header styling.");
         self.header();
-        self.text_input.set_text("Echoes the text in the input box with no styling.");
+        self.text_input
+            .set_text("Echoes the text in the input box with no styling.");
         self.submit();
     }
 
@@ -100,7 +107,10 @@ impl EchoApp {
     }
 
     pub fn underline(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
+        let mut style_section = StyleSection {
+            start: self.rich_text_box.len(),
+            ..Default::default()
+        };
         style_section.char_format = Some(nwg::CharFormat {
             effects: Some(nwg::CharEffects::UNDERLINE),
             ..Default::default()
@@ -113,7 +123,10 @@ impl EchoApp {
     }
 
     pub fn bullet(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
+        let mut style_section = StyleSection {
+            start: self.rich_text_box.len(),
+            ..Default::default()
+        };
         style_section.para_format = Some(nwg::ParaFormat {
             start_indent: Some(300),
             right_indent: Some(300),
@@ -130,7 +143,10 @@ impl EchoApp {
     }
 
     pub fn header(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
+        let mut style_section = StyleSection {
+            start: self.rich_text_box.len(),
+            ..Default::default()
+        };
         style_section.char_format = Some(nwg::CharFormat {
             effects: Some(nwg::CharEffects::BOLD | nwg::CharEffects::ITALIC),
             height: Some(350),
@@ -148,9 +164,10 @@ impl EchoApp {
         self.apply_styles();
     }
 
-    pub fn apply_styles(&self){
-        for style_section in self.style_sections.borrow().iter() {   
-            self.rich_text_box.set_selection(style_section.start..style_section.end);
+    pub fn apply_styles(&self) {
+        for style_section in self.style_sections.borrow().iter() {
+            self.rich_text_box
+                .set_selection(style_section.start..style_section.end);
             if let Some(p) = &style_section.para_format {
                 self.rich_text_box.set_para_format(p);
             }

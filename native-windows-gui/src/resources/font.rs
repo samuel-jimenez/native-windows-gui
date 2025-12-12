@@ -1,12 +1,11 @@
-use winapi::shared::windef::HFONT;
-use winapi::um::winnt::HANDLE;
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::win32::resources_helper as rh;
-use crate::win32::base_helper::{to_utf16, from_utf16};
 use crate::NwgError;
 use std::ptr;
+use winapi::shared::windef::HFONT;
+use winapi::um::winnt::HANDLE;
 
 use std::sync::Mutex;
-
 
 lazy_static! {
     /// Default font to use when creating controls. Set using `Font::set_global_default` && get using `Font::global_default()`
@@ -17,7 +16,7 @@ lazy_static! {
 
 pub struct MemFont(pub HANDLE);
 
-/** 
+/**
 Represent a font parameters. Returned by the font dialog when the user selected a font.
 Can also be used to create a Font resource using `Font::from_info`
 For more information on the parameters see: https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfonta
@@ -52,10 +51,9 @@ pub struct FontInfo {
     pub quality: u8,
     /// Specifies the pitch and family of the font.
     pub pitch_and_family: u8,
-    /// Contains a null-terminated string that specifies the typeface name of the font. 
-    pub name: String
+    /// Contains a null-terminated string that specifies the typeface name of the font.
+    pub name: String,
 }
-
 
 /**
 
@@ -86,13 +84,12 @@ fn build_font() -> nwg::Font {
 */
 #[derive(PartialEq, Eq, Debug)]
 pub struct Font {
-    pub handle: HFONT
+    pub handle: HFONT,
 }
 
 impl Font {
-
     pub fn builder<'a>() -> FontBuilder<'a> {
-        FontBuilder::new() 
+        FontBuilder::new()
     }
 
     /// Set the default (application global!) font that will be used when creating controls and return the old one
@@ -108,27 +105,26 @@ impl Font {
     pub fn set_global_family(family: &str) -> Result<Option<Font>, NwgError> {
         let mut font = Font::default();
 
-        Font::builder()
-            .family(family)
-            .build(&mut font)?;
+        Font::builder().family(family).build(&mut font)?;
 
         Ok(Font::set_global_default(Some(font)))
     }
 
     /// Return the default font that was previously set using `Font::set_default`
     pub fn global_default() -> Option<Font> {
-        DEFAULT_FONT.lock()
+        DEFAULT_FONT
+            .lock()
             .unwrap()
             .as_ref()
-            .map(|f| Font { handle: f.handle } )
+            .map(|f| Font { handle: f.handle })
     }
 
-    /** 
+    /**
         Add a font to the system font table. Don't forget to call `Font::remove_font(path)` once you're done.
-        Returns `false` if the font could not be added. Windows won't tell you why though. 
+        Returns `false` if the font could not be added. Windows won't tell you why though.
 
         Other info:
-        - The value of `path` can be a `ttf` or a `otf` font. 
+        - The value of `path` can be a `ttf` or a `otf` font.
         - Adding the same font multiple time increase the internal refcount
         - Use `Font::families()` to return the available system font families
     */
@@ -185,17 +181,22 @@ impl Font {
         }
     }
 
-    /// Returns all the font families loaded on the OS. 
+    /// Returns all the font families loaded on the OS.
     /// Probably pretty slow, so cache the value if possible
     pub fn families() -> Vec<String> {
-        use winapi::um::wingdi::{LOGFONTW, TEXTMETRICW, DEFAULT_CHARSET, EnumFontFamiliesExW};
-        use winapi::um::winuser::GetDC;
-        use winapi::shared::minwindef::{DWORD, LPARAM};
         use std::mem;
-        
+        use winapi::shared::minwindef::{DWORD, LPARAM};
+        use winapi::um::wingdi::{EnumFontFamiliesExW, DEFAULT_CHARSET, LOGFONTW, TEXTMETRICW};
+        use winapi::um::winuser::GetDC;
+
         let mut families = Vec::with_capacity(16);
 
-        unsafe extern "system" fn callback(font_ptr: *const LOGFONTW, _txt: *const TEXTMETRICW, _font_type: DWORD, lparam: LPARAM) -> i32 {
+        unsafe extern "system" fn callback(
+            font_ptr: *const LOGFONTW,
+            _txt: *const TEXTMETRICW,
+            _font_type: DWORD,
+            lparam: LPARAM,
+        ) -> i32 {
             let families_ptr = lparam as *mut Vec<String>;
             let families = &mut *families_ptr;
 
@@ -213,40 +214,44 @@ impl Font {
             let mut font: LOGFONTW = mem::zeroed();
             font.lfCharSet = DEFAULT_CHARSET as u8;
 
-            EnumFontFamiliesExW(hdc, &mut font, Some(callback), (&mut families as *mut Vec<String>) as _, 0);
+            EnumFontFamiliesExW(
+                hdc,
+                &mut font,
+                Some(callback),
+                (&mut families as *mut Vec<String>) as _,
+                0,
+            );
         }
 
         families.shrink_to_fit();
         families
     }
-
 }
 
 impl Default for Font {
-
     fn default() -> Font {
-        Font { handle: ptr::null_mut() }
+        Font {
+            handle: ptr::null_mut(),
+        }
     }
-
 }
 
 /**
 Builds a font struct
 
 Parameters:
-    - size: Size of the font. The font mapper transforms this value into device units and matches it against the cell height of the available fonts. 
-    - size_absolute:  Size of the font. The font mapper transforms this value into device units and matches its absolute value against the character height of the available fonts. 
+    - size: Size of the font. The font mapper transforms this value into device units and matches it against the cell height of the available fonts.
+    - size_absolute:  Size of the font. The font mapper transforms this value into device units and matches its absolute value against the character height of the available fonts.
     - weight: Weight of the font. A value betweem 0 and 1000. 0 use the system default, 100 is very thin, 1000 is very bold.
     - family: Family name of the font (ex: Arial). Can be None to use the system default.
 */
 pub struct FontBuilder<'a> {
     size: Option<i32>,
     weight: u32,
-    family: Option<&'a str>
+    family: Option<&'a str>,
 }
 
 impl<'a> FontBuilder<'a> {
-
     pub fn new() -> FontBuilder<'a> {
         FontBuilder {
             size: None,
@@ -276,18 +281,17 @@ impl<'a> FontBuilder<'a> {
     }
 
     pub fn build(self, font: &mut Font) -> Result<(), NwgError> {
-        
-
-        font.handle = unsafe { rh::build_font(
-            self.size.unwrap_or(0),
-            self.weight,
-            [false, false, false],
-            self.family
-        ) }?;
+        font.handle = unsafe {
+            rh::build_font(
+                self.size.unwrap_or(0),
+                self.weight,
+                [false, false, false],
+                self.family,
+            )
+        }?;
 
         Ok(())
     }
-
 }
 
 unsafe impl Send for Font {}

@@ -5,12 +5,11 @@
     Requires the following features: `cargo run --example partials_d --features "listbox frame combobox flexbox"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
-use nwd::{NwgUi, NwgPartial};
+use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct PartialDemo {
@@ -50,35 +49,46 @@ pub struct PartialDemo {
 }
 
 impl PartialDemo {
-
     fn change_interface(&self) {
         self.frame1.set_visible(false);
         self.frame2.set_visible(false);
         self.frame3.set_visible(false);
 
         let layout = &self.layout;
-        if layout.has_child(&self.frame1) { layout.remove_child(&self.frame1); }
-        if layout.has_child(&self.frame2) { layout.remove_child(&self.frame2); }
-        if layout.has_child(&self.frame3) { layout.remove_child(&self.frame3); }
+        if layout.has_child(&self.frame1) {
+            layout.remove_child(&self.frame1);
+        }
+        if layout.has_child(&self.frame2) {
+            layout.remove_child(&self.frame2);
+        }
+        if layout.has_child(&self.frame3) {
+            layout.remove_child(&self.frame3);
+        }
 
-        use nwg::stretch::{geometry::Size, style::{Style, Dimension as D}};
+        use nwg::stretch::{
+            geometry::Size,
+            style::{Dimension as D, Style},
+        };
         let mut style = Style::default();
-        style.size = Size { width: D::Percent(1.0), height: D::Auto };
+        style.size = Size {
+            width: D::Percent(1.0),
+            height: D::Auto,
+        };
 
         match self.menu.selection() {
             None | Some(0) => {
                 layout.add_child(&self.frame1, style).unwrap();
                 self.frame1.set_visible(true);
-            },
+            }
             Some(1) => {
                 layout.add_child(&self.frame2, style).unwrap();
                 self.frame2.set_visible(true);
-            },
+            }
             Some(2) => {
                 layout.add_child(&self.frame3, style).unwrap();
                 self.frame3.set_visible(true);
-            },
-            Some(_) => unreachable!()
+            }
+            Some(_) => unreachable!(),
         }
     }
 
@@ -93,7 +103,6 @@ impl PartialDemo {
 
 #[derive(Default, NwgPartial)]
 pub struct PeopleUi {
-
     #[nwg_layout(max_size: [1000, 150], min_size: [100, 120])]
     layout: nwg::GridLayout,
 
@@ -170,7 +179,6 @@ pub struct AnimalUi {
 
 #[derive(Default, NwgPartial)]
 pub struct FoodUi {
-    
     #[nwg_layout(max_size: [1000, 90], min_size: [100, 80])]
     layout: nwg::GridLayout,
 
@@ -199,7 +207,6 @@ pub struct FoodUi {
     save_btn: nwg::Button,
 }
 
-
 fn print_char(data: &nwg::EventData) {
     println!("{:?}", data.on_char());
 }
@@ -209,6 +216,6 @@ fn main() {
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let _ui = PartialDemo::build_ui(Default::default()).expect("Failed to build UI");
-    
+
     nwg::dispatch_thread_events();
 }

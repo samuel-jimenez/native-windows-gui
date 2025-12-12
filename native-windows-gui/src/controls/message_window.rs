@@ -4,7 +4,7 @@
 
     A MessageWindow do not have any builder parameter, but still provides the API for the derive macro.
 
-    Requires the `message-window` feature. 
+    Requires the `message-window` feature.
 
     ## Example
     ```
@@ -26,15 +26,13 @@ use crate::NwgError;
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct MessageWindow {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl MessageWindow {
-
     pub fn builder() -> MessageWindowBuilder {
         MessageWindowBuilder {}
     }
-
 }
 
 impl Drop for MessageWindow {
@@ -42,15 +40,12 @@ impl Drop for MessageWindow {
         self.handle.destroy();
     }
 }
-pub struct MessageWindowBuilder {
-}
+pub struct MessageWindowBuilder {}
 
 impl MessageWindowBuilder {
-
     pub fn build(self, out: &mut MessageWindow) -> Result<(), NwgError> {
         *out = Default::default();
         out.handle = create_message_window()?;
         Ok(())
     }
-
 }

@@ -3,17 +3,15 @@
     See `basic` for the version without the derive macro
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-use std::thread;
-use std::sync::mpsc::{channel, Receiver};
 use std::cell::RefCell;
-
+use std::sync::mpsc::{channel, Receiver};
+use std::thread;
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
@@ -32,45 +30,43 @@ pub struct BasicApp {
 }
 
 impl BasicApp {
+    fn setup(&self) {
+        let (sender, receiver) = channel();
 
-  fn setup(&self) {
-    let (sender, receiver) = channel();
+        // Creates a sender to trigger the `OnNotice` event
+        let notice_sender = self.update_text.sender();
 
-    // Creates a sender to trigger the `OnNotice` event
-    let notice_sender = self.update_text.sender();
+        thread::spawn(move || {
+            let mut counter = 0;
 
-    thread::spawn(move || {
-      let mut counter = 0;
+            loop {
+                counter += 1;
+                sender.send(format!("ID: {}\r\n", counter)).unwrap();
 
-      loop {
-        counter += 1;
-        sender.send(format!("ID: {}\r\n", counter)).unwrap();
+                // Calling the notice function will trigger the OnNotice event on the gui thread
+                notice_sender.notice();
 
-        // Calling the notice function will trigger the OnNotice event on the gui thread
-        notice_sender.notice();
+                thread::sleep(::std::time::Duration::from_millis(500));
+            }
+        });
 
-        thread::sleep(::std::time::Duration::from_millis(500));
-      }
-    });
-
-    *self.text_receiver.borrow_mut() = Some(receiver);
-  }
-
-  fn update_text(&self) {
-    let mut receiver_ref = self.text_receiver.borrow_mut();
-    let receiver = receiver_ref.as_mut().unwrap();
-    while let Ok(data) = receiver.try_recv() {
-      let mut new_text = self.text_box.text();
-      new_text.push_str(&data);
-      self.text_box.set_text(&new_text);
-      self.text_box.scroll_lastline();
+        *self.text_receiver.borrow_mut() = Some(receiver);
     }
-  }
 
-  fn say_goodbye(&self) {
-      nwg::stop_thread_dispatch();
-  }
+    fn update_text(&self) {
+        let mut receiver_ref = self.text_receiver.borrow_mut();
+        let receiver = receiver_ref.as_mut().unwrap();
+        while let Ok(data) = receiver.try_recv() {
+            let mut new_text = self.text_box.text();
+            new_text.push_str(&data);
+            self.text_box.set_text(&new_text);
+            self.text_box.scroll_lastline();
+        }
+    }
 
+    fn say_goodbye(&self) {
+        nwg::stop_thread_dispatch();
+    }
 }
 
 fn main() {

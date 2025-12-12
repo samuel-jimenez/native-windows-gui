@@ -1,16 +1,15 @@
-use winapi::um::{
-    winuser::{WS_VISIBLE, WS_DISABLED, BS_AUTOCHECKBOX, BS_AUTO3STATE, BS_PUSHLIKE, WS_TABSTOP},
-    wingdi::DeleteObject
-};
-use winapi::shared::windef::HBRUSH;
+use super::{ControlBase, ControlHandle};
 use crate::win32::{base_helper::check_hwnd, window_helper as wh};
 use crate::{Font, NwgError, RawEventHandler};
-use super::{ControlBase, ControlHandle};
 use std::cell::RefCell;
+use winapi::shared::windef::HBRUSH;
+use winapi::um::{
+    wingdi::DeleteObject,
+    winuser::{BS_AUTO3STATE, BS_AUTOCHECKBOX, BS_PUSHLIKE, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+};
 
 const NOT_BOUND: &'static str = "CheckBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: CheckBox handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -40,7 +39,7 @@ pub enum CheckBoxState {
     Unchecked,
 
     /// New state for the tristate checkbox
-    Indeterminate
+    Indeterminate,
 }
 
 /**
@@ -90,7 +89,6 @@ pub struct CheckBox {
 }
 
 impl CheckBox {
-
     pub fn builder<'a>() -> CheckBoxBuilder<'a> {
         CheckBoxBuilder {
             text: "A checkbox",
@@ -116,14 +114,14 @@ impl CheckBox {
 
     /// Sets or unsets the checkbox as tristate
     pub fn set_tristate(&self, tri: bool) {
-        use winapi::um::winuser::{BM_SETSTYLE};
         use winapi::shared::minwindef::WPARAM;
+        use winapi::um::winuser::BM_SETSTYLE;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        
+
         let style = match tri {
             true => BS_AUTO3STATE,
-            false => BS_AUTOCHECKBOX
+            false => BS_AUTOCHECKBOX,
         };
 
         wh::send_message(handle, BM_SETSTYLE, style as WPARAM, 1);
@@ -139,14 +137,14 @@ impl CheckBox {
             BST_UNCHECKED => CheckBoxState::Unchecked,
             BST_CHECKED => CheckBoxState::Checked,
             BST_INDETERMINATE => CheckBoxState::Indeterminate,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
     /// Sets the check state of the check box
     pub fn set_check_state(&self, state: CheckBoxState) {
-        use winapi::um::winuser::{BM_SETCHECK, BST_CHECKED, BST_INDETERMINATE, BST_UNCHECKED};
         use winapi::shared::minwindef::WPARAM;
+        use winapi::um::winuser::{BM_SETCHECK, BST_CHECKED, BST_INDETERMINATE, BST_UNCHECKED};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -167,14 +165,18 @@ impl CheckBox {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return true if the control currently has the keyboard focus
@@ -186,7 +188,9 @@ impl CheckBox {
     /// Set the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -201,7 +205,7 @@ impl CheckBox {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -239,7 +243,7 @@ impl CheckBox {
     }
 
     /// Return the check box label
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -270,48 +274,55 @@ impl CheckBox {
     /// Change the checkbox background color.
     fn hook_background_color(&mut self, c: [u8; 3]) {
         use crate::bind_raw_event_handler_inner;
-        use winapi::um::winuser::{WM_CTLCOLORSTATIC};
-        use winapi::shared::{basetsd::UINT_PTR, windef::HWND, minwindef::LRESULT};
+        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
         use winapi::um::wingdi::{CreateSolidBrush, RGB};
+        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
-        
+
         let brush = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
         self.background_brush = Some(brush);
-        
-        let handler = bind_raw_event_handler_inner(&parent_handle, handle as UINT_PTR, move |_hwnd, msg, _w, l| {
-            match msg {
-                WM_CTLCOLORSTATIC => {
-                    let child = l as HWND;
-                    if child == handle {
-                        return Some(brush as LRESULT);
-                    }
-                },
-                _ => {}
-            }
 
-            None
-        });
+        let handler = bind_raw_event_handler_inner(
+            &parent_handle,
+            handle as UINT_PTR,
+            move |_hwnd, msg, _w, l| {
+                match msg {
+                    WM_CTLCOLORSTATIC => {
+                        let child = l as HWND;
+                        if child == handle {
+                            return Some(brush as LRESULT);
+                        }
+                    }
+                    _ => {}
+                }
+
+                None
+            },
+        );
 
         *self.handler0.borrow_mut() = Some(handler.unwrap());
     }
-
 }
 
 impl Drop for CheckBox {
     fn drop(&mut self) {
         use crate::unbind_raw_event_handler;
-        
+
         let handler = self.handler0.borrow();
         if let Some(h) = handler.as_ref() {
             drop(unbind_raw_event_handler(h));
         }
 
         if let Some(bg) = self.background_brush {
-            unsafe { DeleteObject(bg as _); }
+            unsafe {
+                DeleteObject(bg as _);
+            }
         }
 
         self.handle.destroy();
@@ -329,11 +340,10 @@ pub struct CheckBoxBuilder<'a> {
     flags: Option<CheckBoxFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> CheckBoxBuilder<'a> {
-
     pub fn flags(mut self, flags: CheckBoxFlags) -> CheckBoxBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -374,7 +384,7 @@ impl<'a> CheckBoxBuilder<'a> {
         self
     }
 
-    pub fn background_color(mut self, color: Option<[u8;3]>) -> CheckBoxBuilder<'a> {
+    pub fn background_color(mut self, color: Option<[u8; 3]>) -> CheckBoxBuilder<'a> {
         self.background_color = color;
         self
     }
@@ -397,7 +407,7 @@ impl<'a> CheckBoxBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("CheckBox"))
+            None => Err(NwgError::no_parent("CheckBox")),
         }?;
 
         // Drop the old object
@@ -434,7 +444,6 @@ impl<'a> CheckBoxBuilder<'a> {
 
         Ok(())
     }
-
 }
 
 impl PartialEq for CheckBox {

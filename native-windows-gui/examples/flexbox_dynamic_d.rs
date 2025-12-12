@@ -2,17 +2,15 @@
     Shows how to add controls dynamically into a flexbox layout
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::{NativeUi, stretch};
+use nwg::{stretch, NativeUi};
 use stretch::geometry::Size;
 use stretch::style::*;
 
 use std::cell::RefCell;
-
 
 #[derive(Default, NwgUi)]
 pub struct FlexboxDynamic {
@@ -27,30 +25,33 @@ pub struct FlexboxDynamic {
 }
 
 impl FlexboxDynamic {
-
     fn setup(&self) {
         let mut buttons = self.buttons.borrow_mut();
-        for i in 0.. 20 {
+        for i in 0..20 {
             buttons.push(nwg::Button::default());
 
             let button_index = buttons.len() - 1;
 
             nwg::Button::builder()
-                .text(&format!("Button {}", i+1))
+                .text(&format!("Button {}", i + 1))
                 .parent(&self.window)
-                .build(&mut buttons[button_index]).expect("Failed to create button");
+                .build(&mut buttons[button_index])
+                .expect("Failed to create button");
 
-            
             let style = Style {
-                size: Size { width: Dimension::Auto, height: Dimension::Points(100.0) },
+                size: Size {
+                    width: Dimension::Auto,
+                    height: Dimension::Points(100.0),
+                },
                 justify_content: JustifyContent::Center,
                 ..Default::default()
             };
 
-            self.layout.add_child(&buttons[button_index], style).expect("Failed to add button to layout");
+            self.layout
+                .add_child(&buttons[button_index], style)
+                .expect("Failed to add button to layout");
         }
     }
-
 }
 
 fn main() {

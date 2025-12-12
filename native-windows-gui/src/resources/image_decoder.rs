@@ -1,9 +1,10 @@
-use winapi::um::wincodec::{IWICImagingFactory, IWICBitmapDecoder, IWICBitmapSource, WICPixelFormatGUID};
-use winapi::shared::winerror::S_OK;
 use crate::win32::image_decoder as img;
-use crate::{NwgError, Bitmap};
-use std::{ptr, mem};
-
+use crate::{Bitmap, NwgError};
+use std::{mem, ptr};
+use winapi::shared::winerror::S_OK;
+use winapi::um::wincodec::{
+    IWICBitmapDecoder, IWICBitmapSource, IWICImagingFactory, WICPixelFormatGUID,
+};
 
 /**
     A image decoder. Can load an extended number of image file format from a filename, from a file handle, or from a stream.
@@ -43,8 +44,7 @@ impl ImageDecoder {
     }
 
     pub fn builder() -> ImageDecoderBuilder {
-        ImageDecoderBuilder {
-        }
+        ImageDecoderBuilder {}
     }
 
     /**
@@ -88,12 +88,14 @@ impl ImageDecoder {
     /**
         Resize an image, returning the new resized image. The pixel format might change.
     */
-    pub fn resize_image(&self, image: &ImageData, new_size: [u32;2]) -> Result<ImageData, NwgError> {
+    pub fn resize_image(
+        &self,
+        image: &ImageData,
+        new_size: [u32; 2],
+    ) -> Result<ImageData, NwgError> {
         unsafe { img::resize_bitmap(&*self.factory, image, new_size) }
     }
-
 }
-
 
 /**
     Represents a image data source in read only mode.
@@ -103,14 +105,15 @@ pub struct ImageSource {
 }
 
 impl ImageSource {
-
     /**
         Return the number of frame in the image. For most format (ex: PNG), this will be 1.
         It might be more than 1 in animated image formats (such as GIFs).
     */
     pub fn frame_count(&self) -> u32 {
         let mut frame_count = 0;
-        unsafe { (&*self.decoder).GetFrameCount(&mut frame_count); }
+        unsafe {
+            (&*self.decoder).GetFrameCount(&mut frame_count);
+        }
         frame_count
     }
 
@@ -121,12 +124,14 @@ impl ImageSource {
         let mut bitmap = ptr::null_mut();
         let hr = unsafe { (&*self.decoder).GetFrame(index, &mut bitmap) };
         match hr {
-            S_OK => Ok(ImageData { frame: bitmap as *mut IWICBitmapSource }),
-            err => Err(NwgError::image_decoder(err, "Could not read image frame"))
+            S_OK => Ok(ImageData {
+                frame: bitmap as *mut IWICBitmapSource,
+            }),
+            err => Err(NwgError::image_decoder(err, "Could not read image frame")),
         }
     }
 
-    /*  Retrieves the container format of the image source. 
+    /*  Retrieves the container format of the image source.
 
         See https://docs.microsoft.com/en-us/windows/win32/wic/-wic-guids-clsids#container-formats
     */
@@ -145,30 +150,26 @@ impl ImageSource {
             0x163bcc30 => Tiff,
             0x1f8a5601 => Gif,
             0x57a37caa => Wmp,
-            _ => Unknown
+            _ => Unknown,
         }
-
     }
-
 }
-
 
 /**
     Represents a source of pixel that can be read, but cannot be written back to.
 */
 pub struct ImageData {
-    pub frame: *mut IWICBitmapSource
+    pub frame: *mut IWICBitmapSource,
 }
 
 impl ImageData {
-
     /// Retrieves the sampling rate between pixels and physical world measurements.
     pub fn resolution(&self) -> (f64, f64) {
         let (mut rx, mut ry) = (0.0, 0.0);
         unsafe { (&*self.frame).GetResolution(&mut rx, &mut ry) };
         (rx, ry)
-    }  
-    
+    }
+
     /// Retrieves the pixel width and height of the bitmap.
     pub fn size(&self) -> (u32, u32) {
         let (mut sx, mut sy) = (0, 0);
@@ -200,15 +201,20 @@ impl ImageData {
         let scanline = w * pixel_size;
         let buffer_size = (w * h * pixel_size) as usize;
         let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
-        
+
         let hr = unsafe {
             buffer.set_len(buffer_size);
-            (&*self.frame).CopyPixels(ptr::null(), scanline, buffer_size as u32, buffer.as_mut_ptr())
+            (&*self.frame).CopyPixels(
+                ptr::null(),
+                scanline,
+                buffer_size as u32,
+                buffer.as_mut_ptr(),
+            )
         };
 
         match hr {
             S_OK => Ok(buffer),
-            err => Err(NwgError::image_decoder(err, "Could not read image pixels"))
+            err => Err(NwgError::image_decoder(err, "Could not read image pixels")),
         }
     }
 
@@ -223,7 +229,12 @@ impl ImageData {
 
         May return an error if the pixel data could not be read
     */
-    pub fn region_pixels(&self, offset: [i32;2], size: [i32;2], pixel_size: u32) -> Result<Vec<u8>, NwgError> {
+    pub fn region_pixels(
+        &self,
+        offset: [i32; 2],
+        size: [i32; 2],
+        pixel_size: u32,
+    ) -> Result<Vec<u8>, NwgError> {
         use winapi::um::wincodec::WICRect;
 
         let [x, y] = offset;
@@ -232,8 +243,13 @@ impl ImageData {
         let buffer_size = (scanline * (h as u32)) as usize;
         let mut buffer: Vec<u8> = Vec::with_capacity(buffer_size);
 
-        let region = WICRect { X: x, Y: y, Width: w, Height: h };
-        
+        let region = WICRect {
+            X: x,
+            Y: y,
+            Width: w,
+            Height: h,
+        };
+
         let hr = unsafe {
             buffer.set_len(buffer_size);
             (&*self.frame).CopyPixels(&region, scanline, buffer_size as u32, buffer.as_mut_ptr())
@@ -241,7 +257,7 @@ impl ImageData {
 
         match hr {
             S_OK => Ok(buffer),
-            err => Err(NwgError::image_decoder(err, "Could not read image pixels"))
+            err => Err(NwgError::image_decoder(err, "Could not read image pixels")),
         }
     }
 
@@ -252,7 +268,6 @@ impl ImageData {
     pub fn as_bitmap(&self) -> Result<Bitmap, NwgError> {
         unsafe { img::create_bitmap_from_wic(self) }
     }
-
 }
 
 /// A list of container format implemented in WIC
@@ -276,7 +291,7 @@ pub enum ContainerFormat {
 impl Default for ImageDecoder {
     fn default() -> ImageDecoder {
         ImageDecoder {
-            factory: ptr::null_mut()
+            factory: ptr::null_mut(),
         }
     }
 }
@@ -284,29 +299,33 @@ impl Default for ImageDecoder {
 impl Drop for ImageDecoder {
     fn drop(&mut self) {
         if !self.factory.is_null() {
-            unsafe { (&*self.factory).Release(); }
+            unsafe {
+                (&*self.factory).Release();
+            }
         }
     }
 }
 
 impl Drop for ImageSource {
     fn drop(&mut self) {
-        unsafe { (&*self.decoder).Release(); }
+        unsafe {
+            (&*self.decoder).Release();
+        }
     }
 }
 
 impl Drop for ImageData {
     fn drop(&mut self) {
-        unsafe { (&*self.frame).Release(); }
+        unsafe {
+            (&*self.frame).Release();
+        }
     }
 }
-
 
 /**
     A blank builder for the image decoder
 */
-pub struct ImageDecoderBuilder {
-}
+pub struct ImageDecoderBuilder {}
 
 impl ImageDecoderBuilder {
     pub fn build(self, out: &mut ImageDecoder) -> Result<(), NwgError> {

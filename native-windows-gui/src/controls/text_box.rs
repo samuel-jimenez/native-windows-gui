@@ -1,14 +1,15 @@
-use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{WS_VSCROLL, WS_HSCROLL, ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP};
+use super::{ControlBase, ControlHandle};
 use crate::win32::window_helper as wh;
 use crate::{Font, NwgError};
-use super::{ControlBase, ControlHandle};
-use std::ops::Range;
 use newline_converter::{dos2unix, unix2dos};
+use std::ops::Range;
+use winapi::shared::minwindef::{LPARAM, WPARAM};
+use winapi::um::winuser::{
+    ES_AUTOHSCROLL, ES_AUTOVSCROLL, WS_DISABLED, WS_HSCROLL, WS_TABSTOP, WS_VISIBLE, WS_VSCROLL,
+};
 
 const NOT_BOUND: &'static str = "TextBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TextBox handle is not HWND!";
-
 
 bitflags! {
 
@@ -34,12 +35,11 @@ bitflags! {
     }
 }
 
-
 /**
 An edit control is a rectangular control window to permit the user to enter and edit text by typing on the keyboard
 This control allow multi line input. For a single line of text, use `TextInput`.
 
-Requires the `textbox` feature. 
+Requires the `textbox` feature.
 
 Note: Use `\r\n` to input a new line not just `\n`.
 
@@ -76,11 +76,10 @@ fn build_box(tbox: &mut nwg::TextBox, window: &nwg::Window, font: &nwg::Font) {
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct TextBox {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl TextBox {
-
     pub fn builder<'a>() -> TextBoxBuilder<'a> {
         TextBoxBuilder {
             text: "",
@@ -92,35 +91,45 @@ impl TextBox {
             readonly: false,
             focus: false,
             font: None,
-            parent: None
+            parent: None,
         }
     }
 
     /// Return the font of the control
     pub fn font(&self) -> Option<Font> {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let font_handle = wh::get_window_font(handle);
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return the number of maximum character allowed in this text input
     pub fn limit(&self) -> u32 {
         use winapi::um::winuser::EM_GETLIMITTEXT;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         wh::send_message(handle, EM_GETLIMITTEXT as u32, 0, 0) as u32
@@ -130,7 +139,9 @@ impl TextBox {
     pub fn set_limit(&self, limit: usize) {
         use winapi::um::winuser::EM_SETLIMITTEXT;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         wh::send_message(handle, EM_SETLIMITTEXT as u32, limit, 0);
@@ -140,7 +151,9 @@ impl TextBox {
     pub fn modified(&self) -> bool {
         use winapi::um::winuser::EM_GETMODIFY;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         wh::send_message(handle, EM_GETMODIFY as u32, 0, 0) != 0
@@ -149,7 +162,9 @@ impl TextBox {
     /// Manually set modified flag of the text input
     pub fn set_modified(&self, e: bool) {
         use winapi::um::winuser::EM_SETMODIFY;
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         wh::send_message(handle, EM_SETMODIFY as u32, e as usize, 0);
@@ -159,7 +174,9 @@ impl TextBox {
     pub fn undo(&self) {
         use winapi::um::winuser::EM_UNDO;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         wh::send_message(handle, EM_UNDO as u32, 0, 0);
@@ -169,21 +186,28 @@ impl TextBox {
     pub fn selection(&self) -> Range<u32> {
         use winapi::um::winuser::EM_GETSEL;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
 
         let (mut out1, mut out2) = (0u32, 0u32);
         let (ptr1, ptr2) = (&mut out1 as *mut u32, &mut out2 as *mut u32);
         wh::send_message(handle, EM_GETSEL as u32, ptr1 as WPARAM, ptr2 as LPARAM);
 
-        Range { start: out1 as u32, end: out2 as u32 }
+        Range {
+            start: out1 as u32,
+            end: out2 as u32,
+        }
     }
 
     /// Return the selected range of characters by the user in the text input
     pub fn set_selection(&self, r: Range<u32>) {
         use winapi::um::winuser::EM_SETSEL;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         wh::send_message(handle, EM_SETSEL as u32, r.start as usize, r.end as isize);
     }
@@ -193,28 +217,36 @@ impl TextBox {
     pub fn len(&self) -> u32 {
         use std::convert::TryInto;
 
-        dos2unix(&self.text()).chars().count().try_into().unwrap_or_default()
+        dos2unix(&self.text())
+            .chars()
+            .count()
+            .try_into()
+            .unwrap_or_default()
     }
-    
+
     /// Return the number of lines in the multiline edit control.
     /// If the control has no text, the return value is 1.
     pub fn linecount(&self) -> i32 {
         use winapi::um::winuser::EM_GETLINECOUNT;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         wh::send_message(handle, EM_GETLINECOUNT as u32, 0, 0) as i32
-    }  
-    
+    }
+
     /// Scroll `v` lines in the multiline edit control.
     pub fn scroll(&self, v: i32) {
         use winapi::um::winuser::EM_LINESCROLL;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         wh::send_message(handle, EM_LINESCROLL as u32, 0, v as LPARAM);
     }
-    
+
     /// Get the linecount and then scroll the text to the last line
     pub fn scroll_lastline(&self) {
         let lines = self.linecount();
@@ -227,7 +259,9 @@ impl TextBox {
     pub fn readonly(&self) -> bool {
         use winapi::um::winuser::ES_READONLY;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         wh::get_style(handle) & ES_READONLY == ES_READONLY
     }
@@ -237,7 +271,9 @@ impl TextBox {
     pub fn set_readonly(&self, r: bool) {
         use winapi::um::winuser::EM_SETREADONLY;
 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         wh::send_message(handle, EM_SETREADONLY as u32, r as WPARAM, 0);
     }
@@ -249,94 +285,122 @@ impl TextBox {
 
     /// Return true if the control currently has the keyboard focus
     pub fn focus(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_focus(handle) }
     }
 
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
     pub fn enabled(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_enabled(handle) }
     }
 
     /// Enable or disable the control
     pub fn set_enabled(&self, v: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_visibility(handle) }
     }
 
     /// Show or hide the control to the user
     pub fn set_visible(&self, v: bool) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_visibility(handle, v) }
     }
 
     /// Return the size of the button in the parent window
     pub fn size(&self) -> (u32, u32) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_size(handle) }
     }
 
     /// Set the size of the button in the parent window
     pub fn set_size(&self, x: u32, y: u32) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_size(handle, x, y, false) }
     }
 
     /// Return the position of the button in the parent window
     pub fn position(&self) -> (i32, i32) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_position(handle) }
     }
 
     /// Set the position of the button in the parent window
     pub fn set_position(&self, x: i32, y: i32) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_position(handle, x, y) }
     }
 
     /// Return the text displayed in the TextInput
-    pub fn text(&self) -> String { 
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+    pub fn text(&self) -> String {
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
 
     /// Set the text displayed in the TextInput
     pub fn set_text<'a>(&self, v: &'a str) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
         unsafe { wh::set_window_text(handle, v) }
     }
 
     /// Set the text in the current control, converting unix-style newlines in the input to "\r\n"
     pub fn set_text_unix2dos<'a>(&self, v: &'a str) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let handle = self.handle.hwnd().expect(BAD_HANDLE);
-        unsafe { wh::set_window_text(handle,  &unix2dos(&v).to_string()) }
+        unsafe { wh::set_window_text(handle, &unix2dos(&v).to_string()) }
     }
 
     /// Append text to the current control
@@ -352,7 +416,7 @@ impl TextBox {
         self.set_text(&text);
         self.scroll_lastline();
     }
-    
+
     /// Winapi class name used during control creation
     pub fn class_name(&self) -> &'static str {
         "EDIT"
@@ -365,11 +429,10 @@ impl TextBox {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_BORDER, WS_CHILD, ES_MULTILINE, ES_WANTRETURN};
-        
+        use winapi::um::winuser::{ES_MULTILINE, ES_WANTRETURN, WS_BORDER, WS_CHILD};
+
         WS_BORDER | WS_CHILD | ES_MULTILINE | ES_WANTRETURN
     }
-
 }
 
 impl Drop for TextBox {
@@ -387,11 +450,10 @@ pub struct TextBoxBuilder<'a> {
     readonly: bool,
     focus: bool,
     font: Option<&'a Font>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> TextBoxBuilder<'a> {
-
     pub fn flags(mut self, flags: TextBoxFlags) -> TextBoxBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -447,7 +509,7 @@ impl<'a> TextBoxBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("TextBox"))
+            None => Err(NwgError::no_parent("TextBox")),
         }?;
 
         *out = Default::default();
@@ -483,5 +545,4 @@ impl<'a> TextBoxBuilder<'a> {
 
         Ok(())
     }
-
 }

@@ -3,12 +3,11 @@
 
     Requires the following features: `cargo run --example system_tray_d --features "tray-notification message-window menu cursor"`
 */
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct SystemTray {
@@ -39,7 +38,6 @@ pub struct SystemTray {
 }
 
 impl SystemTray {
-
     fn show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.tray_menu.popup(x, y);
@@ -48,16 +46,20 @@ impl SystemTray {
     fn hello1(&self) {
         nwg::simple_message("Hello", "Hello World!");
     }
-    
+
     fn hello2(&self) {
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
-        self.tray.show("Hello World", Some("Welcome to my application"), Some(flags), Some(&self.icon));
+        self.tray.show(
+            "Hello World",
+            Some("Welcome to my application"),
+            Some(flags),
+            Some(&self.icon),
+        );
     }
-    
+
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {

@@ -1,19 +1,17 @@
-use winapi::shared::minwindef::DWORD;
-use winapi::um::commdlg::{CHOOSEFONTW, ChooseFontW};
-use winapi::um::wingdi::{LOGFONTW};
 use super::FontInfo;
 use crate::controls::ControlHandle;
 use crate::NwgError;
-use std::cell::{RefCell};
-use std::{ptr, mem};
+use std::cell::RefCell;
 use std::pin::Pin;
-
+use std::{mem, ptr};
+use winapi::shared::minwindef::DWORD;
+use winapi::um::commdlg::{ChooseFontW, CHOOSEFONTW};
+use winapi::um::wingdi::LOGFONTW;
 
 struct InnerFontDialog {
     font: Pin<Box<LOGFONTW>>,
     dialog: CHOOSEFONTW,
 }
-
 
 /// The Font dialog box lets the user choose attributes for a logical font, such as
 /// font family and associated font style, point size, effects (underline, strikeout),
@@ -23,7 +21,6 @@ pub struct FontDialog {
 }
 
 impl FontDialog {
-
     pub fn builder() -> FontDialogBuilder {
         FontDialogBuilder {}
     }
@@ -33,7 +30,9 @@ impl FontDialog {
     pub fn run<C: Into<ControlHandle>>(&self, owner: Option<C>) -> bool {
         if owner.is_some() {
             let ownder_handle = owner.unwrap().into();
-            self.data.borrow_mut().dialog.hwndOwner = ownder_handle.hwnd().expect("Color dialog must be a window control");
+            self.data.borrow_mut().dialog.hwndOwner = ownder_handle
+                .hwnd()
+                .expect("Color dialog must be a window control");
         }
 
         unsafe {
@@ -66,27 +65,21 @@ impl FontDialog {
             clip_precision: font.lfClipPrecision as u8,
             quality: font.lfQuality as u8,
             pitch_and_family: font.lfPitchAndFamily as u8,
-            name
+            name,
         }
     }
-
 }
-
 
 /// The builder for a `FontDialog` object. Use `FontDialog::builder` to create one.
-pub struct FontDialogBuilder {
-}
+pub struct FontDialogBuilder {}
 
 impl FontDialogBuilder {
-
     pub fn build(self, _out: &mut FontDialog) -> Result<(), NwgError> {
         Ok(())
     }
-
 }
 
 impl Default for FontDialog {
-
     fn default() -> FontDialog {
         let dialog = CHOOSEFONTW {
             lStructSize: mem::size_of::<CHOOSEFONTW>() as DWORD,
@@ -104,7 +97,7 @@ impl Default for FontDialog {
             nFontType: 0,
             ___MISSING_ALIGNMENT__: 0,
             nSizeMin: 0,
-            nSizeMax: 0
+            nSizeMax: 0,
         };
 
         let font: LOGFONTW = unsafe { mem::zeroed() };
@@ -119,8 +112,7 @@ impl Default for FontDialog {
         inner.dialog.lpLogFont = cols_ref as *mut LOGFONTW;
 
         FontDialog {
-            data: RefCell::new(inner)
+            data: RefCell::new(inner),
         }
     }
-
 }

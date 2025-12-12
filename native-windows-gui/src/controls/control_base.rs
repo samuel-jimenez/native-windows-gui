@@ -1,15 +1,16 @@
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::windef::{HWND};
 use super::ControlHandle;
-use crate::win32::window::{build_hwnd_control, build_timer, build_notice};
-use crate::{NwgError};
+use crate::win32::window::{build_hwnd_control, build_notice, build_timer};
+use crate::NwgError;
+use winapi::shared::minwindef::DWORD;
+use winapi::shared::windef::HWND;
 
-#[cfg(feature = "menu")] use crate::win32::menu::build_hmenu_control;
-#[cfg(feature = "menu")] use winapi::shared::windef::{HMENU};
+#[cfg(feature = "menu")]
+use crate::win32::menu::build_hmenu_control;
+#[cfg(feature = "menu")]
+use winapi::shared::windef::HMENU;
 
 const NOTICE: u32 = 1;
 const TRAY: u32 = 2;
-
 
 /**
 Control base is a low level interface to create base Windows handle (HWND, HMENU, TIMER, etc).
@@ -46,7 +47,6 @@ fn basic_stuff(window: &nwg::Window) -> Result<(), nwg::NwgError> {
 pub struct ControlBase;
 
 impl ControlBase {
-
     pub fn build_hwnd() -> HwndBuilder {
         HwndBuilder::default()
     }
@@ -63,18 +63,17 @@ impl ControlBase {
     pub fn build_notice() -> OtherBuilder {
         OtherBuilder {
             parent: None,
-            ty: NOTICE
+            ty: NOTICE,
         }
     }
 
     pub fn build_tray_notification() -> OtherBuilder {
         OtherBuilder {
             parent: None,
-            ty: TRAY
+            ty: TRAY,
         }
     }
 }
-
 
 /// Low level HWND builder. Instanced by `ControlBase::build_hwnd`.
 #[derive(Default)]
@@ -86,11 +85,10 @@ pub struct HwndBuilder {
     forced_flags: DWORD,
     flags: Option<DWORD>,
     ex_flags: Option<DWORD>,
-    parent: Option<HWND>
+    parent: Option<HWND>,
 }
 
 impl HwndBuilder {
-
     pub fn class_name<'a>(mut self, name: &'a str) -> HwndBuilder {
         self.class_name = name.to_string();
         self
@@ -128,28 +126,33 @@ impl HwndBuilder {
 
     pub fn parent(mut self, parent: Option<ControlHandle>) -> HwndBuilder {
         match parent {
-            Some(p) => { self.parent = p.hwnd(); }
-            None => { self.parent = None; }
+            Some(p) => {
+                self.parent = p.hwnd();
+            }
+            None => {
+                self.parent = None;
+            }
         }
         self
     }
 
     pub fn build(self) -> Result<ControlHandle, NwgError> {
-        let handle = unsafe { build_hwnd_control(
-            &self.class_name,
-            self.text.as_ref().map(|v| v as &str),
-            self.size,
-            self.pos,
-            self.flags,
-            self.ex_flags,
-            self.forced_flags,
-            self.parent
-        )? };
+        let handle = unsafe {
+            build_hwnd_control(
+                &self.class_name,
+                self.text.as_ref().map(|v| v as &str),
+                self.size,
+                self.pos,
+                self.flags,
+                self.ex_flags,
+                self.forced_flags,
+                self.parent,
+            )?
+        };
 
         Ok(handle)
     }
 }
-
 
 /// Low level HMENU builder. Instanced by `ControlBase::build_hmenu`.
 #[derive(Default)]
@@ -165,7 +168,6 @@ pub struct HmenuBuilder {
 
 #[cfg(feature = "menu")]
 impl HmenuBuilder {
-
     /// Set the text of the Menu
     pub fn text<'a>(mut self, text: &'a str) -> HmenuBuilder {
         self.text = Some(text.to_string());
@@ -193,9 +195,15 @@ impl HmenuBuilder {
     /// Set the parent of the menu. Can be a window or another menu.
     pub fn parent(mut self, parent: ControlHandle) -> HmenuBuilder {
         match parent {
-            ControlHandle::Hwnd(hwnd) => { self.parent_window = Some(hwnd); }
-            ControlHandle::Menu(_parent, menu) => { self.parent_menu = Some(menu); }
-            ControlHandle::PopMenu(_hwnd, menu) => { self.parent_menu = Some(menu); },
+            ControlHandle::Hwnd(hwnd) => {
+                self.parent_window = Some(hwnd);
+            }
+            ControlHandle::Menu(_parent, menu) => {
+                self.parent_menu = Some(menu);
+            }
+            ControlHandle::PopMenu(_hwnd, menu) => {
+                self.parent_menu = Some(menu);
+            }
             _ => {}
         }
 
@@ -203,31 +211,30 @@ impl HmenuBuilder {
     }
 
     pub fn build(self) -> Result<ControlHandle, NwgError> {
-        let handle = unsafe { build_hmenu_control(
-            self.text,
-            self.item,
-            self.separator,
-            self.popup,
-            self.parent_menu,
-            self.parent_window
-        )? };
+        let handle = unsafe {
+            build_hmenu_control(
+                self.text,
+                self.item,
+                self.separator,
+                self.popup,
+                self.parent_menu,
+                self.parent_window,
+            )?
+        };
 
         Ok(handle)
     }
-
 }
-
 
 /// Low level timer builder. Instanced by `ControlBase::build_timer`.
 #[derive(Default)]
 pub struct TimerBuilder {
     parent: Option<HWND>,
     interval: u32,
-    stopped: bool
+    stopped: bool,
 }
 
 impl TimerBuilder {
-
     pub fn stopped(mut self, v: bool) -> TimerBuilder {
         self.stopped = v;
         self
@@ -240,48 +247,51 @@ impl TimerBuilder {
 
     pub fn parent(mut self, parent: Option<ControlHandle>) -> TimerBuilder {
         match parent {
-            Some(p) => { self.parent = p.hwnd(); }
-            None => panic!("Timer parent must be HWND")
+            Some(p) => {
+                self.parent = p.hwnd();
+            }
+            None => panic!("Timer parent must be HWND"),
         }
         self
     }
 
     pub fn build(self) -> Result<ControlHandle, NwgError> {
-        let handle = unsafe { build_timer(
-            self.parent.expect("Internal error. Timer without window parent"),
-            self.interval,
-            self.stopped
-        ) };
+        let handle = unsafe {
+            build_timer(
+                self.parent
+                    .expect("Internal error. Timer without window parent"),
+                self.interval,
+                self.stopped,
+            )
+        };
         Ok(handle)
     }
-
 }
 
-
-/// Low level builder for controls without specific winapi contructors. 
+/// Low level builder for controls without specific winapi contructors.
 /// Instanced by `ControlBase::build_notice` or `ControlBase::build_tray_notification`.
 #[derive(Default)]
 pub struct OtherBuilder {
     parent: Option<HWND>,
-    ty: u32
+    ty: u32,
 }
 
 impl OtherBuilder {
-
     pub fn parent(mut self, parent: HWND) -> OtherBuilder {
         self.parent = Some(parent);
         self
     }
 
     pub fn build(self) -> Result<ControlHandle, NwgError> {
-        let handle = self.parent.expect("Internal error. Control without window parent");
+        let handle = self
+            .parent
+            .expect("Internal error. Control without window parent");
         let base = match self.ty {
             NOTICE => build_notice(handle),
             TRAY => ControlHandle::SystemTray(handle),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         Ok(base)
     }
-
 }

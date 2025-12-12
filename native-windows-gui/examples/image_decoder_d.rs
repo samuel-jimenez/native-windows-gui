@@ -4,15 +4,13 @@
     Requires the following features: `cargo run --example image_decoder_d --features "image-decoder file-dialog"`
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-use std::{env};
 use std::cell::RefCell;
-
+use std::env;
 
 #[derive(Default, NwgUi)]
 pub struct ImageDecoderApp {
@@ -47,14 +45,15 @@ pub struct ImageDecoderApp {
 }
 
 impl ImageDecoderApp {
-
     fn open_file(&self) {
         if let Ok(d) = env::current_dir() {
             if let Some(d) = d.to_str() {
-                self.dialog.set_default_folder(d).expect("Failed to set default folder.");
+                self.dialog
+                    .set_default_folder(d)
+                    .expect("Failed to set default folder.");
             }
         }
-        
+
         if self.dialog.run(Some(&self.window)) {
             self.file_name.set_text("");
             if let Ok(directory) = self.dialog.get_selected_item() {
@@ -69,15 +68,21 @@ impl ImageDecoderApp {
         println!("{}", self.file_name.text());
         let image = match self.decoder.from_filename(&self.file_name.text()) {
             Ok(img) => img,
-            Err(_) => { println!("Could not read image!"); return; }
+            Err(_) => {
+                println!("Could not read image!");
+                return;
+            }
         };
-        
+
         println!("Frame count: {}", image.frame_count());
         println!("Format: {:?}", image.container_format());
 
         let frame = match image.frame(0) {
             Ok(bmp) => bmp,
-            Err(_) => { println!("Could not read image frame!"); return; }
+            Err(_) => {
+                println!("Could not read image frame!");
+                return;
+            }
         };
 
         println!("Resolution: {:?}", frame.resolution());
@@ -89,15 +94,16 @@ impl ImageDecoderApp {
                 let mut img = self.loaded_image.borrow_mut();
                 img.replace(bitmap);
                 self.img.set_bitmap(img.as_ref());
-            },
-            Err(_) => { println!("Could not convert image to bitmap!"); }
+            }
+            Err(_) => {
+                println!("Could not convert image to bitmap!");
+            }
         }
     }
 
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {

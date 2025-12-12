@@ -4,20 +4,32 @@
     Requires the following features: `cargo run --example flexbox_d --features "flexbox"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 
 // Stretch style
-use nwg::stretch::{geometry::{Size, Rect}, style::{Dimension as D, FlexDirection, AlignSelf}};
+use nwg::stretch::{
+    geometry::{Rect, Size},
+    style::{AlignSelf, Dimension as D, FlexDirection},
+};
 const FIFTY_PC: D = D::Percent(0.5);
 const PT_10: D = D::Points(10.0);
 const PT_5: D = D::Points(5.0);
-const PADDING: Rect<D> = Rect{ start: PT_10, end: PT_10, top: PT_10, bottom: PT_10 };
-const MARGIN: Rect<D> = Rect{ start: PT_5, end: PT_5, top: PT_5, bottom: PT_5 };
-
+const PADDING: Rect<D> = Rect {
+    start: PT_10,
+    end: PT_10,
+    top: PT_10,
+    bottom: PT_10,
+};
+const MARGIN: Rect<D> = Rect {
+    start: PT_5,
+    end: PT_5,
+    top: PT_5,
+    bottom: PT_5,
+};
 
 #[derive(Default, NwgUi)]
 pub struct FlexBoxApp {
@@ -49,7 +61,7 @@ pub struct FlexBoxApp {
         flex_grow: 2.0,
         size: Size { width: D::Auto, height: D::Auto }
     )]
-    button3: nwg::Button
+    button3: nwg::Button,
 }
 
 fn main() {
@@ -57,6 +69,6 @@ fn main() {
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let _ui = FlexBoxApp::build_ui(Default::default()).expect("Failed to build UI");
-    
+
     nwg::dispatch_thread_events();
 }

@@ -1,4 +1,4 @@
-use super::{ControlHandle, Window, Button, CheckBox, RadioButton, TextInput, Label, ImageFrame};
+use super::{Button, CheckBox, ControlHandle, ImageFrame, Label, RadioButton, TextInput, Window};
 use std::convert::From;
 
 #[allow(unused)]
@@ -8,12 +8,16 @@ macro_rules! handles {
     ($control:ty) => {
         #[allow(deprecated)]
         impl From<&$control> for ControlHandle {
-            fn from(control: &$control) -> Self { control.handle }
+            fn from(control: &$control) -> Self {
+                control.handle
+            }
         }
 
         #[allow(deprecated)]
         impl From<&mut $control> for ControlHandle {
-            fn from(control: &mut $control) -> Self { control.handle }
+            fn from(control: &mut $control) -> Self {
+                control.handle
+            }
         }
 
         #[allow(deprecated)]
@@ -51,28 +55,35 @@ macro_rules! subclass_control {
     ($ty:ident, $base_type:ident, $field: ident) => {
         impl ::std::ops::Deref for $ty {
             type Target = $crate::$base_type;
-            fn deref(&self) -> &$crate::$base_type { &self.$field }
+            fn deref(&self) -> &$crate::$base_type {
+                &self.$field
+            }
         }
-        
+
         impl ::std::ops::DerefMut for $ty {
-            fn deref_mut(&mut self) -> &mut Self::Target {&mut self.$field }
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.$field
+            }
         }
-        
+
         impl Into<$crate::ControlHandle> for &$ty {
-            fn into(self) -> $crate::ControlHandle { self.$field.handle.clone() }
+            fn into(self) -> $crate::ControlHandle {
+                self.$field.handle.clone()
+            }
         }
 
         impl Into<$crate::ControlHandle> for &mut $ty {
-            fn into(self) -> $crate::ControlHandle { self.$field.handle.clone() }
+            fn into(self) -> $crate::ControlHandle {
+                self.$field.handle.clone()
+            }
         }
-        
+
         impl PartialEq<$ty> for $crate::ControlHandle {
             fn eq(&self, other: &$ty) -> bool {
                 *self == other.$field.handle
             }
         }
-        
-    }
+    };
 }
 
 handles!(Window);
@@ -82,7 +93,6 @@ handles!(Label);
 handles!(CheckBox);
 handles!(RadioButton);
 handles!(TextInput);
-
 
 #[cfg(feature = "textbox")]
 use super::TextBox;
@@ -122,19 +132,21 @@ handles!(MenuSeparator);
 use super::ComboBox;
 
 #[cfg(feature = "combobox")]
-impl<D: Display+Default> From<&ComboBox<D>> for ControlHandle {
-    fn from(control: &ComboBox<D>) -> Self { control.handle }
+impl<D: Display + Default> From<&ComboBox<D>> for ControlHandle {
+    fn from(control: &ComboBox<D>) -> Self {
+        control.handle
+    }
 }
 
 #[cfg(feature = "combobox")]
-impl<D: Display+Default> PartialEq<ControlHandle> for ComboBox<D> {
+impl<D: Display + Default> PartialEq<ControlHandle> for ComboBox<D> {
     fn eq(&self, other: &ControlHandle) -> bool {
         self.handle == *other
     }
 }
 
 #[cfg(feature = "combobox")]
-impl<D: Display+Default> PartialEq<ComboBox<D>> for ControlHandle {
+impl<D: Display + Default> PartialEq<ComboBox<D>> for ControlHandle {
     fn eq(&self, other: &ComboBox<D>) -> bool {
         *self == other.handle
     }
@@ -144,27 +156,28 @@ impl<D: Display+Default> PartialEq<ComboBox<D>> for ControlHandle {
 use super::ListBox;
 
 #[cfg(feature = "listbox")]
-impl<D: Display+Default> From<&ListBox<D>> for ControlHandle {
-    fn from(control: &ListBox<D>) -> Self { control.handle }
+impl<D: Display + Default> From<&ListBox<D>> for ControlHandle {
+    fn from(control: &ListBox<D>) -> Self {
+        control.handle
+    }
 }
 
 #[cfg(feature = "listbox")]
-impl<D: Display+Default> PartialEq<ControlHandle> for ListBox<D> {
+impl<D: Display + Default> PartialEq<ControlHandle> for ListBox<D> {
     fn eq(&self, other: &ControlHandle) -> bool {
         self.handle == *other
     }
 }
 
 #[cfg(feature = "listbox")]
-impl<D: Display+Default> PartialEq<ListBox<D>> for ControlHandle {
+impl<D: Display + Default> PartialEq<ListBox<D>> for ControlHandle {
     fn eq(&self, other: &ListBox<D>) -> bool {
         *self == other.handle
     }
 }
 
-
 #[cfg(feature = "tabs")]
-use super::{TabsContainer, Tab};
+use super::{Tab, TabsContainer};
 
 #[cfg(feature = "tabs")]
 handles!(TabsContainer);
@@ -173,7 +186,7 @@ handles!(TabsContainer);
 handles!(Tab);
 
 #[cfg(feature = "datetime-picker")]
-use super::{DatePicker};
+use super::DatePicker;
 
 #[cfg(feature = "datetime-picker")]
 handles!(DatePicker);
@@ -233,13 +246,11 @@ use super::ExternCanvas;
 #[cfg(feature = "extern-canvas")]
 handles!(ExternCanvas);
 
-
 #[cfg(feature = "frame")]
 use super::Frame;
 
 #[cfg(feature = "frame")]
 handles!(Frame);
-
 
 #[cfg(feature = "rich-textbox")]
 use super::RichTextBox;

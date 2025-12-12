@@ -1,17 +1,21 @@
 use crate::controls::ControlHandle;
-use crate::NwgError;
 use crate::win32::window_helper as wh;
-use std::{thread, time::{Duration, Instant}, sync::{Mutex, Arc}};
+use crate::NwgError;
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::{Duration, Instant},
+};
 
-use winapi::um::winuser::SendNotifyMessageW;
-use winapi::shared::minwindef::{WPARAM, LPARAM};
+use winapi::shared::minwindef::{LPARAM, WPARAM};
 use winapi::shared::windef::HWND;
+use winapi::um::winuser::SendNotifyMessageW;
 
 const NOT_BOUND: &'static str = "AnimationTimer is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: AnimationTimer handle is not Timer!";
 
 lazy_static! {
-    
+
     static ref THREAD_STATE: Arc<Mutex<AnimationThread>> = {
         let state = AnimationThread {
             timers: Vec::new(),
@@ -19,7 +23,7 @@ lazy_static! {
 
         let state = Arc::new(Mutex::new(state));
         let shared_state = state.clone();
-        
+
         thread::spawn(move || {
             let sleep_time = Duration::from_millis(1);
 
@@ -83,11 +87,11 @@ struct AnimationThread {
 }
 
 impl AnimationThread {
-
     fn add_timer(inner: InnerTimer) -> u32 {
         let mut state = THREAD_STATE.lock().unwrap();
-        
-        let empty = state.timers
+
+        let empty = state
+            .timers
             .iter_mut()
             .enumerate()
             .find(|(_i, t)| t.is_none());
@@ -96,7 +100,7 @@ impl AnimationThread {
             Some((i, t)) => {
                 *t = Some(inner);
                 i as u32
-            },
+            }
             None => {
                 state.timers.push(Some(inner));
                 (state.timers.len() - 1) as u32
@@ -113,7 +117,12 @@ impl AnimationThread {
         }
     }
 
-    fn update_timer(id: u32, interval: Option<Duration>, lifetime: Option<Option<Duration>>, max_tick: Option<Option<u64>>) {
+    fn update_timer(
+        id: u32,
+        interval: Option<Duration>,
+        lifetime: Option<Option<Duration>>,
+        max_tick: Option<Option<u64>>,
+    ) {
         let mut state = THREAD_STATE.lock().unwrap();
         if let Some(Some(t)) = state.timers.get_mut(id as usize) {
             if let Some(v) = interval {
@@ -146,18 +155,26 @@ impl AnimationThread {
 
     pub fn timer_tick(id: u32, hwnd: usize) {
         unsafe {
-            SendNotifyMessageW(hwnd as HWND, wh::NWG_TIMER_TICK, id as WPARAM, hwnd as LPARAM);
+            SendNotifyMessageW(
+                hwnd as HWND,
+                wh::NWG_TIMER_TICK,
+                id as WPARAM,
+                hwnd as LPARAM,
+            );
         }
     }
 
     pub fn timer_stop(id: u32, hwnd: usize) {
         unsafe {
-            SendNotifyMessageW(hwnd as HWND, wh::NWG_TIMER_STOP, id as WPARAM, hwnd as LPARAM);
+            SendNotifyMessageW(
+                hwnd as HWND,
+                wh::NWG_TIMER_STOP,
+                id as WPARAM,
+                hwnd as LPARAM,
+            );
         }
     }
-
 }
-
 
 /**
 A timer is an invisible UI component that trigger the `OnTimerTick` event at the specified interval.
@@ -201,11 +218,10 @@ pub struct AnimationTimer {
 }
 
 impl AnimationTimer {
-
     pub fn builder() -> AnimationTimerBuilder {
         AnimationTimerBuilder {
             parent: None,
-            interval: Duration::from_millis(1000/60),
+            interval: Duration::from_millis(1000 / 60),
             max_tick: None,
             lifetime: None,
             active: false,
@@ -215,7 +231,9 @@ impl AnimationTimer {
     /// Checks if the timer is still usable. A timer becomes unusable when the parent window is destroyed.
     /// This will also return false if the timer is not initialized.
     pub fn valid(&self) -> bool {
-        if self.handle.blank() { return false; }
+        if self.handle.blank() {
+            return false;
+        }
         let (hwnd, _) = self.handle.timer().expect(BAD_HANDLE);
         wh::window_valid(hwnd)
     }
@@ -225,7 +243,9 @@ impl AnimationTimer {
         This resets the life time and tick count if relevant.
     */
     pub fn start(&self) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (_, id) = self.handle.timer().expect(BAD_HANDLE);
         AnimationThread::reset_timer(id);
     }
@@ -234,45 +254,50 @@ impl AnimationTimer {
         Stop the selected timer. If the timer is already stopped, this does nothing.
     */
     pub fn stop(&self) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (_, id) = self.handle.timer().expect(BAD_HANDLE);
         AnimationThread::stop_timer(id);
     }
 
     /// Sets the interval on the this timer
     pub fn set_interval(&self, i: Duration) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (_, id) = self.handle.timer().expect(BAD_HANDLE);
         AnimationThread::update_timer(id, Some(i), None, None);
     }
 
     /// Sets the life time on the this timer
     pub fn set_lifetime(&self, life: Option<Duration>) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (_, id) = self.handle.timer().expect(BAD_HANDLE);
         AnimationThread::update_timer(id, None, Some(life), None);
     }
 
     /// Sets the max tick count on the this timer
     pub fn set_max_tick(&self, max_tick: Option<u64>) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
         let (_, id) = self.handle.timer().expect(BAD_HANDLE);
         AnimationThread::update_timer(id, None, None, Some(max_tick));
     }
-
 }
 
 impl Drop for AnimationTimer {
-
     fn drop(&mut self) {
         match &self.handle {
             ControlHandle::Timer(_, id) => {
                 AnimationThread::remove_timer(*id);
-            },
+            }
             _ => {}
         }
     }
-
 }
 
 pub struct AnimationTimerBuilder {
@@ -280,11 +305,10 @@ pub struct AnimationTimerBuilder {
     interval: Duration,
     max_tick: Option<u64>,
     lifetime: Option<Duration>,
-    active: bool
+    active: bool,
 }
 
 impl AnimationTimerBuilder {
-
     pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> AnimationTimerBuilder {
         self.parent = Some(p.into());
         self
@@ -314,13 +338,15 @@ impl AnimationTimerBuilder {
         let parent = match self.parent {
             Some(p) => match p.hwnd() {
                 Some(handle) => Ok(handle),
-                None => Err(NwgError::control_create("Wrong parent type"))
+                None => Err(NwgError::control_create("Wrong parent type")),
             },
-            None => Err(NwgError::no_parent("Timer"))
+            None => Err(NwgError::no_parent("Timer")),
         }?;
 
         if self.interval < Duration::from_millis(1) {
-            return Err(NwgError::control_create("Timer interval cannot be smaller than 1 ms"));
+            return Err(NwgError::control_create(
+                "Timer interval cannot be smaller than 1 ms",
+            ));
         }
 
         let inner = InnerTimer {
@@ -337,10 +363,9 @@ impl AnimationTimerBuilder {
         let id = AnimationThread::add_timer(inner);
 
         *out = AnimationTimer {
-            handle: ControlHandle::Timer(parent, id)
+            handle: ControlHandle::Timer(parent, id),
         };
 
         Ok(())
     }
-
 }

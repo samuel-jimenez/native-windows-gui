@@ -1,16 +1,15 @@
-use winapi::um::wincodec::{IWICImagingFactory, IWICBitmapDecoder};
-use winapi::um::objidlbase::IStream;
-use winapi::ctypes::{c_void, c_uint};
-use winapi::shared::winerror::S_OK;
-use winapi::Interface;
-use crate::{NwgError, Bitmap, ImageData};
+use crate::{Bitmap, ImageData, NwgError};
 use std::ptr;
-
+use winapi::ctypes::{c_uint, c_void};
+use winapi::shared::winerror::S_OK;
+use winapi::um::objidlbase::IStream;
+use winapi::um::wincodec::{IWICBitmapDecoder, IWICImagingFactory};
+use winapi::Interface;
 
 pub unsafe fn create_image_factory() -> Result<*mut IWICImagingFactory, NwgError> {
+    use winapi::shared::wtypesbase::CLSCTX_INPROC_SERVER;
     use winapi::um::combaseapi::CoCreateInstance;
     use winapi::um::wincodec::CLSID_WICImagingFactory;
-    use winapi::shared::wtypesbase::CLSCTX_INPROC_SERVER;
 
     let mut image_factory: *mut IWICImagingFactory = ptr::null_mut();
     let result = CoCreateInstance(
@@ -18,20 +17,25 @@ pub unsafe fn create_image_factory() -> Result<*mut IWICImagingFactory, NwgError
         ptr::null_mut(),
         CLSCTX_INPROC_SERVER,
         &IWICImagingFactory::uuidof(),
-        (&mut image_factory as *mut *mut IWICImagingFactory) as *mut *mut c_void
+        (&mut image_factory as *mut *mut IWICImagingFactory) as *mut *mut c_void,
     );
 
     if result != S_OK {
-        return Err(NwgError::resource_create("Failed to create a image factory"));
+        return Err(NwgError::resource_create(
+            "Failed to create a image factory",
+        ));
     }
 
     Ok(image_factory)
 }
 
-pub unsafe fn create_decoder_from_file<'a>(fact: &IWICImagingFactory, path: &'a str) -> Result<*mut IWICBitmapDecoder, NwgError> {
+pub unsafe fn create_decoder_from_file<'a>(
+    fact: &IWICImagingFactory,
+    path: &'a str,
+) -> Result<*mut IWICBitmapDecoder, NwgError> {
+    use crate::win32::base_helper::to_utf16;
     use winapi::um::wincodec::WICDecodeMetadataCacheOnDemand;
     use winapi::um::winnt::GENERIC_READ;
-    use crate::win32::base_helper::to_utf16;
 
     let path = to_utf16(path);
 
@@ -41,11 +45,13 @@ pub unsafe fn create_decoder_from_file<'a>(fact: &IWICImagingFactory, path: &'a 
         ptr::null(),
         GENERIC_READ,
         WICDecodeMetadataCacheOnDemand,
-        (&mut decoder as *mut *mut IWICBitmapDecoder) as *mut *mut IWICBitmapDecoder
+        (&mut decoder as *mut *mut IWICBitmapDecoder) as *mut *mut IWICBitmapDecoder,
     );
 
     if result != S_OK {
-        return Err(NwgError::resource_create("Failed to create a bitmap decoder"));
+        return Err(NwgError::resource_create(
+            "Failed to create a bitmap decoder",
+        ));
     }
 
     Ok(decoder)
@@ -58,15 +64,23 @@ extern "system" {
     fn SHCreateMemStream(p_init: *const u8, cb_init: c_uint) -> *mut IStream;
 }
 
-pub unsafe fn create_decoder_from_stream(fact: &IWICImagingFactory, data: &[u8]) -> Result<*mut IWICBitmapDecoder, NwgError> {
-    use winapi::um::wincodec::WICDecodeMetadataCacheOnDemand;
+pub unsafe fn create_decoder_from_stream(
+    fact: &IWICImagingFactory,
+    data: &[u8],
+) -> Result<*mut IWICBitmapDecoder, NwgError> {
     use std::convert::TryInto;
+    use winapi::um::wincodec::WICDecodeMetadataCacheOnDemand;
 
-    let stream = SHCreateMemStream(data.as_ptr(), data.len().try_into().map_err(|_| {
-        NwgError::resource_create("Failed to create memory stream, stream is too long")
-    })?);
+    let stream = SHCreateMemStream(
+        data.as_ptr(),
+        data.len().try_into().map_err(|_| {
+            NwgError::resource_create("Failed to create memory stream, stream is too long")
+        })?,
+    );
     if stream.is_null() {
-        return Err(NwgError::resource_create("Failed to create memory stream, allocation failure"));
+        return Err(NwgError::resource_create(
+            "Failed to create memory stream, allocation failure",
+        ));
     }
 
     let mut decoder: *mut IWICBitmapDecoder = ptr::null_mut();
@@ -74,24 +88,31 @@ pub unsafe fn create_decoder_from_stream(fact: &IWICImagingFactory, data: &[u8])
         stream,
         ptr::null(),
         WICDecodeMetadataCacheOnDemand,
-        (&mut decoder as *mut *mut IWICBitmapDecoder) as *mut *mut IWICBitmapDecoder
+        (&mut decoder as *mut *mut IWICBitmapDecoder) as *mut *mut IWICBitmapDecoder,
     );
 
     (*stream).Release();
 
     if r != S_OK {
-        return Err(NwgError::resource_create("Failed to create decoder from stream"));
+        return Err(NwgError::resource_create(
+            "Failed to create decoder from stream",
+        ));
     }
 
     Ok(decoder)
 }
 
 pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgError> {
-    use winapi::um::wincodec::{WICConvertBitmapSource, IWICBitmapSource, GUID_WICPixelFormat32bppPBGRA};
-    use winapi::um::wingdi::{DeleteObject, CreateDIBSection, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, BI_RGB, RGBQUAD};
-    use winapi::shared::{ntdef::LONG, minwindef::DWORD, windef::HBITMAP};
-    use winapi::um::winuser::{GetDC, ReleaseDC};
     use std::mem;
+    use winapi::shared::{minwindef::DWORD, ntdef::LONG, windef::HBITMAP};
+    use winapi::um::wincodec::{
+        GUID_WICPixelFormat32bppPBGRA, IWICBitmapSource, WICConvertBitmapSource,
+    };
+    use winapi::um::wingdi::{
+        CreateDIBSection, DeleteObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS,
+        RGBQUAD,
+    };
+    use winapi::um::winuser::{GetDC, ReleaseDC};
 
     // First convert the image into a bitmap compatible format
     let frame_ptr = (&*image.frame) as &IWICBitmapSource as *const IWICBitmapSource;
@@ -99,7 +120,10 @@ pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgErr
     let hr = WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, frame_ptr, &mut converted);
 
     if hr != S_OK {
-        return Err(NwgError::image_decoder(hr, "Could not convert image pixels"))
+        return Err(NwgError::image_decoder(
+            hr,
+            "Could not convert image pixels",
+        ));
     }
 
     // Converted size
@@ -109,14 +133,24 @@ pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgErr
     // Prepare the bitmap
     let header = BITMAPINFOHEADER {
         biSize: mem::size_of::<BITMAPINFOHEADER>() as DWORD,
-        biWidth: width as LONG, biHeight: -(height as LONG),
-        biPlanes: 1, biBitCount: 32, biCompression: BI_RGB,
+        biWidth: width as LONG,
+        biHeight: -(height as LONG),
+        biPlanes: 1,
+        biBitCount: 32,
+        biCompression: BI_RGB,
         biSizeImage: (width * height * 3) as u32,
-        biXPelsPerMeter: 0, biYPelsPerMeter: 0,
-        biClrUsed: 0, biClrImportant: 0
+        biXPelsPerMeter: 0,
+        biYPelsPerMeter: 0,
+        biClrUsed: 0,
+        biClrImportant: 0,
     };
 
-    let quad = RGBQUAD { rgbBlue: 0, rgbGreen: 0, rgbRed: 0, rgbReserved: 0 };
+    let quad = RGBQUAD {
+        rgbBlue: 0,
+        rgbGreen: 0,
+        rgbRed: 0,
+        rgbReserved: 0,
+    };
     let bitmap_info = BITMAPINFO {
         bmiHeader: header,
         bmiColors: [quad],
@@ -125,7 +159,14 @@ pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgErr
     // Create a DIB
     let mut bits = ptr::null_mut();
     let screen_dc = GetDC(ptr::null_mut());
-    let bitmap = CreateDIBSection(screen_dc, &bitmap_info, DIB_RGB_COLORS, &mut bits, ptr::null_mut(), 0) as HBITMAP;
+    let bitmap = CreateDIBSection(
+        screen_dc,
+        &bitmap_info,
+        DIB_RGB_COLORS,
+        &mut bits,
+        ptr::null_mut(),
+        0,
+    ) as HBITMAP;
     ReleaseDC(ptr::null_mut(), screen_dc);
 
     if bitmap.is_null() {
@@ -144,29 +185,41 @@ pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgErr
     // Free up the converted image
     (&*converted).Release();
 
-    Ok(
-        Bitmap {
-            handle: bitmap as _,
-            owned: true
-        }
-    )
+    Ok(Bitmap {
+        handle: bitmap as _,
+        owned: true,
+    })
 }
 
-pub unsafe fn resize_bitmap(fact: &IWICImagingFactory, image: &ImageData, new_size: [u32;2]) -> Result<ImageData, NwgError> {
-    use winapi::um::wincodec::{IWICBitmapScaler, IWICBitmapSource, WICBitmapInterpolationModeCubic};
+pub unsafe fn resize_bitmap(
+    fact: &IWICImagingFactory,
+    image: &ImageData,
+    new_size: [u32; 2],
+) -> Result<ImageData, NwgError> {
+    use winapi::um::wincodec::{
+        IWICBitmapScaler, IWICBitmapSource, WICBitmapInterpolationModeCubic,
+    };
 
     let mut scaler: *mut IWICBitmapScaler = ptr::null_mut();
     let result = fact.CreateBitmapScaler(&mut scaler);
     if result != S_OK {
-        return Err(NwgError::image_decoder(result, "Could not create bitmap scaler"));
+        return Err(NwgError::image_decoder(
+            result,
+            "Could not create bitmap scaler",
+        ));
     }
 
     let [w, h] = new_size;
     let image_source = image.frame as *const IWICBitmapSource;
     let result = (&*scaler).Initialize(image_source, w, h, WICBitmapInterpolationModeCubic);
     if result != S_OK {
-        return Err(NwgError::image_decoder(result, "Could not initialize bitmap scaler"));
+        return Err(NwgError::image_decoder(
+            result,
+            "Could not initialize bitmap scaler",
+        ));
     }
 
-    Ok(ImageData { frame: scaler as *mut IWICBitmapSource })
+    Ok(ImageData {
+        frame: scaler as *mut IWICBitmapSource,
+    })
 }

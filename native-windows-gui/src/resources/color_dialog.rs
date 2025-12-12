@@ -1,12 +1,11 @@
-use winapi::shared::{minwindef::DWORD, windef::COLORREF};
-use winapi::um::commdlg::{CHOOSECOLORW, CC_RGBINIT, ChooseColorW};
-use winapi::um::wingdi::{GetBValue, GetRValue, GetGValue, RGB};
 use crate::controls::ControlHandle;
 use crate::NwgError;
-use std::cell::{RefCell};
-use std::{ptr, mem};
+use std::cell::RefCell;
 use std::pin::Pin;
-
+use std::{mem, ptr};
+use winapi::shared::{minwindef::DWORD, windef::COLORREF};
+use winapi::um::commdlg::{ChooseColorW, CC_RGBINIT, CHOOSECOLORW};
+use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue, RGB};
 
 struct InnerColorDialog {
     custom_colors: Pin<Box<[COLORREF; 16]>>,
@@ -21,10 +20,9 @@ pub struct ColorDialog {
 }
 
 impl ColorDialog {
-
     pub fn builder() -> ColorDialogBuilder {
         ColorDialogBuilder {
-            default_colors: Default::default()
+            default_colors: Default::default(),
         }
     }
 
@@ -35,7 +33,9 @@ impl ColorDialog {
     pub fn run<C: Into<ControlHandle>>(&self, owner: Option<C>) -> bool {
         if owner.is_some() {
             let ownder_handle = owner.unwrap().into();
-            self.data.borrow_mut().dialog.hwndOwner = ownder_handle.hwnd().expect("Color dialog must be a window control");
+            self.data.borrow_mut().dialog.hwndOwner = ownder_handle
+                .hwnd()
+                .expect("Color dialog must be a window control");
         }
 
         unsafe {
@@ -61,7 +61,9 @@ impl ColorDialog {
             - If the index is out of bound
     */
     pub fn set_saved_color(&self, index: usize, color: &[u8; 3]) {
-        if index > 15 { panic!("{:?} is outside the dialog saved color bounds", index); }
+        if index > 15 {
+            panic!("{:?} is outside the dialog saved color bounds", index);
+        }
         self.data.borrow_mut().custom_colors[index] = RGB(color[0], color[1], color[2]);
     }
 
@@ -72,20 +74,20 @@ impl ColorDialog {
             - If the index is out of bound
     */
     pub fn saved_color(&self, index: usize) -> [u8; 3] {
-        if index > 15 { panic!("{:?} is outside the dialog saved color bounds", index); }
+        if index > 15 {
+            panic!("{:?} is outside the dialog saved color bounds", index);
+        }
         let v = self.data.borrow().custom_colors[index];
         [GetRValue(v), GetGValue(v), GetBValue(v)]
     }
-
 }
 
 /// The builder for a `ColorDialog` object. Use `ColorDialog::builder` to create one.
 pub struct ColorDialogBuilder {
-    default_colors: [COLORREF; 16]
+    default_colors: [COLORREF; 16],
 }
 
 impl ColorDialogBuilder {
-
     pub fn saved_color(mut self, index: usize, color: &[u8; 3]) -> ColorDialogBuilder {
         self.default_colors[index] = RGB(color[0], color[1], color[2]);
         self
@@ -95,11 +97,9 @@ impl ColorDialogBuilder {
         *out.data.borrow_mut().custom_colors.as_mut() = self.default_colors;
         Ok(())
     }
-
 }
 
 impl Default for ColorDialog {
-
     fn default() -> ColorDialog {
         let dialog = CHOOSECOLORW {
             lStructSize: mem::size_of::<CHOOSECOLORW>() as DWORD,
@@ -110,12 +110,12 @@ impl Default for ColorDialog {
             Flags: CC_RGBINIT,
             lCustData: 0,
             lpfnHook: None,
-            lpTemplateName: ptr::null()
+            lpTemplateName: ptr::null(),
         };
 
         let mut inner = InnerColorDialog {
             custom_colors: Box::pin(Default::default()),
-            dialog
+            dialog,
         };
 
         let mut cols = inner.custom_colors.as_mut();
@@ -123,9 +123,7 @@ impl Default for ColorDialog {
         inner.dialog.lpCustColors = cols_ref as *mut [COLORREF; 16] as *mut COLORREF;
 
         ColorDialog {
-            data: RefCell::new(inner)
+            data: RefCell::new(inner),
         }
     }
-
 }
-

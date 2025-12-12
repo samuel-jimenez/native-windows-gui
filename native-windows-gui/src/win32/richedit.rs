@@ -1,18 +1,20 @@
 //! winapi-rs does not implements richedit.h, so here's the low level stuff
 //! implemented here instead of in rich_text_box because it's kind of messy
-use winapi::um::winuser::WM_USER;
-use winapi::um::wingdi::{LF_FACESIZE, RGB};
-use winapi::shared::{
-    minwindef::{UINT, DWORD, WORD, BYTE},
-    ntdef::{LONG, SHORT, LCID},
-    windef::{HWND, COLORREF}
+use crate::controls::{
+    CharEffects, CharFormat, ParaAlignment, ParaFormat, ParaLineSpacing, ParaNumbering,
+    ParaNumberingStyle, UnderlineType,
 };
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::win32::window_helper as wh;
-use crate::win32::base_helper::{to_utf16, from_utf16};
-use crate::controls::{CharFormat, ParaFormat, CharEffects, UnderlineType, ParaNumbering,
-ParaNumberingStyle, ParaAlignment, ParaLineSpacing};
-use std::{mem, ptr};
 use std::convert::TryFrom;
+use std::{mem, ptr};
+use winapi::shared::{
+    minwindef::{BYTE, DWORD, UINT, WORD},
+    ntdef::{LCID, LONG, SHORT},
+    windef::{COLORREF, HWND},
+};
+use winapi::um::wingdi::{LF_FACESIZE, RGB};
+use winapi::um::winuser::WM_USER;
 
 pub const EM_SETBKGNDCOLOR: u32 = WM_USER + 67;
 
@@ -90,7 +92,7 @@ struct CHARFORMATW {
     bUnderlineType: BYTE,
     bAnimation: BYTE,
     bRevAuthor: BYTE,
-    bUnderlineColor: BYTE
+    bUnderlineColor: BYTE,
 }
 
 #[repr(C)]
@@ -120,19 +122,29 @@ struct PARAFORMAT {
     wNumberingTab: WORD,
     wBorderSpace: WORD,
     wBorderWidth: WORD,
-    wBorders: WORD
+    wBorders: WORD,
 }
 
-
 pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
-
     let mut mask = 0;
-    if fmt.effects.is_some() { mask |= CFM_EFFECTS; }
-    if fmt.height.is_some() { mask |= CFM_SIZE; }
-    if fmt.y_offset.is_some() { mask |= CFM_OFFSET; }
-    if fmt.text_color.is_some() { mask |= CFM_COLOR; }
-    if fmt.font_face_name.is_some() { mask |= CFM_FACE; }
-    if fmt.underline_type.is_some() { mask |= CFM_UNDERLINETYPE }
+    if fmt.effects.is_some() {
+        mask |= CFM_EFFECTS;
+    }
+    if fmt.height.is_some() {
+        mask |= CFM_SIZE;
+    }
+    if fmt.y_offset.is_some() {
+        mask |= CFM_OFFSET;
+    }
+    if fmt.text_color.is_some() {
+        mask |= CFM_COLOR;
+    }
+    if fmt.font_face_name.is_some() {
+        mask |= CFM_FACE;
+    }
+    if fmt.underline_type.is_some() {
+        mask |= CFM_UNDERLINETYPE
+    }
     let mut color = 0;
     if let Some([r, g, b]) = fmt.text_color {
         color = RGB(r, g, b);
@@ -142,7 +154,10 @@ pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
     if let Some(face_name) = fmt.font_face_name.as_ref() {
         let face_name = to_utf16(&face_name);
         if face_name.len() >= LF_FACESIZE {
-            panic!("Font face name cannot be longer than {:?} characters", LF_FACESIZE);
+            panic!(
+                "Font face name cannot be longer than {:?} characters",
+                LF_FACESIZE
+            );
         }
 
         unsafe {
@@ -173,21 +188,31 @@ pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
         crTextColor: color,
         bUnderlineType: underline_type,
         szFaceName: face,
-        .. Default::default()
+        ..Default::default()
     };
 
-    wh::send_message(handle, EM_SETCHARFORMAT, SCF_SELECTION as _, &mut fmt as *mut CHARFORMATW as _);
+    wh::send_message(
+        handle,
+        EM_SETCHARFORMAT,
+        SCF_SELECTION as _,
+        &mut fmt as *mut CHARFORMATW as _,
+    );
 }
 
 pub(crate) fn char_format(handle: HWND) -> CharFormat {
-    use winapi::um::wingdi::{GetRValue, GetGValue, GetBValue};
+    use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
 
     let mut fmt: CHARFORMATW = CHARFORMATW {
         cbSize: mem::size_of::<CHARFORMATW>() as _,
         ..Default::default()
     };
 
-    wh::send_message(handle, EM_GETCHARFORMAT, SCF_SELECTION as _, &mut fmt as *mut CHARFORMATW as _);
+    wh::send_message(
+        handle,
+        EM_GETCHARFORMAT,
+        SCF_SELECTION as _,
+        &mut fmt as *mut CHARFORMATW as _,
+    );
 
     let effects = Some(CharEffects::from_bits_truncate(fmt.dwEffects));
 
@@ -237,19 +262,40 @@ pub(crate) fn char_format(handle: HWND) -> CharFormat {
 }
 
 pub(crate) fn set_para_format(handle: HWND, fmt: &ParaFormat) {
-
     let mut mask = 0;
-    if fmt.numbering.is_some() { mask |= PFM_NUMBERING; }
-    if fmt.numbering_style.is_some() { mask |= PFM_NUMBERINGSTYLE; }
-    if fmt.numbering_tab.is_some() { mask |= PFM_NUMBERINGTAB; }
-    if fmt.alignment.is_some() { mask |= PFM_ALIGNMENT; }
-    if fmt.space_before.is_some() { mask |= PFM_SPACEBEFORE; }
-    if fmt.space_after.is_some() { mask |= PFM_SPACEAFTER; }
-    if fmt.start_indent.is_some() { mask |= PFM_STARTINDENT; }
-    if fmt.right_indent.is_some() { mask |= PFM_RIGHTINDENT; }
-    if fmt.offset.is_some() { mask |= PFM_OFFSET; }
-    if fmt.line_spacing.is_some() { mask |= PFM_LINESPACING; }
-    if fmt.rtl.is_some() { mask |= PFM_RTLPARA; }
+    if fmt.numbering.is_some() {
+        mask |= PFM_NUMBERING;
+    }
+    if fmt.numbering_style.is_some() {
+        mask |= PFM_NUMBERINGSTYLE;
+    }
+    if fmt.numbering_tab.is_some() {
+        mask |= PFM_NUMBERINGTAB;
+    }
+    if fmt.alignment.is_some() {
+        mask |= PFM_ALIGNMENT;
+    }
+    if fmt.space_before.is_some() {
+        mask |= PFM_SPACEBEFORE;
+    }
+    if fmt.space_after.is_some() {
+        mask |= PFM_SPACEAFTER;
+    }
+    if fmt.start_indent.is_some() {
+        mask |= PFM_STARTINDENT;
+    }
+    if fmt.right_indent.is_some() {
+        mask |= PFM_RIGHTINDENT;
+    }
+    if fmt.offset.is_some() {
+        mask |= PFM_OFFSET;
+    }
+    if fmt.line_spacing.is_some() {
+        mask |= PFM_LINESPACING;
+    }
+    if fmt.rtl.is_some() {
+        mask |= PFM_RTLPARA;
+    }
 
     let mut numbering_start = 0;
     let mut numbering = 0;
@@ -303,15 +349,15 @@ pub(crate) fn set_para_format(handle: HWND, fmt: &ParaFormat) {
             ParaLineSpacing::SingleOr(v) => {
                 line_spacing = v;
                 3
-            },
+            }
             ParaLineSpacing::Exact(v) => {
                 line_spacing = v;
                 4
-            },
+            }
             ParaLineSpacing::Exact20(v) => {
                 line_spacing = v;
                 5
-            },
+            }
         };
     }
 
@@ -346,7 +392,12 @@ pub(crate) fn set_para_format(handle: HWND, fmt: &ParaFormat) {
         ..Default::default()
     };
 
-    wh::send_message(handle, EM_SETPARAFORMAT, 0, &mut para as *mut PARAFORMAT as _);
+    wh::send_message(
+        handle,
+        EM_SETPARAFORMAT,
+        0,
+        &mut para as *mut PARAFORMAT as _,
+    );
 }
 
 pub(crate) fn para_format(handle: HWND) -> ParaFormat {
@@ -355,8 +406,12 @@ pub(crate) fn para_format(handle: HWND) -> ParaFormat {
         ..Default::default()
     };
 
-    wh::send_message(handle, EM_GETPARAFORMAT, 0, &mut para as *mut PARAFORMAT as _);
-    
+    wh::send_message(
+        handle,
+        EM_GETPARAFORMAT,
+        0,
+        &mut para as *mut PARAFORMAT as _,
+    );
 
     let mut numbering = None;
     let mut numbering_style = None;
@@ -370,8 +425,10 @@ pub(crate) fn para_format(handle: HWND) -> ParaFormat {
             PFN_LCROMAN => ParaNumbering::LcRoman,
             PFN_UCLETTER => ParaNumbering::UcLetter,
             PFN_UCROMAN => ParaNumbering::UcRoman,
-            PFN_CUSTOM => ParaNumbering::Seq(char::try_from(para.wNumberingStart as u32).unwrap_or('?')), 
-            _ => ParaNumbering::None
+            PFN_CUSTOM => {
+                ParaNumbering::Seq(char::try_from(para.wNumberingStart as u32).unwrap_or('?'))
+            }
+            _ => ParaNumbering::None,
         });
 
         numbering_style = Some(match para.wNumberingStyle {
@@ -380,7 +437,7 @@ pub(crate) fn para_format(handle: HWND) -> ParaFormat {
             PFNS_PLAIN => ParaNumberingStyle::Plain,
             PFNS_NONUMBER => ParaNumberingStyle::NoNumber,
             PFNS_NEWNUMBER => ParaNumberingStyle::NewNumber,
-            _ => ParaNumberingStyle::Paren
+            _ => ParaNumberingStyle::Paren,
         });
 
         numbering_tab = Some(para.wNumberingTab);
@@ -392,7 +449,7 @@ pub(crate) fn para_format(handle: HWND) -> ParaFormat {
             PFA_RIGHT => ParaAlignment::Right,
             PFA_CENTER => ParaAlignment::Center,
             PFA_JUSTIFY => ParaAlignment::Justify,
-            _ => ParaAlignment::Left
+            _ => ParaAlignment::Left,
         });
     }
 
@@ -452,4 +509,3 @@ pub(crate) fn para_format(handle: HWND) -> ParaFormat {
         rtl,
     }
 }
-

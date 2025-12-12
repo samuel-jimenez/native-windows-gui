@@ -1,7 +1,7 @@
 #[derive(Debug, Copy, Clone)]
 pub enum MeasurementSystem {
     Metric,
-    Imperial
+    Imperial,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -9,7 +9,7 @@ pub enum MeasurementSystem {
 pub enum Calendar {
     /// Gregorian (localized) calendar
     Gregorian = 1,
-    
+
     /// Gregorian (U.S.) calendar
     GregorianUs,
 
@@ -54,7 +54,7 @@ pub enum Calendar {
     Persian,
 
     /// UmAlQura Hijri (Arabic Lunar) calendar
-    UmAlQura
+    UmAlQura,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -84,44 +84,44 @@ pub enum PositiveCurrency {
     /// Prefix, 1-character separation, for example, $ 1.1
     Mode2,
     /// Suffix, 1-character separation, for example, 1.1 $
-    Mode3
+    Mode3,
 }
 
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
 pub enum NegativeCurrency {
     /// Left parenthesis, monetary symbol, number, right parenthesis; for example, ($1.1)
-    Mode0 = 0,	
+    Mode0 = 0,
     /// Negative sign, monetary symbol, number; for example, -$1.1
-    Mode1,	
+    Mode1,
     /// Monetary symbol, negative sign, number; for example, $-1.1
-    Mode2,	
+    Mode2,
     /// Monetary symbol, number, negative sign; for example, $1.1-
-    Mode3,	
+    Mode3,
     /// Left parenthesis, number, monetary symbol, right parenthesis; for example, (1.1$)
-    Mode4,	
+    Mode4,
     /// Negative sign, number, monetary symbol; for example, -1.1$
-    Mode5,	
+    Mode5,
     /// Number, negative sign, monetary symbol; for example, 1.1-$
-    Mode6,	
+    Mode6,
     /// Number, monetary symbol, negative sign; for example, 1.1$-
-    Mode7,	
+    Mode7,
     /// Negative sign, number, space, monetary symbol (like #5, but with a space before the monetary symbol); for example, -1.1 $
-    Mode8,	
+    Mode8,
     /// Negative sign, monetary symbol, space, number (like #1, but with a space after the monetary symbol); for example, -$ 1.1
-    Mode9,	
+    Mode9,
     /// Number, space, monetary symbol, negative sign (like #7, but with a space before the monetary symbol); for example, 1.1 $-
-    Mode10, 	
+    Mode10,
     /// Monetary symbol, space, number, negative sign (like #3, but with a space after the monetary symbol); for example, $ 1.1-
     Mode11,
-    /// Monetary symbol, space, negative sign, number (like #2, but with a space after the monetary symbol); for example, $ -1.1 	
-    Mode12, 	
+    /// Monetary symbol, space, negative sign, number (like #2, but with a space after the monetary symbol); for example, $ -1.1
+    Mode12,
     /// Number, negative sign, space, monetary symbol (like #6, but with a space before the monetary symbol); for example, 1.1- $
-    Mode13, 	
+    Mode13,
     /// Left parenthesis, monetary symbol, space, number, right parenthesis (like #0, but with a space after the monetary symbol); for example, ($ 1.1)
-    Mode14, 	
+    Mode14,
     /// Left parenthesis, number, space, monetary symbol, right parenthesis (like #4, but with a space before the monetary symbol); for example, (1.1 $)
-    Mode15, 	
+    Mode15,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -135,4 +135,3 @@ pub enum FirstDayOfYear {
     /// First week containing at least four days is the first week of the year.
     Mode2,
 }
-

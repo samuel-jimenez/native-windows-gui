@@ -1,10 +1,10 @@
 pub(crate) mod base_helper;
-pub(crate) mod window_helper;
+pub(crate) mod high_dpi;
+pub(crate) mod message_box;
+pub(crate) mod monitor;
 pub(crate) mod resources_helper;
 pub(crate) mod window;
-pub(crate) mod message_box;
-pub(crate) mod high_dpi;
-pub(crate) mod monitor;
+pub(crate) mod window_helper;
 
 #[cfg(feature = "menu")]
 pub(crate) mod menu;
@@ -30,37 +30,38 @@ pub(crate) mod richedit;
 #[cfg(feature = "plotting")]
 pub(crate) mod plotters_d2d;
 
-use std::{fs, mem, ptr};
 use crate::errors::NwgError;
+use std::{fs, mem, ptr};
 
-
-use winapi::um::winuser::{IsDialogMessageW, GetAncestor, TranslateMessage, DispatchMessageW, GA_ROOT};
+use winapi::um::winuser::{
+    DispatchMessageW, GetAncestor, IsDialogMessageW, TranslateMessage, GA_ROOT,
+};
 
 /**
     Dispatch system events in the current thread. This method will pause the thread until there are events to process.
 */
 pub fn dispatch_thread_events() {
-    use winapi::um::winuser::MSG;
     use winapi::um::winuser::GetMessageW;
+    use winapi::um::winuser::MSG;
 
     unsafe {
         let mut msg: MSG = mem::zeroed();
         while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
             if IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) == 0 {
-                TranslateMessage(&msg); 
-                DispatchMessageW(&msg); 
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
             }
         }
     }
 }
 
-
 /**
     Dispatch system events in the current thread AND execute a callback after each peeking attempt.
     Unlike `dispath_thread_events`, this method will not pause the thread while waiting for events.
 */
-pub fn dispatch_thread_events_with_callback<F>(mut cb: F) 
-    where F: FnMut() -> () + 'static
+pub fn dispatch_thread_events_with_callback<F>(mut cb: F)
+where
+    F: FnMut() -> () + 'static,
 {
     use winapi::um::winuser::MSG;
     use winapi::um::winuser::{PeekMessageW, PM_REMOVE, WM_QUIT};
@@ -71,8 +72,8 @@ pub fn dispatch_thread_events_with_callback<F>(mut cb: F)
             let has_message = PeekMessageW(&mut msg, ptr::null_mut(), 0, 0, PM_REMOVE) != 0;
             if has_message {
                 if IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) == 0 {
-                    TranslateMessage(&msg); 
-                    DispatchMessageW(&msg); 
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
                 }
             }
 
@@ -85,29 +86,28 @@ pub fn dispatch_thread_events_with_callback<F>(mut cb: F)
     Break the events loop running on the current thread
 */
 pub fn stop_thread_dispatch() {
-  use winapi::um::winuser::PostMessageW;
-  use winapi::um::winuser::WM_QUIT;
+    use winapi::um::winuser::PostMessageW;
+    use winapi::um::winuser::WM_QUIT;
 
-  unsafe { PostMessageW(ptr::null_mut(), WM_QUIT, 0, 0) };
+    unsafe { PostMessageW(ptr::null_mut(), WM_QUIT, 0, 0) };
 }
-
 
 /**
   Enable the Windows visual style in the application without having to use a manifest
 */
 pub fn enable_visual_styles() {
-    use winapi::shared::minwindef::{ULONG, DWORD, MAX_PATH};
     use winapi::shared::basetsd::ULONG_PTR;
+    use winapi::shared::minwindef::{DWORD, MAX_PATH, ULONG};
     use winapi::um::fileapi::{GetTempFileNameW, GetTempPathW};
-    use winapi::um::winbase::{ACTCTXW, CreateActCtxW, ActivateActCtx};
+    use winapi::um::winbase::{ActivateActCtx, CreateActCtxW, ACTCTXW};
 
     const MANIFEST_CONTENT: &str = r#"
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?> 
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-    <description>native-windows-gui comctl32 manifest</description> 
+    <description>native-windows-gui comctl32 manifest</description>
     <dependency>
         <dependentAssembly>
-            <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" /> 
+            <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" />
         </dependentAssembly>
     </dependency>
 </assembly>
@@ -120,7 +120,8 @@ pub fn enable_visual_styles() {
     }
     let mut tmp_path = [0u16; MAX_PATH]; // Smaller than above, but these are the respective maximums for each function.
     let prefix = ['n' as u16, 'w' as u16, 'g' as u16];
-    if unsafe { GetTempFileNameW(tmp_dir.as_ptr(), prefix.as_ptr(), 0, tmp_path.as_mut_ptr())} == 0 {
+    if unsafe { GetTempFileNameW(tmp_dir.as_ptr(), prefix.as_ptr(), 0, tmp_path.as_mut_ptr()) } == 0
+    {
         return;
     }
 
@@ -138,7 +139,7 @@ pub fn enable_visual_styles() {
         lpAssemblyDirectory: ptr::null_mut(),
         lpResourceName: ptr::null_mut(),
         lpApplicationName: ptr::null_mut(),
-        hModule: ptr::null_mut()
+        hModule: ptr::null_mut(),
     };
 
     unsafe {
@@ -154,12 +155,14 @@ pub fn enable_visual_styles() {
     Also register the custom classes used by NWG
 */
 pub fn init_common_controls() -> Result<(), NwgError> {
-    use winapi::um::objbase::CoInitialize;
-    use winapi::um::libloaderapi::LoadLibraryW;
+    use winapi::shared::winerror::{S_FALSE, S_OK};
     use winapi::um::commctrl::{InitCommonControlsEx, INITCOMMONCONTROLSEX};
-    use winapi::um::commctrl::{ICC_BAR_CLASSES, ICC_STANDARD_CLASSES, ICC_DATE_CLASSES, ICC_PROGRESS_CLASS,
-     ICC_TAB_CLASSES, ICC_TREEVIEW_CLASSES, ICC_LISTVIEW_CLASSES};
-    use winapi::shared::winerror::{S_OK, S_FALSE};
+    use winapi::um::commctrl::{
+        ICC_BAR_CLASSES, ICC_DATE_CLASSES, ICC_LISTVIEW_CLASSES, ICC_PROGRESS_CLASS,
+        ICC_STANDARD_CLASSES, ICC_TAB_CLASSES, ICC_TREEVIEW_CLASSES,
+    };
+    use winapi::um::libloaderapi::LoadLibraryW;
+    use winapi::um::objbase::CoInitialize;
 
     unsafe {
         let mut classes = ICC_BAR_CLASSES | ICC_STANDARD_CLASSES;
@@ -191,7 +194,7 @@ pub fn init_common_controls() -> Result<(), NwgError> {
 
         let data = INITCOMMONCONTROLSEX {
             dwSize: mem::size_of::<INITCOMMONCONTROLSEX>() as u32,
-            dwICC: classes
+            dwICC: classes,
         };
 
         InitCommonControlsEx(&data);
@@ -201,28 +204,39 @@ pub fn init_common_controls() -> Result<(), NwgError> {
     tabs_init()?;
     extern_canvas_init()?;
     frame_init()?;
-    
+
     match unsafe { CoInitialize(ptr::null_mut()) } {
         S_OK | S_FALSE => Ok(()),
-        _ => Err(NwgError::initialization("CoInitialize failed"))
+        _ => Err(NwgError::initialization("CoInitialize failed")),
     }
 }
 
 #[cfg(feature = "tabs")]
-fn tabs_init() -> Result<(), NwgError> { tabs::create_tab_classes() }
+fn tabs_init() -> Result<(), NwgError> {
+    tabs::create_tab_classes()
+}
 
 #[cfg(not(feature = "tabs"))]
-fn tabs_init() -> Result<(), NwgError> { Ok(()) }
+fn tabs_init() -> Result<(), NwgError> {
+    Ok(())
+}
 
 #[cfg(feature = "extern-canvas")]
-fn extern_canvas_init() -> Result<(), NwgError> { extern_canvas::create_extern_canvas_classes() }
+fn extern_canvas_init() -> Result<(), NwgError> {
+    extern_canvas::create_extern_canvas_classes()
+}
 
 #[cfg(not(feature = "extern-canvas"))]
-fn extern_canvas_init() -> Result<(), NwgError> { Ok(()) }
+fn extern_canvas_init() -> Result<(), NwgError> {
+    Ok(())
+}
 
 #[cfg(feature = "frame")]
-fn frame_init() -> Result<(), NwgError> { window::create_frame_classes() }
+fn frame_init() -> Result<(), NwgError> {
+    window::create_frame_classes()
+}
 
 #[cfg(not(feature = "frame"))]
-fn frame_init() -> Result<(), NwgError> { Ok(()) }
-
+fn frame_init() -> Result<(), NwgError> {
+    Ok(())
+}

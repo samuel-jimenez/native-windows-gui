@@ -4,16 +4,17 @@
     Requires the following features: `cargo run --example basic_drawing_d --features "extern-canvas"`
 */
 
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
+use std::cell::{Cell, RefCell};
 use std::mem;
-use std::cell::{RefCell, Cell};
 use winapi::shared::windef::{HBRUSH, HPEN};
-use winapi::um::wingdi::{CreateSolidBrush, CreatePen, Ellipse, Polygon, SelectObject, RGB, PS_SOLID};
-
+use winapi::um::wingdi::{
+    CreatePen, CreateSolidBrush, Ellipse, Polygon, SelectObject, PS_SOLID, RGB,
+};
 
 pub struct PaintData {
     background: HBRUSH,
@@ -39,8 +40,8 @@ pub struct DrawingApp {
 
     // By default ExternCanvas is a window so we must specify the parent here
     #[nwg_control(parent: Some(&data.window), position: (10, 10), size: (280, 280))]
-    #[nwg_events( 
-        OnPaint: [DrawingApp::paint(SELF, EVT_DATA)], 
+    #[nwg_events(
+        OnPaint: [DrawingApp::paint(SELF, EVT_DATA)],
         OnMousePress: [DrawingApp::events(SELF, EVT)],
     )]
     canvas: nwg::ExternCanvas,
@@ -50,7 +51,6 @@ pub struct DrawingApp {
 }
 
 impl DrawingApp {
-
     fn setup(&self) {
         let mut data = self.paint_data.borrow_mut();
         unsafe {
@@ -69,21 +69,25 @@ impl DrawingApp {
         use nwg::MousePressEvent as M;
 
         match evt {
-            E::OnMousePress(M::MousePressLeftUp) => { self.clicked.set(false); },
-            E::OnMousePress(M::MousePressLeftDown) => { self.clicked.set(true); },
-            _ => {},
+            E::OnMousePress(M::MousePressLeftUp) => {
+                self.clicked.set(false);
+            }
+            E::OnMousePress(M::MousePressLeftDown) => {
+                self.clicked.set(true);
+            }
+            _ => {}
         }
 
         self.canvas.invalidate();
     }
 
     fn paint(&self, data: &nwg::EventData) {
-        use winapi::um::winuser::{FillRect, FrameRect};
         use winapi::shared::windef::POINT as P;
-        
+        use winapi::um::winuser::{FillRect, FrameRect};
+
         let paint = data.on_paint();
         let ps = paint.begin_paint();
-        
+
         unsafe {
             let p = self.paint_data.borrow();
             let hdc = ps.hdc;
@@ -94,7 +98,13 @@ impl DrawingApp {
 
             SelectObject(hdc, p.pen as _);
             SelectObject(hdc, p.yellow as _);
-            Ellipse(hdc, rc.left + 20, rc.top + 20, rc.right - 20, rc.bottom - 20);
+            Ellipse(
+                hdc,
+                rc.left + 20,
+                rc.top + 20,
+                rc.right - 20,
+                rc.bottom - 20,
+            );
 
             SelectObject(hdc, p.white as _);
             Ellipse(hdc, 60, 60, 130, 130);
@@ -105,18 +115,21 @@ impl DrawingApp {
             } else {
                 SelectObject(hdc, p.black as _);
             }
-            
+
             Ellipse(hdc, 80, 80, 110, 110);
             Ellipse(hdc, 170, 80, 200, 110);
 
             SelectObject(hdc, p.red as _);
-            let pts = &[P{x: 60, y: 150}, P{x: 220, y: 150}, P{x: 140, y: 220}];
+            let pts = &[
+                P { x: 60, y: 150 },
+                P { x: 220, y: 150 },
+                P { x: 140, y: 220 },
+            ];
             Polygon(hdc, pts.as_ptr(), pts.len() as _);
         }
 
         paint.end_paint(&ps);
     }
-
 }
 
 fn main() {
@@ -127,4 +140,3 @@ fn main() {
 
     nwg::dispatch_thread_events();
 }
-

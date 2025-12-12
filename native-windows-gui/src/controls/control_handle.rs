@@ -1,6 +1,5 @@
-use winapi::shared::windef::{HWND, HMENU};
 use crate::win32::window_helper as wh;
-
+use winapi::shared::windef::{HMENU, HWND};
 
 /**
     Inner handle type used internally by each control.
@@ -10,14 +9,14 @@ pub enum ControlHandle {
     NoHandle,
     Hwnd(HWND),
 
-    /// (Parent menu / Menu). 
+    /// (Parent menu / Menu).
     /// Parent menu must be there as WINAPI does not have any function to fetch the parent
     Menu(HMENU, HMENU),
 
-    /// (Parent window / Menu). 
+    /// (Parent window / Menu).
     PopMenu(HWND, HMENU),
 
-    /// (Parent menu / Unique ID). 
+    /// (Parent menu / Unique ID).
     MenuItem(HMENU, u32),
 
     /// Notice control
@@ -27,11 +26,10 @@ pub enum ControlHandle {
     Timer(HWND, u32),
 
     /// System tray control
-    SystemTray(HWND)
+    SystemTray(HWND),
 }
 
 impl ControlHandle {
-
     /// Destroy the underlying object and set the handle to `NoHandle`
     /// Can be used to "reset" a UI component
     pub fn destroy(&mut self) {
@@ -49,7 +47,7 @@ impl ControlHandle {
     pub fn blank(&self) -> bool {
         match self {
             &ControlHandle::NoHandle => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -101,16 +99,12 @@ impl ControlHandle {
             _ => None,
         }
     }
-
 }
 
-
 impl Default for ControlHandle {
-
     fn default() -> ControlHandle {
         ControlHandle::NoHandle
     }
-
 }
 
 impl PartialEq for ControlHandle {
@@ -119,43 +113,43 @@ impl PartialEq for ControlHandle {
             // NoHandle
             &ControlHandle::NoHandle => match other {
                 &ControlHandle::NoHandle => true,
-                _ => false
+                _ => false,
             },
             // HWND
             &ControlHandle::Hwnd(hwnd1) => match other {
                 &ControlHandle::Hwnd(hwnd2) => hwnd1 == hwnd2,
-                _ => false
+                _ => false,
             },
             // HMENU
             &ControlHandle::Menu(_, h1) => match other {
                 &ControlHandle::Menu(_, h2) => h1 == h2,
-                _ => false
+                _ => false,
             },
             // HMENU
             &ControlHandle::PopMenu(_, h1) => match other {
                 &ControlHandle::PopMenu(_, h2) => h1 == h2,
-                _ => false
+                _ => false,
             },
             // HMENU / ITEM
             &ControlHandle::MenuItem(_, id1) => match other {
                 &ControlHandle::MenuItem(_, id2) => id1 == id2,
-                _ => false
+                _ => false,
             },
-            // TIMER 
+            // TIMER
             &ControlHandle::Timer(hwnd1, id1) => match other {
                 &ControlHandle::Timer(hwnd2, id2) => hwnd1 == hwnd2 && id1 == id2,
-                _ => false
+                _ => false,
             },
             // Notice
             &ControlHandle::Notice(hwnd1, id1) => match other {
                 &ControlHandle::Notice(hwnd2, id2) => hwnd1 == hwnd2 && id1 == id2,
-                _ => false
+                _ => false,
             },
             // System tray
             &ControlHandle::SystemTray(hwnd1) => match other {
                 &ControlHandle::SystemTray(hwnd2) => hwnd1 == hwnd2,
-                _ => false
-            }
+                _ => false,
+            },
         }
     }
 }
@@ -163,5 +157,7 @@ impl PartialEq for ControlHandle {
 impl Eq for ControlHandle {}
 
 impl From<&ControlHandle> for ControlHandle {
-    fn from(control: &ControlHandle) -> Self { *control }
+    fn from(control: &ControlHandle) -> Self {
+        *control
+    }
 }

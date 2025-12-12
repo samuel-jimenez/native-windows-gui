@@ -1,25 +1,26 @@
-use winapi::um::winuser::{WS_OVERLAPPEDWINDOW, WS_VISIBLE, WS_DISABLED, WS_MAXIMIZE, WS_MINIMIZE, WS_CAPTION,
-WS_MINIMIZEBOX, WS_MAXIMIZEBOX, WS_SYSMENU, WS_THICKFRAME, WS_CLIPCHILDREN, WS_CLIPSIBLINGS };
+use winapi::um::winuser::{
+    WS_CAPTION, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_DISABLED, WS_MAXIMIZE, WS_MAXIMIZEBOX,
+    WS_MINIMIZE, WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_SYSMENU, WS_THICKFRAME, WS_VISIBLE,
+};
 
+use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
-use crate::{NwgError, Icon};
-use super::{ControlBase, ControlHandle};
+use crate::{Icon, NwgError};
 
 const NOT_BOUND: &'static str = "ExternCanvas is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ExternCanvas handle is not HWND!";
 
-
 bitflags! {
 
     /**
-        The extern canvas flags. 
-        
+        The extern canvas flags.
+
         Note that the window flags only applies if the the extern canvas is a top level window (it has no parents).
-        
+
         Window flags:
         * MAIN_WINDOW: Combine all the top level system window decoration: A title, a system menu, a resizable frame, and the close, minimize, maximize buttons
-        * WINDOW:  A window with a title, a system menu, a close button, and a non resizable border. 
+        * WINDOW:  A window with a title, a system menu, a close button, and a non resizable border.
         * MINIMIZE_BOX: Includes a minimize button
         * MAXIMIZE_BOX: Includes a maximize button
         * SYS_MENU: Includes a system menu when the user right click the window header
@@ -47,11 +48,11 @@ bitflags! {
 
 /**
     An `ExternCanvas` is a window/children control that is painted to by an external API (such as OpenGL, Vulkan or DirectX).
-    
+
     When building a `ExternCanvas`, leaving the parent field empty will create a window-like canvas. If a parent is set, the canvas will be a children control (like a button).
     When used as a child, `ExternCanvas` can be used as a way to add highly dynamic controls to a NWG application (ex: a video player).
 
-    Requires the `extern-canvas` feature. 
+    Requires the `extern-canvas` feature.
 
     As a top level window, the extern canvas has the same features as the window control.
     As a children control, resize and move events cannot be triggered and window parameters
@@ -85,11 +86,10 @@ bitflags! {
 */
 #[derive(Default)]
 pub struct ExternCanvas {
-    pub handle: ControlHandle
+    pub handle: ControlHandle,
 }
 
 impl ExternCanvas {
-
     pub fn builder<'a>() -> ExternCanvasBuilder<'a> {
         ExternCanvasBuilder {
             title: "New Canvas",
@@ -98,23 +98,25 @@ impl ExternCanvas {
             flags: None,
             ex_flags: 0,
             icon: None,
-            parent: None
+            parent: None,
         }
     }
 
     /// Invalidate the whole drawing region. For canvas that are children control, this should be called in the paint event.
     pub fn invalidate(&self) {
-        use winapi::um::winuser::InvalidateRect;
         use std::ptr;
+        use winapi::um::winuser::InvalidateRect;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { InvalidateRect(handle, ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ptr::null(), 1);
+        }
     }
 
     /// Return the icon of the window
     pub fn icon(&self) -> Option<Icon> {
-        use winapi::um::winuser::WM_GETICON;
         use winapi::um::winnt::HANDLE;
+        use winapi::um::winuser::WM_GETICON;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -122,16 +124,19 @@ impl ExternCanvas {
         if icon_handle == 0 {
             None
         } else {
-            Some(Icon { handle: icon_handle as HANDLE, owned: false })
+            Some(Icon {
+                handle: icon_handle as HANDLE,
+                owned: false,
+            })
         }
     }
 
     /// Set the icon in the window
     /// - icon: The new icon. If None, the icon is removed
     pub fn set_icon(&self, icon: Option<&Icon>) {
-        use winapi::um::winuser::WM_SETICON;
-        use winapi::shared::minwindef::LPARAM;
         use std::ptr;
+        use winapi::shared::minwindef::LPARAM;
+        use winapi::um::winuser::WM_SETICON;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -148,7 +153,9 @@ impl ExternCanvas {
     /// Set the keyboard focus on the button
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -163,7 +170,7 @@ impl ExternCanvas {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -207,7 +214,7 @@ impl ExternCanvas {
     }
 
     /// Return window title
-    pub fn text(&self) -> String { 
+    pub fn text(&self) -> String {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::get_window_text(handle) }
     }
@@ -230,7 +237,7 @@ impl ExternCanvas {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        WS_CLIPCHILDREN | WS_CLIPSIBLINGS 
+        WS_CLIPCHILDREN | WS_CLIPSIBLINGS
     }
 }
 
@@ -241,7 +248,7 @@ impl Drop for ExternCanvas {
 }
 
 #[cfg(feature = "raw-win-handle")]
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, windows::WindowsHandle};
+use raw_window_handle::{windows::WindowsHandle, HasRawWindowHandle, RawWindowHandle};
 
 #[cfg(feature = "raw-win-handle")]
 unsafe impl HasRawWindowHandle for ExternCanvas {
@@ -259,7 +266,7 @@ unsafe impl HasRawWindowHandle for ExternCanvas {
                 })
             }
             // Not a valid window handle, so return an empty handle
-            _ => RawWindowHandle::Windows(WindowsHandle::empty())
+            _ => RawWindowHandle::Windows(WindowsHandle::empty()),
         }
     }
 }
@@ -271,11 +278,10 @@ pub struct ExternCanvasBuilder<'a> {
     flags: Option<ExternCanvasFlags>,
     ex_flags: u32,
     icon: Option<&'a Icon>,
-    parent: Option<ControlHandle>
+    parent: Option<ControlHandle>,
 }
 
 impl<'a> ExternCanvasBuilder<'a> {
-
     pub fn flags(mut self, flags: ExternCanvasFlags) -> ExternCanvasBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -312,7 +318,7 @@ impl<'a> ExternCanvasBuilder<'a> {
     }
 
     pub fn build(self, out: &mut ExternCanvas) -> Result<(), NwgError> {
-        use winapi::um::winuser::{WS_CHILD};
+        use winapi::um::winuser::WS_CHILD;
 
         let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
 
@@ -341,5 +347,4 @@ impl<'a> ExternCanvasBuilder<'a> {
 
         Ok(())
     }
-
 }

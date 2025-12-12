@@ -3,7 +3,6 @@ use std::cell::RefCell;
 
 static BALL_DATA: &'static [u8] = include_bytes!("../../test_rc/ball.bmp");
 
-
 #[derive(Default)]
 #[allow(dead_code)]
 pub struct TestRun {
@@ -23,7 +22,6 @@ pub struct TestRun {
     status: bool,
 }
 
-
 #[derive(Default)]
 pub struct ControlsTest {
     // data
@@ -41,7 +39,7 @@ pub struct ControlsTest {
     segoe_font: Font,
     wait_cursor: Cursor,
     tabs_image_list: ImageList,
-    
+
     // Dialogs
     open_file_dialog: FileDialog,
     open_directory_dialog: FileDialog,
@@ -160,12 +158,13 @@ pub struct ControlsTest {
 
 mod partial_controls_test_ui {
     use super::*;
-    use crate::{PartialUi, NwgError, ControlHandle};
+    use crate::{ControlHandle, NwgError, PartialUi};
 
     impl PartialUi for ControlsTest {
-
-        fn build_partial<W: Into<ControlHandle>>(data: &mut ControlsTest, _parent: Option<W>) -> Result<(), NwgError> {
-            
+        fn build_partial<W: Into<ControlHandle>>(
+            data: &mut ControlsTest,
+            _parent: Option<W>,
+        ) -> Result<(), NwgError> {
             //
             // Resources
             //
@@ -208,11 +207,15 @@ mod partial_controls_test_ui {
                 .size((16, 16))
                 .build(&mut data.tabs_image_list)?;
 
-            data.tabs_image_list.add_bitmap_from_filename("./test_rc/list_0.png")?;
-            data.tabs_image_list.add_bitmap_from_filename("./test_rc/list_1.png")?;
-            data.tabs_image_list.add_bitmap_from_filename("./test_rc/list_2.png")?;
-            data.tabs_image_list.add_bitmap_from_filename("./test_rc/list_3.png")?;
-            
+            data.tabs_image_list
+                .add_bitmap_from_filename("./test_rc/list_0.png")?;
+            data.tabs_image_list
+                .add_bitmap_from_filename("./test_rc/list_1.png")?;
+            data.tabs_image_list
+                .add_bitmap_from_filename("./test_rc/list_2.png")?;
+            data.tabs_image_list
+                .add_bitmap_from_filename("./test_rc/list_3.png")?;
+
             let dir = ::std::env::current_dir().unwrap();
             FileDialog::builder()
                 .action(FileDialogAction::Open)
@@ -232,11 +235,9 @@ mod partial_controls_test_ui {
                 .filters("Text(*.txt)|Any(*.*)")
                 .build(&mut data.save_file_dialog)?;
 
-            ColorDialog::builder()
-                .build(&mut data.color_dialog)?;
+            ColorDialog::builder().build(&mut data.color_dialog)?;
 
-            FontDialog::builder()
-                .build(&mut data.font_dialog)?;
+            FontDialog::builder().build(&mut data.font_dialog)?;
 
             Font::builder()
                 .size(20)
@@ -260,7 +261,6 @@ mod partial_controls_test_ui {
                 .icon(Some(&data.window_icon))
                 .build(&mut data.window)?;
 
-            
             TrayNotification::builder()
                 .parent(&data.window)
                 .icon(Some(&data.window_icon))
@@ -375,7 +375,7 @@ mod partial_controls_test_ui {
                 .size((130, 99))
                 .parent(&data.basics_control_tab)
                 .bitmap(Some(&data.ferris))
-                .background_color(Some([255,255,255]))
+                .background_color(Some([255, 255, 255]))
                 .build(&mut data.test_img_frame)?;
 
             RadioButton::builder()
@@ -421,7 +421,12 @@ mod partial_controls_test_ui {
 
             TextBox::builder()
                 .text("Multi\r\nLine\r\nText")
-                .flags(TextBoxFlags::VISIBLE | TextBoxFlags::AUTOVSCROLL | TextBoxFlags::AUTOHSCROLL | TextBoxFlags::TAB_STOP)
+                .flags(
+                    TextBoxFlags::VISIBLE
+                        | TextBoxFlags::AUTOVSCROLL
+                        | TextBoxFlags::AUTOHSCROLL
+                        | TextBoxFlags::TAB_STOP,
+                )
                 .position((290, 40))
                 .size((150, 100))
                 .parent(&data.basics_control_tab)
@@ -434,7 +439,11 @@ mod partial_controls_test_ui {
                 .build(&mut data.test_progress1)?;
 
             ProgressBar::builder()
-                .flags(ProgressBarFlags::VISIBLE | ProgressBarFlags::VERTICAL | ProgressBarFlags::MARQUEE)
+                .flags(
+                    ProgressBarFlags::VISIBLE
+                        | ProgressBarFlags::VERTICAL
+                        | ProgressBarFlags::MARQUEE,
+                )
                 .position((340, 220))
                 .size((30, 110))
                 .range(0..100)
@@ -452,13 +461,17 @@ mod partial_controls_test_ui {
                 .build(&mut data.test_track1)?;
 
             TrackBar::builder()
-                .flags(TrackBarFlags::VISIBLE | TrackBarFlags::RANGE | TrackBarFlags::VERTICAL | TrackBarFlags::AUTO_TICK)
+                .flags(
+                    TrackBarFlags::VISIBLE
+                        | TrackBarFlags::RANGE
+                        | TrackBarFlags::VERTICAL
+                        | TrackBarFlags::AUTO_TICK,
+                )
                 .position((290, 220))
                 .size((40, 110))
                 .background_color(Some([255, 255, 255]))
                 .parent(&data.basics_control_tab)
                 .build(&mut data.test_track2)?;
-            
 
             //
             // Control tab 2
@@ -511,7 +524,7 @@ mod partial_controls_test_ui {
                 .build(&mut data.test_rich)?;
 
             ScrollBar::builder()
-                .position((220,140))
+                .position((220, 140))
                 .size((20, 200))
                 .parent(&data.basics_control_tab2)
                 .range(Some(0..100))
@@ -553,30 +566,35 @@ mod partial_controls_test_ui {
             Button::builder()
                 .text("Open file")
                 .parent(&data.dialog_tab)
-                .enabled(cfg!(feature="file-dialog"))
+                .enabled(cfg!(feature = "file-dialog"))
                 .build(&mut data.test_open_file_button)?;
 
             Button::builder()
                 .text("Open directory")
                 .parent(&data.dialog_tab)
-                .enabled(cfg!(feature="file-dialog"))
+                .enabled(cfg!(feature = "file-dialog"))
                 .build(&mut data.test_open_directory_button)?;
 
             Button::builder()
                 .text("Save file")
                 .parent(&data.dialog_tab)
-                .enabled(cfg!(feature="file-dialog"))
+                .enabled(cfg!(feature = "file-dialog"))
                 .build(&mut data.test_save_file_button)?;
 
             TextBox::builder()
                 .parent(&data.dialog_tab)
-                .flags(TextBoxFlags::VISIBLE | TextBoxFlags::AUTOVSCROLL | TextBoxFlags::AUTOHSCROLL | TextBoxFlags::TAB_STOP)
+                .flags(
+                    TextBoxFlags::VISIBLE
+                        | TextBoxFlags::AUTOVSCROLL
+                        | TextBoxFlags::AUTOHSCROLL
+                        | TextBoxFlags::TAB_STOP,
+                )
                 .build(&mut data.file_dialog_result)?;
 
             Button::builder()
                 .text("Select a color")
                 .parent(&data.dialog_tab)
-                .enabled(cfg!(feature="color-dialog"))
+                .enabled(cfg!(feature = "color-dialog"))
                 .build(&mut data.test_select_color_button)?;
 
             TextInput::builder()
@@ -588,7 +606,7 @@ mod partial_controls_test_ui {
             Button::builder()
                 .text("Select a font")
                 .parent(&data.dialog_tab)
-                .enabled(cfg!(feature="font-dialog"))
+                .enabled(cfg!(feature = "font-dialog"))
                 .build(&mut data.test_select_font_button)?;
 
             TextInput::builder()
@@ -629,7 +647,6 @@ mod partial_controls_test_ui {
                 .list_style(ListViewStyle::Detailed)
                 .build(&mut data.test_list_view)?;
 
-
             //
             // Tooltip
             //
@@ -664,7 +681,7 @@ mod partial_controls_test_ui {
                 .text("Test &Submenu")
                 .parent(&data.window_menu)
                 .build(&mut data.window_submenu1)?;
-            
+
             MenuSeparator::builder()
                 .parent(&data.window_menu)
                 .build(&mut data.window_menu_sep)?;
@@ -700,7 +717,6 @@ mod partial_controls_test_ui {
                 .parent(&data.pop_menu)
                 .build(&mut data.pop_menu_item2)?;
 
-
             //
             // Run tests
             //
@@ -716,14 +732,18 @@ mod partial_controls_test_ui {
 
             TrayNotification::builder()
                 .parent(&data.panel)
-                .flags(TrayNotificationFlags::SILENT | TrayNotificationFlags::USER_ICON | TrayNotificationFlags::LARGE_ICON)
+                .flags(
+                    TrayNotificationFlags::SILENT
+                        | TrayNotificationFlags::USER_ICON
+                        | TrayNotificationFlags::LARGE_ICON,
+                )
                 .icon(Some(&data.love_icon))
                 .balloon_icon(Some(&data.love_icon))
                 .info(Some("Tray notification by NWG"))
                 .info_title(Some("Native Windows GUI tests"))
                 .tip(Some("Hello!"))
                 .build(&mut data.tray_icon_2)?;
-            
+
             Button::builder()
                 .text("Run window test")
                 .parent(&data.panel)
@@ -783,7 +803,7 @@ mod partial_controls_test_ui {
                 .text("Run track test")
                 .parent(&data.panel)
                 .build(&mut data.run_track_test)?;
-            
+
             Button::builder()
                 .text("Run tooltip test")
                 .parent(&data.panel)
@@ -802,11 +822,16 @@ mod partial_controls_test_ui {
             // Layout
             //
 
-            use stretch::style::Dimension as D;
             use stretch::geometry::Rect;
+            use stretch::style::Dimension as D;
             FlexboxLayout::builder()
                 .parent(&data.window)
-                .border(Rect { start: D::Points(2.0), end: D::Points(2.0), top: D::Points(2.0), bottom: D::Points(20.0) } )
+                .border(Rect {
+                    start: D::Points(2.0),
+                    end: D::Points(2.0),
+                    top: D::Points(2.0),
+                    bottom: D::Points(20.0),
+                })
                 .child(&data.controls_holder)
                 .build(&data.tab_container_layout)?;
 
@@ -830,7 +855,7 @@ mod partial_controls_test_ui {
                 .child(1, 6, &data.run_status_test)
                 .child(0, 7, &data.run_tray_test)
                 .build(&data.panel_layout)?;
-            
+
             GridLayout::builder()
                 .parent(&data.dialog_tab)
                 .min_size([400, 150])
@@ -844,7 +869,7 @@ mod partial_controls_test_ui {
                 .child(0, 3, &data.test_select_font_button)
                 .child_item(GridLayoutItem::new(&data.test_font_output, 1, 3, 2, 1))
                 .build(&data.dialog_tab_layout)?;
-            
+
             GridLayout::builder()
                 .parent(&data.tree_tab)
                 .min_size([400, 220])
@@ -867,17 +892,19 @@ mod partial_controls_test_ui {
             use crate::Event as E;
 
             match evt {
-                E::OnInit => 
+                E::OnInit => {
                     if &handle == &self.window {
                         init_tree(self);
                         init_list_view(self);
                         init_rich_text_box(self);
-                    },
-                E::OnWindowClose => 
+                    }
+                }
+                E::OnWindowClose => {
                     if &handle == &self.window {
                         self.panel.set_visible(false);
-                    },
-                E::OnButtonClick =>
+                    }
+                }
+                E::OnButtonClick => {
                     if &handle == &self.run_window_test {
                         run_window_tests(self, evt);
                     } else if &handle == &self.run_button_test {
@@ -928,37 +955,45 @@ mod partial_controls_test_ui {
                         self.window.minimize();
                     } else if &handle == &self.test_restore {
                         self.window.restore();
-                    },
-                E::OnContextMenu => 
+                    }
+                }
+                E::OnContextMenu => {
                     if &handle == &self.window {
                         show_pop_menu(self, evt);
                     } else if &handle == &self.basics_control_tab {
                         show_pop_menu(self, evt);
                     } else if &handle == &self.tray_icon_2 {
                         show_pop_menu(self, evt);
-                    },
-                E::OnTooltipText => 
+                    }
+                }
+                E::OnTooltipText => {
                     if &handle == &self.window {
                         set_tooltip_dynamic(self, &self.window.handle, _evt_data.on_tooltip_text());
                     } else if &handle == &self.test_text_input {
-                        set_tooltip_dynamic(self, &self.test_text_input.handle, _evt_data.on_tooltip_text());
-                    },
-                E::OnMenuItemSelected => 
+                        set_tooltip_dynamic(
+                            self,
+                            &self.test_text_input.handle,
+                            _evt_data.on_tooltip_text(),
+                        );
+                    }
+                }
+                E::OnMenuItemSelected => {
                     if &handle == &self.window_menu_item1 {
                         item_hello("menu item");
                     } else if &handle == &self.pop_menu_item1 {
                         item_hello("popup menu item");
-                    },
+                    }
+                }
                 E::OnChar => {
                     if &handle == &self.test_rich {
                         print_char(_evt_data);
                     }
-                },
+                }
                 E::OnListViewColumnClick => {
                     if &handle == &self.test_list_view {
                         set_lv_sort(&self.test_list_view, _evt_data);
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -966,7 +1001,6 @@ mod partial_controls_test_ui {
         fn handles(&self) -> Vec<&ControlHandle> {
             vec![&self.window.handle, &self.panel.handle]
         }
-
     }
 }
 
@@ -1028,7 +1062,6 @@ fn show_pop_menu(app: &ControlsTest, _evt: Event) {
 
 fn run_window_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().window {
-
         assert_eq!(&app.window.text(), "Controls");
         app.window.set_text("Controls New title");
         assert_eq!(&app.window.text(), "Controls New title");
@@ -1059,7 +1092,6 @@ fn run_window_tests(app: &ControlsTest, _evt: Event) {
 
 fn run_button_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().button {
-
         assert_eq!(&app.test_button.text(), "A simple button");
         app.test_button.set_text("New Text");
         assert_eq!(&app.test_button.text(), "New Text");
@@ -1088,7 +1120,6 @@ fn run_button_tests(app: &ControlsTest, _evt: Event) {
         app.test_button.set_enabled(false);
         assert_eq!(app.test_button.enabled(), false);
 
-
         let mut icon = None;
         let mut bitmap = None;
         app.test_image_button2.image(&mut bitmap, &mut icon);
@@ -1115,7 +1146,6 @@ fn run_button_tests(app: &ControlsTest, _evt: Event) {
 
 fn run_check_box_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().check {
-
         assert_eq!(app.test_checkbox2.tristate(), true);
         assert_eq!(app.test_checkbox1.tristate(), false);
 
@@ -1128,8 +1158,12 @@ fn run_check_box_tests(app: &ControlsTest, _evt: Event) {
         app.test_checkbox1.set_check_state(CheckBoxState::Unchecked);
         assert_eq!(app.test_checkbox1.check_state(), CheckBoxState::Unchecked);
 
-        app.test_checkbox1.set_check_state(CheckBoxState::Indeterminate);
-        assert_eq!(app.test_checkbox1.check_state(), CheckBoxState::Indeterminate);
+        app.test_checkbox1
+            .set_check_state(CheckBoxState::Indeterminate);
+        assert_eq!(
+            app.test_checkbox1.check_state(),
+            CheckBoxState::Indeterminate
+        );
 
         app.runs.borrow_mut().check = true;
     } else {
@@ -1142,7 +1176,10 @@ fn run_combo_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().combo {
         {
             let col = app.test_combo.collection();
-            assert_eq!(&col as &[&'static str], &["Chocolate", "Strawberry", "Blueberry"]);
+            assert_eq!(
+                &col as &[&'static str],
+                &["Chocolate", "Strawberry", "Blueberry"]
+            );
         }
 
         {
@@ -1160,7 +1197,10 @@ fn run_combo_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_combo.set_selection(Some(2));
         assert_eq!(app.test_combo.selection(), Some(2));
-        assert_eq!(app.test_combo.selection_string(), Some("Blueberry".to_string()));
+        assert_eq!(
+            app.test_combo.selection_string(),
+            Some("Blueberry".to_string())
+        );
 
         assert_eq!(app.test_combo.set_selection_string("hel"), Some(3));
         assert_eq!(app.test_combo.selection(), Some(3));
@@ -1180,15 +1220,19 @@ fn run_combo_tests(app: &ControlsTest, _evt: Event) {
 
         app.runs.borrow_mut().combo = true;
     } else {
-        app.test_combo.set_collection(vec!["Chocolate", "Strawberry", "Blueberry"]);
+        app.test_combo
+            .set_collection(vec!["Chocolate", "Strawberry", "Blueberry"]);
         app.runs.borrow_mut().combo = false;
     }
 }
 
 fn run_date_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().date {
-        
-        let v = DatePickerValue { year: 2000, month: 10, day: 5 };
+        let v = DatePickerValue {
+            year: 2000,
+            month: 10,
+            day: 5,
+        };
         app.test_date.set_value(Some(v));
         assert_eq!(app.test_date.value(), Some(v));
         assert_eq!(app.test_date.checked(), true);
@@ -1199,8 +1243,16 @@ fn run_date_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_date.set_format(Some("'YEAR: 'yyyy"));
 
-        let up = DatePickerValue { year: 2000, month: 1, day: 1 };
-        let down = DatePickerValue { year: 2001, month: 1, day: 1 };
+        let up = DatePickerValue {
+            year: 2000,
+            month: 1,
+            day: 1,
+        };
+        let down = DatePickerValue {
+            year: 2001,
+            month: 1,
+            day: 1,
+        };
         app.test_date.set_range(&[up, down]);
         assert_eq!(app.test_date.range(), [up, down]);
 
@@ -1208,8 +1260,16 @@ fn run_date_tests(app: &ControlsTest, _evt: Event) {
     } else {
         app.test_date.set_format(None);
 
-        let up = DatePickerValue { year: 1950, month: 1, day: 1 };
-        let down = DatePickerValue { year: 2020, month: 12, day: 30 };
+        let up = DatePickerValue {
+            year: 1950,
+            month: 1,
+            day: 1,
+        };
+        let down = DatePickerValue {
+            year: 2020,
+            month: 12,
+            day: 30,
+        };
         app.test_date.set_range(&[up, down]);
         app.runs.borrow_mut().date = false;
     }
@@ -1259,7 +1319,10 @@ fn run_list_tests(app: &ControlsTest, _evt: Event) {
 
         {
             let col = app.test_list_box1.collection();
-            assert_eq!(&col as &[&'static str], &["Red", "White", "Green", "Yellow"]);
+            assert_eq!(
+                &col as &[&'static str],
+                &["Red", "White", "Green", "Yellow"]
+            );
         }
 
         {
@@ -1273,8 +1336,7 @@ fn run_list_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_list_box1.set_selection(Some(0));
         assert_eq!(app.test_list_box1.selected(0), true);
-        
-        
+
         app.test_list_box1.set_selection(None);
         assert_eq!(app.test_list_box1.selected(0), false);
         assert_eq!(app.test_list_box1.selection(), None);
@@ -1282,7 +1344,10 @@ fn run_list_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_list_box1.set_selection(Some(2));
         assert_eq!(app.test_list_box1.selection(), Some(2));
-        assert_eq!(app.test_list_box1.selection_string(), Some("Green".to_string()));
+        assert_eq!(
+            app.test_list_box1.selection_string(),
+            Some("Green".to_string())
+        );
 
         app.test_list_box1.insert(1, "BOO!");
         app.test_list_box1.insert(std::usize::MAX, "Ahoy!!");
@@ -1291,14 +1356,12 @@ fn run_list_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_list_box1.remove(0);
 
-        
         app.test_list_box2.multi_add_selection(0);
         app.test_list_box2.multi_add_selection(2);
         app.test_list_box2.multi_add_selection(3);
         assert_eq!(app.test_list_box2.multi_selection_len(), 3);
         assert_eq!(app.test_list_box2.multi_selection(), vec![0, 2, 3]);
 
-        
         app.test_list_box2.multi_remove_selection(0);
         assert_eq!(app.test_list_box2.multi_selection_len(), 2);
         assert_eq!(app.test_list_box2.multi_selection(), vec![2, 3]);
@@ -1322,7 +1385,8 @@ fn run_list_tests(app: &ControlsTest, _evt: Event) {
         app.runs.borrow_mut().list = true;
     } else {
         app.test_list_box2.unselect_all();
-        app.test_list_box1.set_collection(vec!["Red", "White", "Green", "Yellow"]);
+        app.test_list_box1
+            .set_collection(vec!["Red", "White", "Green", "Yellow"]);
 
         app.runs.borrow_mut().list = false;
     }
@@ -1405,7 +1469,8 @@ fn run_text_tests(app: &ControlsTest, _evt: Event) {
         app.test_text_input.set_enabled(false);
         assert_eq!(app.test_text_input.enabled(), false);
 
-        app.test_text_input.set_placeholder_text(Some("Placeholder!"));
+        app.test_text_input
+            .set_placeholder_text(Some("Placeholder!"));
 
         app.runs.borrow_mut().text = true;
     } else {
@@ -1449,7 +1514,6 @@ fn run_progress_tests(app: &ControlsTest, _evt: Event) {
 
 fn run_track_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().track {
-        
         app.test_track1.set_range_min(0);
         app.test_track1.set_range_max(10);
 
@@ -1458,7 +1522,7 @@ fn run_track_tests(app: &ControlsTest, _evt: Event) {
 
         app.test_track1.set_pos(3);
         assert_eq!(app.test_track1.pos(), 3);
-        
+
         app.test_track2.set_range_min(0);
         app.test_track2.set_range_max(5);
         app.test_track2.set_selection_range_pos(0..3);
@@ -1472,19 +1536,25 @@ fn run_track_tests(app: &ControlsTest, _evt: Event) {
 
 fn run_tooltip_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().tooltip {
-
         app.test_ttp2.set_enabled(false);
 
         app.test_ttp1.set_delay_time(Some(100));
         assert_eq!(app.test_ttp1.delay_time(), 100);
 
-        app.test_ttp1.register(&app.test_checkbox1, "A simple checkbox");
-        app.test_ttp1.register(&app.test_checkbox2, "A checkbox with 3 states!");
+        app.test_ttp1
+            .register(&app.test_checkbox1, "A simple checkbox");
+        app.test_ttp1
+            .register(&app.test_checkbox2, "A checkbox with 3 states!");
 
-        app.test_ttp3.set_default_decoration("Changed!", TooltipIcon::None);
+        app.test_ttp3
+            .set_default_decoration("Changed!", TooltipIcon::None);
 
-        app.test_ttp1.set_text(&app.test_button.handle, "New tool tip!");
-        assert_eq!(&app.test_ttp1.text(&app.test_button.handle, None), "New tool tip!");
+        app.test_ttp1
+            .set_text(&app.test_button.handle, "New tool tip!");
+        assert_eq!(
+            &app.test_ttp1.text(&app.test_button.handle, None),
+            "New tool tip!"
+        );
 
         app.test_ttp1.unregister(&app.test_button);
 
@@ -1498,7 +1568,6 @@ fn run_tooltip_tests(app: &ControlsTest, _evt: Event) {
 
 fn run_status_tests(app: &ControlsTest, _evt: Event) {
     if !app.runs.borrow().status {
-
         app.status.set_text(0, "Status changed!");
         assert_eq!(&app.status.text(0), "Status changed!");
 
@@ -1509,7 +1578,6 @@ fn run_status_tests(app: &ControlsTest, _evt: Event) {
 
         app.runs.borrow_mut().status = true;
     } else {
-
         app.status.set_font(None);
         app.status.set_min_height(25);
 
@@ -1523,11 +1591,26 @@ fn run_tray_tests(app: &ControlsTest) {
     app.tray_icon_2.set_tip("Changed the toolip and the icon!");
 
     let icon = Some(&app.love_icon);
-    let flags = Some(TrayNotificationFlags::USER_ICON | TrayNotificationFlags::SILENT | TrayNotificationFlags::LARGE_ICON);
+    let flags = Some(
+        TrayNotificationFlags::USER_ICON
+            | TrayNotificationFlags::SILENT
+            | TrayNotificationFlags::LARGE_ICON,
+    );
 
-    app.tray_icon_2.show("OH NO!", Some("Just a title"), flags, icon);
-    app.tray_icon_2.show("I'm spamming the system tray popup!", Some("Just a title"), flags, icon);
-    app.tray_icon_2.show("You can't stop me!!!!!", Some("Just a title (really)"), flags, Some(&app.window_icon));
+    app.tray_icon_2
+        .show("OH NO!", Some("Just a title"), flags, icon);
+    app.tray_icon_2.show(
+        "I'm spamming the system tray popup!",
+        Some("Just a title"),
+        flags,
+        icon,
+    );
+    app.tray_icon_2.show(
+        "You can't stop me!!!!!",
+        Some("Just a title (really)"),
+        flags,
+        Some(&app.window_icon),
+    );
 }
 
 fn set_tooltip_dynamic<'a>(app: &ControlsTest, handle: &ControlHandle, data: &ToolTipTextData) {
@@ -1546,16 +1629,25 @@ fn tree_tests(app: &ControlsTest, handle: &ControlHandle) {
         let text = app.test_tree_input.text();
         match app.test_tree.root() {
             Some(root) => match app.test_tree.selected_item() {
-                None =>    { app.test_tree.insert_item(&text, Some(&root), TreeInsert::Last); },
-                Some(i) => { app.test_tree.insert_item(&text, Some(&i), TreeInsert::Last); },
+                None => {
+                    app.test_tree
+                        .insert_item(&text, Some(&root), TreeInsert::Last);
+                }
+                Some(i) => {
+                    app.test_tree.insert_item(&text, Some(&i), TreeInsert::Last);
+                }
             },
-            None => { app.test_tree.insert_item(&text, None, TreeInsert::Root); },
+            None => {
+                app.test_tree.insert_item(&text, None, TreeInsert::Root);
+            }
         }
     }
 
     if remove {
         match app.test_tree.selected_item() {
-            Some(item) => { app.test_tree.remove_item(&item);},
+            Some(item) => {
+                app.test_tree.remove_item(&item);
+            }
             None => {}
         }
     }
@@ -1587,7 +1679,8 @@ fn open_directory(app: &ControlsTest, _evt: Event) {
     if app.open_directory_dialog.run(Some(&app.window)) {
         app.file_dialog_result.clear();
         if let Ok(directory) = app.open_directory_dialog.get_selected_item() {
-            app.file_dialog_result.set_text(&directory.into_string().unwrap());
+            app.file_dialog_result
+                .set_text(&directory.into_string().unwrap());
         }
     }
 }
@@ -1600,7 +1693,8 @@ fn save_file(app: &ControlsTest, _evt: Event) {
     if app.save_file_dialog.run(Some(&app.window)) {
         app.file_dialog_result.clear();
         if let Ok(file) = app.save_file_dialog.get_selected_item() {
-            app.file_dialog_result.set_text(&file.into_string().unwrap());
+            app.file_dialog_result
+                .set_text(&file.into_string().unwrap());
         }
     }
 }
@@ -1611,7 +1705,8 @@ fn save_file(_app: &ControlsTest, _evt: Event) {}
 #[cfg(feature = "color-dialog")]
 fn color_select(app: &ControlsTest) {
     if app.color_dialog.run(Some(&app.window)) {
-        app.test_color_output.set_text(&format!("{:?}", app.color_dialog.color()))
+        app.test_color_output
+            .set_text(&format!("{:?}", app.color_dialog.color()))
     }
 }
 
@@ -1621,7 +1716,8 @@ fn color_select(_app: &ControlsTest) {}
 #[cfg(feature = "font-dialog")]
 fn font_select(app: &ControlsTest) {
     if app.font_dialog.run(Some(&app.window)) {
-        app.test_font_output.set_text(&format!("{:?}", app.font_dialog.font()))
+        app.test_font_output
+            .set_text(&format!("{:?}", app.font_dialog.font()))
     }
 }
 
@@ -1631,24 +1727,31 @@ fn font_select(_app: &ControlsTest) {}
 fn print_char(data: &EventData) {
     match data {
         EventData::OnChar(c) => println!("{:?}", c),
-        _=>{}
+        _ => {}
     }
 }
 
 fn set_lv_sort(lv: &ListView, data: &EventData) {
     match data {
-        EventData::OnListViewItemIndex { row_index: _, column_index } => {
+        EventData::OnListViewItemIndex {
+            row_index: _,
+            column_index,
+        } => {
             for i in 0..lv.column_len() {
                 if *column_index != i {
                     lv.set_column_sort_arrow(i, None);
                 } else {
                     match lv.column_sort_arrow(i) {
-                        Some(ListViewColumnSortArrow::Up) | None => lv.set_column_sort_arrow(i, Some(ListViewColumnSortArrow::Down)),
-                        Some(ListViewColumnSortArrow::Down) => lv.set_column_sort_arrow(i, Some(ListViewColumnSortArrow::Up)),
+                        Some(ListViewColumnSortArrow::Up) | None => {
+                            lv.set_column_sort_arrow(i, Some(ListViewColumnSortArrow::Down))
+                        }
+                        Some(ListViewColumnSortArrow::Down) => {
+                            lv.set_column_sort_arrow(i, Some(ListViewColumnSortArrow::Up))
+                        }
                     }
                 }
             }
-        },
+        }
         _ => {}
     }
 }

@@ -2,9 +2,8 @@
     An application that load new fonts from file
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
@@ -43,11 +42,12 @@ pub struct CustomFontApp {
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
 
-    // Font data loaded from memory must be mutable. 
+    // Font data loaded from memory must be mutable.
     // You should use embedded resources or load them directly from disk if possible
     let font_data = include_bytes!("../test_rc/FredokaOne-Regular.ttf");
-    let mut font_data_mut = font_data.to_vec(); 
-    let mem_font = nwg::Font::add_memory_font(&mut font_data_mut).expect("Failed to load font from memory");
+    let mut font_data_mut = font_data.to_vec();
+    let mem_font =
+        nwg::Font::add_memory_font(&mut font_data_mut).expect("Failed to load font from memory");
 
     // Loading a font from a file is that simple
     nwg::Font::add_font("./test_rc/IndieFlower-Regular.ttf");

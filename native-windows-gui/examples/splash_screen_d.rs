@@ -4,13 +4,11 @@
     Requires the following features: `cargo run --example splash_screen_d --features "image-decoder"`
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct SplashScreen {
@@ -22,15 +20,13 @@ pub struct SplashScreen {
 
     #[nwg_control(size: (500, 215), bitmap: Some(&data.splash) )]
     #[nwg_events(OnImageFrameClick: [SplashScreen::exit])]
-    image_frame: nwg::ImageFrame
+    image_frame: nwg::ImageFrame,
 }
 
 impl SplashScreen {
-
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
-
 }
 
 fn main() {

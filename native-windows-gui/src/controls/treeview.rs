@@ -2,24 +2,23 @@
 A tree-view control is a window that displays a hierarchical list of items
 */
 
-use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{WS_VISIBLE, WS_DISABLED, WS_TABSTOP};
-use winapi::um::commctrl::{HTREEITEM, TVIS_EXPANDED, TVIS_SELECTED, TVS_SHOWSELALWAYS, TVITEMW};
-use crate::win32::window_helper as wh;
-use crate::win32::base_helper::{check_hwnd, to_utf16, from_utf16};
-use crate::{Font, NwgError};
 use super::{ControlBase, ControlHandle};
+use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
+use crate::win32::window_helper as wh;
+use crate::{Font, NwgError};
 use std::{mem, ptr};
+use winapi::shared::minwindef::{LPARAM, WPARAM};
+use winapi::um::commctrl::{HTREEITEM, TVIS_EXPANDED, TVIS_SELECTED, TVITEMW, TVS_SHOWSELALWAYS};
+use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 use winapi::um::commctrl::HIMAGELIST;
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 use crate::ImageList;
 
 const NOT_BOUND: &'static str = "TreeView is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TreeView handle is not HWND!";
-
 
 bitflags! {
     /**
@@ -51,24 +50,23 @@ bitflags! {
     }
 }
 
-
 /// Select the position of a new item that is about to be inserted in a TreeView
 #[derive(Copy, Clone, Debug)]
 pub enum TreeInsert {
-    /// Inserts the item at the beginning of the list. 
+    /// Inserts the item at the beginning of the list.
     First,
 
-    /// Inserts the item at the end of the list. 
+    /// Inserts the item at the end of the list.
     Last,
 
-    /// Add the item as a root item 
+    /// Add the item as a root item
     Root,
 
     /// Inserts the item into the list in alphabetical order
     Sort,
 
     /// Insert the item after the choosen item
-    After(HTREEITEM)
+    After(HTREEITEM),
 }
 
 /// Possible state of a tree item regarding the "expanded/collapsed" state
@@ -79,9 +77,8 @@ pub enum ExpandState {
     CollapseReset,
     Expand,
     ExpandPartial,
-    Toggle
+    Toggle,
 }
-
 
 /// An action that can be applied to a tree item. Used in events
 #[derive(Copy, Clone, Debug)]
@@ -89,17 +86,20 @@ pub enum TreeItemAction {
     /// An unexpected value was passed to NWG
     Unknown,
 
-    /// A tree item was expanded or collapsed. 
+    /// A tree item was expanded or collapsed.
     Expand(ExpandState),
 
     /// The state of the item was changed
-    State { old: TreeItemState, new: TreeItemState }
+    State {
+        old: TreeItemState,
+        new: TreeItemState,
+    },
 }
 
 /// A reference to an item in a TreeView
 #[derive(Debug)]
 pub struct TreeItem {
-    pub handle: HTREEITEM
+    pub handle: HTREEITEM,
 }
 
 impl TreeItem {
@@ -144,12 +144,10 @@ Requires the `tree-view` feature
 */
 #[derive(Default, PartialEq, Eq)]
 pub struct TreeView {
-    pub handle: ControlHandle
-} 
-
+    pub handle: ControlHandle,
+}
 
 impl TreeView {
-
     pub fn builder<'a>() -> TreeViewBuilder<'a> {
         TreeViewBuilder {
             size: (100, 200),
@@ -161,13 +159,13 @@ impl TreeView {
             font: None,
             parent: None,
 
-            #[cfg(feature="image-list")]
+            #[cfg(feature = "image-list")]
             image_list: None,
         }
     }
 
     /// Sets the image list of the treeview
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn set_image_list(&self, list: Option<&ImageList>) {
         use winapi::um::commctrl::{TVM_SETIMAGELIST, TVSIL_NORMAL};
 
@@ -179,7 +177,7 @@ impl TreeView {
 
     /// Returns the image list of the treeview or None if there is none.
     /// The returned image list is not owned
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn image_list(&self) -> Option<ImageList> {
         use winapi::um::commctrl::{TVM_GETIMAGELIST, TVSIL_NORMAL};
 
@@ -188,16 +186,19 @@ impl TreeView {
         if handle.is_null() {
             None
         } else {
-            Some(ImageList { handle, owned: false })
+            Some(ImageList {
+                handle,
+                owned: false,
+            })
         }
     }
 
     /// Sets the image that will appear left to the item text. `index` is the index of the image in the image-list
     /// Won't do anything if the control do not have a image list or if the item is not in the tree
     /// If `on_select` is set to true, sets the icon that is used when an item is active
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn set_item_image(&self, item: &TreeItem, index: i32, on_select: bool) {
-        use winapi::um::commctrl::{TVM_SETITEMW, TVIF_IMAGE, TVIF_SELECTEDIMAGE};
+        use winapi::um::commctrl::{TVIF_IMAGE, TVIF_SELECTEDIMAGE, TVM_SETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut tree_item = blank_item();
@@ -205,35 +206,49 @@ impl TreeView {
 
         tree_item.mask = match on_select {
             true => TVIF_SELECTEDIMAGE,
-            false => TVIF_IMAGE
+            false => TVIF_IMAGE,
         };
 
         match on_select {
-            true => { tree_item.iSelectedImage = index; },
-            false => { tree_item.iImage = index; }
+            true => {
+                tree_item.iSelectedImage = index;
+            }
+            false => {
+                tree_item.iImage = index;
+            }
         }
 
-        wh::send_message(handle, TVM_SETITEMW, 0, &mut tree_item as *mut TVITEMW as LPARAM);
+        wh::send_message(
+            handle,
+            TVM_SETITEMW,
+            0,
+            &mut tree_item as *mut TVITEMW as LPARAM,
+        );
     }
 
     /// Returns the index of the image in the tree view image list.
     /// If there is no image list in the control or the item is not in the control, 0 will be returned.
     /// If `on_select` is set to true, returns the icon that is used when an item is active
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn item_image(&self, item: &TreeItem, on_select: bool) -> i32 {
-        use winapi::um::commctrl::{TVM_GETITEMW, TVIF_IMAGE, TVIF_SELECTEDIMAGE};
+        use winapi::um::commctrl::{TVIF_IMAGE, TVIF_SELECTEDIMAGE, TVM_GETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut tree_item = blank_item();
         tree_item.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
         tree_item.hItem = item.handle;
 
-        match wh::send_message(handle, TVM_GETITEMW, 0, &mut tree_item as *mut TVITEMW as LPARAM) {
+        match wh::send_message(
+            handle,
+            TVM_GETITEMW,
+            0,
+            &mut tree_item as *mut TVITEMW as LPARAM,
+        ) {
             0 => 0,
             _ => match on_select {
                 true => tree_item.iSelectedImage,
-                false => tree_item.iImage
-            }
+                false => tree_item.iImage,
+            },
         }
     }
 
@@ -253,20 +268,16 @@ impl TreeView {
     /// Returns the text color in the treeview
     pub fn text_color(&self) -> [u8; 3] {
         use winapi::um::commctrl::TVM_GETTEXTCOLOR;
-        use winapi::um::wingdi::{GetRValue, GetGValue, GetBValue};
-        
+        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
+
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let col = wh::send_message(handle, TVM_GETTEXTCOLOR, 0, 0) as u32;
 
-        [
-            GetRValue(col),
-            GetGValue(col),
-            GetBValue(col),
-        ]
+        [GetRValue(col), GetGValue(col), GetBValue(col)]
     }
 
-    /// Retrieves the amount, in pixels, that child items are indented relative to their parent items. 
+    /// Retrieves the amount, in pixels, that child items are indented relative to their parent items.
     pub fn indent(&self) -> u32 {
         use winapi::um::commctrl::TVM_GETINDENT;
 
@@ -289,15 +300,15 @@ impl TreeView {
         next_treeview_item(&self.handle, TVGN_ROOT, ptr::null_mut())
     }
 
-    /// Returns the first child of an item or `None` if the item has no child or if it's not part of the tree view 
+    /// Returns the first child of an item or `None` if the item has no child or if it's not part of the tree view
     /// To iterate over all the children, use `TreeView.iter_item(&parent_item)`
-    pub fn first_child(&self, item: &TreeItem) ->  Option<TreeItem> {
+    pub fn first_child(&self, item: &TreeItem) -> Option<TreeItem> {
         use winapi::um::commctrl::TVGN_CHILD;
         next_treeview_item(&self.handle, TVGN_CHILD, item.handle)
     }
 
-    /// Returns the next sibling in the tree or `None` if the item has no more sibling or if it's not part of the tree view 
-    pub fn next_sibling(&self, item: &TreeItem) ->  Option<TreeItem> {
+    /// Returns the next sibling in the tree or `None` if the item has no more sibling or if it's not part of the tree view
+    pub fn next_sibling(&self, item: &TreeItem) -> Option<TreeItem> {
         use winapi::um::commctrl::TVGN_NEXT;
         next_treeview_item(&self.handle, TVGN_NEXT, item.handle)
     }
@@ -317,29 +328,35 @@ impl TreeView {
     /// Return the currently selected item. If there are more than one selected item, returns the first one.
     /// If there is no selected item, returns `None`.
     pub fn selected_item(&self) -> Option<TreeItem> {
-        use winapi::um::commctrl::{TVM_GETNEXTITEM, TVGN_NEXTSELECTED};
+        use winapi::um::commctrl::{TVGN_NEXTSELECTED, TVM_GETNEXTITEM};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        let tree_handle = wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, 0) as HTREEITEM;
+        let tree_handle =
+            wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, 0) as HTREEITEM;
         if tree_handle.is_null() {
             None
         } else {
-            Some(TreeItem { handle: tree_handle })
+            Some(TreeItem {
+                handle: tree_handle,
+            })
         }
     }
 
     /// Returns the selected items in a Treeview
     /// If there is no selected items, returns an empty `Vec`.
     pub fn selected_items(&self) -> Vec<TreeItem> {
-        use winapi::um::commctrl::{TVM_GETNEXTITEM, TVGN_NEXTSELECTED};
+        use winapi::um::commctrl::{TVGN_NEXTSELECTED, TVM_GETNEXTITEM};
 
         let mut items = Vec::new();
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut last_handle = wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, 0);
         while last_handle != 0 {
-            items.push(TreeItem { handle: last_handle as _ } );
-            last_handle = wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, last_handle as _);
+            items.push(TreeItem {
+                handle: last_handle as _,
+            });
+            last_handle =
+                wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, last_handle as _);
         }
 
         items
@@ -347,7 +364,7 @@ impl TreeView {
 
     /// Returns the number of selected item in the tree view
     pub fn selected_item_count(&self) -> usize {
-        use winapi::um::commctrl::{TVM_GETNEXTITEM, TVGN_NEXTSELECTED};
+        use winapi::um::commctrl::{TVGN_NEXTSELECTED, TVM_GETNEXTITEM};
 
         let mut count = 0;
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -355,16 +372,24 @@ impl TreeView {
         let mut last_handle = wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, 0);
         while last_handle != 0 {
             count += 1;
-            last_handle = wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, last_handle as _);
+            last_handle =
+                wh::send_message(handle, TVM_GETNEXTITEM, TVGN_NEXTSELECTED, last_handle as _);
         }
 
         count
     }
 
     /// Insert a new item into the TreeView and return a reference to new newly added item
-    pub fn insert_item<'a>(&self, new: &'a str, parent: Option<&TreeItem>, position: TreeInsert) -> TreeItem {
-        use winapi::um::commctrl::{TVM_INSERTITEMW, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_TEXT};
+    pub fn insert_item<'a>(
+        &self,
+        new: &'a str,
+        parent: Option<&TreeItem>,
+        position: TreeInsert,
+    ) -> TreeItem {
         use winapi::um::commctrl::TVINSERTSTRUCTW_u;
+        use winapi::um::commctrl::{
+            TVIF_TEXT, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVM_INSERTITEMW,
+        };
         use winapi::um::winnt::LPWSTR;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -374,7 +399,7 @@ impl TreeView {
             TreeInsert::Last => TVI_LAST,
             TreeInsert::Root => TVI_ROOT,
             TreeInsert::Sort => TVI_SORT,
-            TreeInsert::After(i) => i
+            TreeInsert::After(i) => i,
         };
 
         let text = to_utf16(new);
@@ -388,9 +413,9 @@ impl TreeView {
         };
 
         let new_item = TVINSERTSTRUCTW {
-            hParent: parent.map(|p| p.handle ).unwrap_or(ptr::null_mut()),
+            hParent: parent.map(|p| p.handle).unwrap_or(ptr::null_mut()),
             hInsertAfter: insert,
-            u: item
+            u: item,
         };
 
         let ptr = &new_item as *const TVINSERTSTRUCTW;
@@ -402,9 +427,18 @@ impl TreeView {
     }
 
     /// Insert a new item into the TreeView with associated lParam and return a reference to new newly added item
-    pub fn insert_item_with_param<'a>(&self, new: &'a str, parent: Option<&TreeItem>, position: TreeInsert, data: isize) -> TreeItem {
-        use winapi::um::commctrl::{TVM_INSERTITEMW, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_TEXT, TVIF_PARAM};
+    pub fn insert_item_with_param<'a>(
+        &self,
+        new: &'a str,
+        parent: Option<&TreeItem>,
+        position: TreeInsert,
+        data: isize,
+    ) -> TreeItem {
         use winapi::um::commctrl::TVINSERTSTRUCTW_u;
+        use winapi::um::commctrl::{
+            TVIF_PARAM, TVIF_TEXT, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT,
+            TVM_INSERTITEMW,
+        };
         use winapi::um::winnt::LPWSTR;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -414,7 +448,7 @@ impl TreeView {
             TreeInsert::Last => TVI_LAST,
             TreeInsert::Root => TVI_ROOT,
             TreeInsert::Sort => TVI_SORT,
-            TreeInsert::After(i) => i
+            TreeInsert::After(i) => i,
         };
 
         let text = to_utf16(new);
@@ -422,16 +456,16 @@ impl TreeView {
         let item = {
             let mut item: TVINSERTSTRUCTW_u = unsafe { mem::zeroed() };
             let i = unsafe { item.item_mut() };
-            i.mask = TVIF_TEXT | TVIF_PARAM;            
+            i.mask = TVIF_TEXT | TVIF_PARAM;
             i.pszText = text.as_ptr() as LPWSTR;
             i.lParam = data;
             item
         };
 
         let new_item = TVINSERTSTRUCTW {
-            hParent: parent.map(|p| p.handle ).unwrap_or(ptr::null_mut()),
+            hParent: parent.map(|p| p.handle).unwrap_or(ptr::null_mut()),
             hInsertAfter: insert,
-            u: item
+            u: item,
         };
 
         let ptr = &new_item as *const TVINSERTSTRUCTW;
@@ -444,7 +478,7 @@ impl TreeView {
 
     /// Remove an item and its children from the tree view
     pub fn remove_item(&self, item: &TreeItem) {
-        use winapi::um::commctrl::{TVM_DELETEITEM};
+        use winapi::um::commctrl::TVM_DELETEITEM;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, TVM_DELETEITEM, 0, item.handle as LPARAM);
@@ -452,7 +486,7 @@ impl TreeView {
 
     /// Selects the specified tree-view item and scrolls the item into view.
     pub fn select_item(&self, item: &TreeItem) {
-        use winapi::um::commctrl::{TVM_SETITEMW, TVIF_STATE};
+        use winapi::um::commctrl::{TVIF_STATE, TVM_SETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut tree_item = blank_item();
@@ -461,12 +495,17 @@ impl TreeView {
         tree_item.state = TVIS_SELECTED;
         tree_item.stateMask = TVIS_SELECTED;
 
-        wh::send_message(handle, TVM_SETITEMW, 0, &mut tree_item as *mut TVITEMW as LPARAM);
+        wh::send_message(
+            handle,
+            TVM_SETITEMW,
+            0,
+            &mut tree_item as *mut TVITEMW as LPARAM,
+        );
     }
 
     /// Unselects an item from the treeview
     pub fn unselect_item(&self, item: &TreeItem) {
-        use winapi::um::commctrl::{TVM_SETITEMW, TVIF_STATE};
+        use winapi::um::commctrl::{TVIF_STATE, TVM_SETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut tree_item = blank_item();
@@ -475,18 +514,23 @@ impl TreeView {
         tree_item.state = 0;
         tree_item.stateMask = TVIS_SELECTED;
 
-        wh::send_message(handle, TVM_SETITEMW, 0, &mut tree_item as *mut TVITEMW as LPARAM);
+        wh::send_message(
+            handle,
+            TVM_SETITEMW,
+            0,
+            &mut tree_item as *mut TVITEMW as LPARAM,
+        );
     }
 
     /// Creates an iterator over the tree view items
-    #[cfg(feature="tree-view-iterator")]
+    #[cfg(feature = "tree-view-iterator")]
     pub fn iter<'a>(&'a self) -> crate::TreeViewIterator<'a> {
         check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         crate::TreeViewIterator::new(self, ptr::null_mut())
     }
 
     /// Creates an iterator over the children of an item. This does not include the item itself.
-    #[cfg(feature="tree-view-iterator")]
+    #[cfg(feature = "tree-view-iterator")]
     pub fn iter_item<'a>(&'a self, item: &TreeItem) -> crate::TreeViewIterator<'a> {
         check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         crate::TreeViewIterator::new(self, item.handle)
@@ -495,20 +539,22 @@ impl TreeView {
     /// Returns the text of the selected item. Return None if the item is not in the tree view.
     /// The returned text value cannot be bigger than 260 characters
     pub fn item_text(&self, tree_item: &TreeItem) -> Option<String> {
-        use winapi::um::commctrl::{TVM_GETITEMW, TVIF_TEXT, TVIF_HANDLE};
+        use winapi::um::commctrl::{TVIF_HANDLE, TVIF_TEXT, TVM_GETITEMW};
         const BUFFER_MAX: usize = 260;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut text_buffer = Vec::with_capacity(BUFFER_MAX);
-        unsafe { text_buffer.set_len(BUFFER_MAX); }
+        unsafe {
+            text_buffer.set_len(BUFFER_MAX);
+        }
 
         let mut item: TVITEMW = blank_item();
         item.mask = TVIF_TEXT | TVIF_HANDLE;
         item.hItem = tree_item.handle;
         item.pszText = text_buffer.as_mut_ptr();
         item.cchTextMax = BUFFER_MAX as _;
-        
+
         let result = wh::send_message(handle, TVM_GETITEMW, 0, &mut item as *mut TVITEMW as LPARAM);
         if result == 0 {
             return None;
@@ -516,10 +562,10 @@ impl TreeView {
 
         Some(from_utf16(&text_buffer))
     }
-    
+
     /// Set the text for specified item in the treeview.
     pub fn set_item_text(&self, tree_item: &TreeItem, new_text: &str) {
-        use winapi::um::commctrl::{TVM_SETITEMW, TVIF_TEXT};
+        use winapi::um::commctrl::{TVIF_TEXT, TVM_SETITEMW};
         use winapi::um::winnt::LPWSTR;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -535,14 +581,14 @@ impl TreeView {
 
     /// Returns the lParam of the selected item. Return None if the item is not in the tree view.
     pub fn item_param(&self, tree_item: &TreeItem) -> Option<isize> {
-        use winapi::um::commctrl::{TVM_GETITEMW, TVIF_PARAM, TVIF_HANDLE};
+        use winapi::um::commctrl::{TVIF_HANDLE, TVIF_PARAM, TVM_GETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut item: TVITEMW = blank_item();
         item.mask = TVIF_HANDLE | TVIF_PARAM;
         item.hItem = tree_item.handle;
-        
+
         let result = wh::send_message(handle, TVM_GETITEMW, 0, &mut item as *mut TVITEMW as LPARAM);
         if result == 0 {
             return None;
@@ -553,14 +599,14 @@ impl TreeView {
 
     /// Returns `true` if the tree view item has children. Returns `None` if the item is not in the tree view.
     pub fn item_has_children(&self, tree_item: &TreeItem) -> Option<bool> {
-        use winapi::um::commctrl::{TVM_GETITEMW, TVIF_CHILDREN, TVIF_HANDLE};
+        use winapi::um::commctrl::{TVIF_CHILDREN, TVIF_HANDLE, TVM_GETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let mut item: TVITEMW = blank_item();
         item.hItem = tree_item.handle;
         item.mask = TVIF_CHILDREN | TVIF_HANDLE;
-        
+
         let result = wh::send_message(handle, TVM_GETITEMW, 0, &mut item as *mut TVITEMW as LPARAM);
         if result == 0 {
             return None;
@@ -571,7 +617,7 @@ impl TreeView {
 
     /// Returns the item state in the tree view or `None` if the item is not in the tree view
     pub fn item_state(&self, tree_item: &TreeItem) -> Option<TreeItemState> {
-        use winapi::um::commctrl::{TVM_GETITEMW, TVIF_STATE, TVIF_HANDLE};
+        use winapi::um::commctrl::{TVIF_HANDLE, TVIF_STATE, TVM_GETITEMW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -579,7 +625,7 @@ impl TreeView {
         item.hItem = tree_item.handle;
         item.mask = TVIF_STATE | TVIF_HANDLE;
         item.stateMask = 0xFF;
-        
+
         let result = wh::send_message(handle, TVM_GETITEMW, 0, &mut item as *mut TVITEMW as LPARAM);
         if result == 0 {
             return None;
@@ -588,9 +634,11 @@ impl TreeView {
         Some(TreeItemState::from_bits_truncate(item.state))
     }
 
-    /// Expands or collapses the list of child items associated with the specified parent item, if any. 
+    /// Expands or collapses the list of child items associated with the specified parent item, if any.
     pub fn set_expand_state(&self, item: &TreeItem, state: ExpandState) {
-        use winapi::um::commctrl::{TVM_EXPAND, TVE_COLLAPSE, TVE_COLLAPSERESET, TVE_EXPAND, TVE_EXPANDPARTIAL, TVE_TOGGLE};
+        use winapi::um::commctrl::{
+            TVE_COLLAPSE, TVE_COLLAPSERESET, TVE_EXPAND, TVE_EXPANDPARTIAL, TVE_TOGGLE, TVM_EXPAND,
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -607,7 +655,7 @@ impl TreeView {
 
     /// Ensures that a tree-view item is visible, expanding the parent item or scrolling the tree-view control, if necessary.
     pub fn ensure_visible(&self, item: &TreeItem) {
-        use winapi::um::commctrl::{TVM_ENSUREVISIBLE};
+        use winapi::um::commctrl::TVM_ENSUREVISIBLE;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, TVM_ENSUREVISIBLE, 0, item.handle as LPARAM);
@@ -615,10 +663,10 @@ impl TreeView {
 
     /// Remove every item from the treeview by removing the root item
     pub fn clear(&self) {
-        use winapi::um::commctrl::{TVM_DELETEITEM, TVI_ROOT};
+        use winapi::um::commctrl::{TVI_ROOT, TVM_DELETEITEM};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        wh::send_message(handle, TVM_DELETEITEM, 0, TVI_ROOT  as LPARAM);
+        wh::send_message(handle, TVM_DELETEITEM, 0, TVI_ROOT as LPARAM);
     }
 
     /// Return the total number of item in the tree view
@@ -637,7 +685,6 @@ impl TreeView {
         wh::send_message(handle, TVM_GETVISIBLECOUNT, 0, 0) as usize
     }
 
-
     //
     // Common methods
     //
@@ -647,9 +694,10 @@ impl TreeView {
         use winapi::um::winuser::InvalidateRect;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { InvalidateRect(handle, ptr::null(), 1); }
+        unsafe {
+            InvalidateRect(handle, ptr::null(), 1);
+        }
     }
-
 
     /// Return the font of the control
     pub fn font(&self) -> Option<Font> {
@@ -659,14 +707,18 @@ impl TreeView {
         if font_handle.is_null() {
             None
         } else {
-            Some(Font { handle: font_handle })
+            Some(Font {
+                handle: font_handle,
+            })
         }
     }
 
     /// Set the font of the control
     pub fn set_font(&self, font: Option<&Font>) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_font(handle, font.map(|f| f.handle), true); }
+        unsafe {
+            wh::set_window_font(handle, font.map(|f| f.handle), true);
+        }
     }
 
     /// Return true if the control currently has the keyboard focus
@@ -678,7 +730,9 @@ impl TreeView {
     /// Set the keyboard focus on the button.
     pub fn set_focus(&self) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_focus(handle); }
+        unsafe {
+            wh::set_focus(handle);
+        }
     }
 
     /// Return true if the control user can interact with the control, return false otherwise
@@ -693,7 +747,7 @@ impl TreeView {
         unsafe { wh::set_window_enabled(handle, v) }
     }
 
-    /// Return true if the control is visible to the user. Will return true even if the 
+    /// Return true if the control is visible to the user. Will return true even if the
     /// control is outside of the parent client view (ex: at the position (10000, 10000))
     pub fn visible(&self) -> bool {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -737,15 +791,21 @@ impl TreeView {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        use winapi::um::commctrl::{TVS_HASBUTTONS, TVS_LINESATROOT, TVS_HASLINES, TVS_EDITLABELS};
+        use winapi::um::commctrl::{TVS_EDITLABELS, TVS_HASBUTTONS, TVS_HASLINES, TVS_LINESATROOT};
 
-        WS_VISIBLE | TVS_HASBUTTONS | TVS_LINESATROOT | TVS_HASLINES | WS_TABSTOP | TVS_SHOWSELALWAYS | TVS_EDITLABELS
+        WS_VISIBLE
+            | TVS_HASBUTTONS
+            | TVS_LINESATROOT
+            | TVS_HASLINES
+            | WS_TABSTOP
+            | TVS_SHOWSELALWAYS
+            | TVS_EDITLABELS
     }
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_CHILD, WS_BORDER};
         use winapi::um::commctrl::TVS_NOTOOLTIPS;
+        use winapi::um::winuser::{WS_BORDER, WS_CHILD};
 
         WS_CHILD | WS_BORDER | TVS_NOTOOLTIPS
     }
@@ -754,27 +814,32 @@ impl TreeView {
     /// Return None if Failed.
     /// Return the treeview's handle if successful.
     pub fn edit_label(&self, item: &TreeItem) -> Option<ControlHandle> {
-        use winapi::um::commctrl::TVM_EDITLABELW;
         use winapi::shared::windef::HWND;
+        use winapi::um::commctrl::TVM_EDITLABELW;
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-    
-        let result = wh::send_message(handle,  TVM_EDITLABELW, 0, item.handle as HTREEITEM as LPARAM); 
-        
+
+        let result = wh::send_message(
+            handle,
+            TVM_EDITLABELW,
+            0,
+            item.handle as HTREEITEM as LPARAM,
+        );
+
         if result == 0 {
             return None;
         }
         Some(ControlHandle::Hwnd(result as HWND))
-    } 
+    }
 
     /// End the in-place editing of the tree item's label.
-    /// The parameter f_cancel indicates whether the editing is canceled without being saved to the label. 
+    /// The parameter f_cancel indicates whether the editing is canceled without being saved to the label.
     /// If this parameter is TRUE, the system cancels editing without saving the changes. Otherwise, the system saves the changes to the label.
     /// Return true if successful, otherwise return false.
     pub fn end_edit_label_now(&self, f_cancel: bool) -> bool {
         use winapi::um::commctrl::TVM_ENDEDITLABELNOW;
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-    
-        wh::send_message(handle,  TVM_ENDEDITLABELNOW, f_cancel as WPARAM, 0) != 0
+
+        wh::send_message(handle, TVM_ENDEDITLABELNOW, f_cancel as WPARAM, 0) != 0
     }
 }
 
@@ -783,7 +848,6 @@ impl Drop for TreeView {
         self.handle.destroy();
     }
 }
-
 
 /// Builder for a TreeView
 pub struct TreeViewBuilder<'a> {
@@ -796,13 +860,11 @@ pub struct TreeViewBuilder<'a> {
     font: Option<&'a Font>,
     parent: Option<ControlHandle>,
 
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     image_list: Option<&'a ImageList>,
 }
 
-
 impl<'a> TreeViewBuilder<'a> {
-
     pub fn flags(mut self, flags: TreeViewFlags) -> TreeViewBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -843,7 +905,7 @@ impl<'a> TreeViewBuilder<'a> {
         self
     }
 
-    #[cfg(feature="image-list")]
+    #[cfg(feature = "image-list")]
     pub fn image_list(mut self, list: Option<&'a ImageList>) -> TreeViewBuilder<'a> {
         self.image_list = list;
         self
@@ -854,7 +916,7 @@ impl<'a> TreeViewBuilder<'a> {
 
         let parent = match self.parent {
             Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("TreeView"))
+            None => Err(NwgError::no_parent("TreeView")),
         }?;
 
         *out = Default::default();
@@ -885,9 +947,7 @@ impl<'a> TreeViewBuilder<'a> {
 
         Ok(())
     }
-
 }
-
 
 impl PartialEq for TreeItem {
     fn eq(&self, other: &Self) -> bool {
@@ -897,11 +957,12 @@ impl PartialEq for TreeItem {
 
 impl Eq for TreeItem {}
 
-
 fn next_treeview_item(handle: &ControlHandle, action: usize, item: HTREEITEM) -> Option<TreeItem> {
     use winapi::um::commctrl::TVM_GETNEXTITEM;
 
-    if handle.blank() { panic!("{}", NOT_BOUND); }
+    if handle.blank() {
+        panic!("{}", NOT_BOUND);
+    }
     let handle = handle.hwnd().expect(BAD_HANDLE);
 
     let handle = wh::send_message(handle, TVM_GETNEXTITEM, action as _, item as _) as HTREEITEM;
@@ -912,16 +973,15 @@ fn next_treeview_item(handle: &ControlHandle, action: usize, item: HTREEITEM) ->
     }
 }
 
-#[cfg(feature="image-list")]
+#[cfg(feature = "image-list")]
 fn builder_set_image_list(builder: &TreeViewBuilder, out: &TreeView) {
     if builder.image_list.is_some() {
         out.set_image_list(builder.image_list);
     }
 }
 
-#[cfg(not(feature="image-list"))]
-fn builder_set_image_list(_builder: &TreeViewBuilder, _out: &TreeView) {
-}
+#[cfg(not(feature = "image-list"))]
+fn builder_set_image_list(_builder: &TreeViewBuilder, _out: &TreeView) {}
 
 fn blank_item() -> TVITEMW {
     TVITEMW {
@@ -934,6 +994,6 @@ fn blank_item() -> TVITEMW {
         iImage: 0,
         iSelectedImage: 0,
         cChildren: 0,
-        lParam: 0
+        lParam: 0,
     }
 }

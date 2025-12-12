@@ -1,10 +1,8 @@
-
-use native_windows_gui as nwg;
 use native_windows_derive as nwd;
+use native_windows_gui as nwg;
 
-use nwd::{NwgUi, NwgPartial};
+use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;
-
 
 #[derive(Default, NwgUi)]
 pub struct ConfigDlg {

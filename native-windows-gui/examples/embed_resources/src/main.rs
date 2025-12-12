@@ -5,14 +5,12 @@
     For more info about resources see https://docs.microsoft.com/en-us/windows/win32/menurc/resource-definition-statements
 */
 
-
-extern crate native_windows_gui as nwg;
 extern crate native_windows_derive as nwd;
+extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
 use std::cell::RefCell;
-
 
 #[derive(Default, NwgUi)]
 pub struct EmbedApp {
@@ -41,7 +39,6 @@ pub struct EmbedApp {
 }
 
 impl EmbedApp {
-
     fn init(&self) {
         let em = &self.embed;
         self.name_edit.set_text(&em.string(0).unwrap());
@@ -50,11 +47,15 @@ impl EmbedApp {
         self.window.set_text(&em.string(2).unwrap());
         self.window.set_icon(em.icon_str("TEST", None).as_ref());
 
-        self.embed_bitmap.set_bitmap(em.bitmap_str("BALL", None).as_ref());
+        self.embed_bitmap
+            .set_bitmap(em.bitmap_str("BALL", None).as_ref());
 
         // Load a custom font from embed resource
         let mem_font = unsafe {
-            let rc = self.embed.raw_str("INDIE", nwg::RawResourceType::Other("FONTFILE")).unwrap();
+            let rc = self
+                .embed
+                .raw_str("INDIE", nwg::RawResourceType::Other("FONTFILE"))
+                .unwrap();
             nwg::Font::add_memory_font(rc.as_mut_slice()).unwrap()
         };
 
@@ -76,7 +77,7 @@ impl EmbedApp {
     fn set_cursor(&self) {
         nwg::GlobalCursor::set(&self.ice_cursor);
     }
-    
+
     fn say_goodbye(&self) {
         nwg::simple_message("Goodbye", &format!("Goodbye {}", self.name_edit.text()));
         nwg::stop_thread_dispatch();
@@ -86,8 +87,6 @@ impl EmbedApp {
             nwg::Font::remove_memory_font(font);
         }
     }
-    
-
 }
 
 fn main() {

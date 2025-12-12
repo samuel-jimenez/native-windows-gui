@@ -1,14 +1,13 @@
 #![allow(deprecated)]
 
 use crate::controls::ControlHandle;
-use crate::win32::{window_helper as wh, window::build_timer};
+use crate::win32::{window::build_timer, window_helper as wh};
 use crate::NwgError;
 use std::cell::RefCell;
 
 const NOT_BOUND: &'static str = "Timer is not yet bound to a winapi object";
 const UNUSABLE_TIMER: &'static str = "Timer parent window was freed";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Timer handle is not Timer!";
-
 
 /**
 WARNING: Use AnimationTimer instead. The winapi timer does not have a constant tick and will call your single threaded from another thread.
@@ -23,7 +22,7 @@ than the `interval` value. For example, when a user resize a window, Timer OnTim
 This is a Windows "feature", there's probably nothing I can do to fix that.
 
 
-Requires the `timer` feature. 
+Requires the `timer` feature.
 
 **Builder parameters:**
   * `parent`:   **Required.** The timer parent container. Should be a top level window
@@ -57,19 +56,20 @@ pub struct Timer {
 }
 
 impl Timer {
-
     pub fn builder() -> TimerBuilder {
         TimerBuilder {
             parent: None,
             interval: 100,
-            stopped: true
+            stopped: true,
         }
     }
 
     /// Checks if the timer is still usable. A timer becomes unusable when the parent window is destroyed.
     /// This will also return false if the timer is not initialized.
     pub fn valid(&self) -> bool {
-        if self.handle.blank() { return false; }
+        if self.handle.blank() {
+            return false;
+        }
         let (hwnd, _) = self.handle.timer().expect(BAD_HANDLE);
         wh::window_valid(hwnd)
     }
@@ -86,8 +86,12 @@ impl Timer {
 
     /// Stops the timer.
     pub fn stop(&self) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
-        if !self.valid() { panic!("{}", UNUSABLE_TIMER); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
+        if !self.valid() {
+            panic!("{}", UNUSABLE_TIMER);
+        }
         let (hwnd, id) = self.handle.timer().expect(BAD_HANDLE);
 
         wh::kill_timer(hwnd, id);
@@ -95,13 +99,16 @@ impl Timer {
 
     /// Starts the timer. If the timer is already running, this restarts it.
     pub fn start(&self) {
-        if self.handle.blank() { panic!("{}", NOT_BOUND); }
-        if !self.valid() { panic!("{}", UNUSABLE_TIMER); }
+        if self.handle.blank() {
+            panic!("{}", NOT_BOUND);
+        }
+        if !self.valid() {
+            panic!("{}", UNUSABLE_TIMER);
+        }
         let (hwnd, id) = self.handle.timer().expect(BAD_HANDLE);
 
         wh::start_timer(hwnd, id, self.interval());
     }
-
 }
 
 impl Drop for Timer {
@@ -113,11 +120,10 @@ impl Drop for Timer {
 pub struct TimerBuilder {
     parent: Option<ControlHandle>,
     interval: u32,
-    stopped: bool
+    stopped: bool,
 }
 
 impl TimerBuilder {
-    
     pub fn interval(mut self, interval: u32) -> TimerBuilder {
         self.interval = interval;
         self
@@ -137,19 +143,18 @@ impl TimerBuilder {
         let parent = match self.parent {
             Some(p) => match p.hwnd() {
                 Some(handle) => Ok(handle),
-                None => Err(NwgError::control_create("Wrong parent type"))
+                None => Err(NwgError::control_create("Wrong parent type")),
             },
-            None => Err(NwgError::no_parent("Timer"))
+            None => Err(NwgError::no_parent("Timer")),
         }?;
 
         *out = Default::default();
 
         out.handle = unsafe { build_timer(parent, self.interval, self.stopped) };
         out.set_interval(self.interval);
-        
+
         Ok(())
     }
-
 }
 
 impl PartialEq for Timer {
