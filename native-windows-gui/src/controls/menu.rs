@@ -1,6 +1,6 @@
 use super::{ControlBase, ControlHandle};
-use crate::win32::menu as mh;
 use crate::NwgError;
+use crate::win32::menu as mh;
 use std::ptr;
 
 const NOT_BOUND: &'static str = "Menu/MenuItem is not yet bound to a winapi object";

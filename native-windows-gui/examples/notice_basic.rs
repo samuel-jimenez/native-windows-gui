@@ -10,7 +10,7 @@ use nwd::NwgUi;
 use nwg::NativeUi;
 
 use std::cell::RefCell;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{Receiver, channel};
 use std::thread;
 
 #[derive(Default, NwgUi)]

@@ -2,7 +2,7 @@
 name = "native-windows-gui"
 version = "1.0.12"
 authors = ["gdube <gdube.475@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 description = "A rust library to develop native GUI applications on the desktop for Microsoft Windows. Native-windows-gui wraps the native win32 window controls in a rustic API"
 

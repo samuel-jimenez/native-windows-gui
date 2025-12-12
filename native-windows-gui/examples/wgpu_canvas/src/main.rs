@@ -4,11 +4,11 @@ extern crate native_windows_gui as nwg;
 
 use core::num::NonZeroU64;
 use nwd::NwgUi;
+use nwg::NativeUi;
 use nwg::stretch::{
     geometry::*,
     style::{Dimension::*, *},
 };
-use nwg::NativeUi;
 use std::{borrow::Cow, cell::RefCell, mem, ops::Range, slice, time::Duration};
 
 mod glb;

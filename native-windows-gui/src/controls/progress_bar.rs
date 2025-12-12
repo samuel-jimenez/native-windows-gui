@@ -4,9 +4,9 @@ that indicates what the button does when the user selects it.
 */
 
 use super::{ControlBase, ControlHandle};
+use crate::NwgError;
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use std::ops::Range;
 use winapi::um::commctrl::{PBS_MARQUEE, PBS_VERTICAL};
 use winapi::um::winuser::{WS_DISABLED, WS_VISIBLE};

@@ -1,7 +1,7 @@
+use crate::NwgError;
 use crate::controls::ControlHandle;
 use crate::win32::window::bind_raw_event_handler_inner;
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;
@@ -645,7 +645,10 @@ impl GridLayoutBuilder {
 
         if let Some(max_column) = self.layout.column_count {
             if let Some(item) = self.layout.children.iter().find(|c| c.col >= max_column) {
-                return Err(NwgError::layout_create(format!("A layout item column is bigger or equal than the max number of column. {} >= {}", item.col, max_column)));
+                return Err(NwgError::layout_create(format!(
+                    "A layout item column is bigger or equal than the max number of column. {} >= {}",
+                    item.col, max_column
+                )));
             }
         }
 

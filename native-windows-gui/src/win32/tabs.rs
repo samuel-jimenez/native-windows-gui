@@ -34,17 +34,19 @@ pub fn create_tab_classes() -> Result<(), NwgError> {
 }
 
 unsafe extern "system" fn tab_proc(hwnd: HWND, msg: UINT, w: WPARAM, l: LPARAM) -> LRESULT {
-    use winapi::um::winuser::DefWindowProcW;
-    use winapi::um::winuser::WM_CREATE;
+    unsafe {
+        use winapi::um::winuser::DefWindowProcW;
+        use winapi::um::winuser::WM_CREATE;
 
-    let handled = match msg {
-        WM_CREATE => Some(0),
-        _ => None,
-    };
+        let handled = match msg {
+            WM_CREATE => Some(0),
+            _ => None,
+        };
 
-    if let Some(result) = handled {
-        result
-    } else {
-        DefWindowProcW(hwnd, msg, w, l)
+        if let Some(result) = handled {
+            result
+        } else {
+            DefWindowProcW(hwnd, msg, w, l)
+        }
     }
 }

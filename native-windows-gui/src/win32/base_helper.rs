@@ -15,7 +15,9 @@ pub fn check_hwnd(handle: &ControlHandle, not_bound: &str, bad_handle: &str) -> 
     match handle.hwnd() {
         Some(hwnd) => match unsafe { IsWindow(hwnd) } {
             0 => {
-                panic!("The window handle is no longer valid. This usually means the control was freed by the OS");
+                panic!(
+                    "The window handle is no longer valid. This usually means the control was freed by the OS"
+                );
             }
             _ => hwnd,
         },
@@ -54,43 +56,47 @@ pub fn from_utf16(s: &[u16]) -> String {
 */
 #[cfg(feature = "winnls")]
 pub unsafe fn from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> String {
-    use std::slice::from_raw_parts;
+    unsafe {
+        use std::slice::from_raw_parts;
 
-    let length = match length {
-        Some(v) => v,
-        None => {
-            let mut length: isize = 0;
-            while *&*ptr.offset(length) != 0 {
-                length += 1;
+        let length = match length {
+            Some(v) => v,
+            None => {
+                let mut length: isize = 0;
+                while *&*ptr.offset(length) != 0 {
+                    length += 1;
+                }
+
+                length as usize
             }
+        };
 
-            length as usize
-        }
-    };
-
-    let array: &[u16] = from_raw_parts(ptr, length);
-    from_utf16(array)
+        let array: &[u16] = from_raw_parts(ptr, length);
+        from_utf16(array)
+    }
 }
 
 #[cfg(any(feature = "file-dialog", feature = "winnls"))]
 pub unsafe fn os_string_from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> OsString {
-    use std::os::windows::ffi::OsStringExt;
-    use std::slice::from_raw_parts;
+    unsafe {
+        use std::os::windows::ffi::OsStringExt;
+        use std::slice::from_raw_parts;
 
-    let length = match length {
-        Some(v) => v,
-        None => {
-            let mut length: isize = 0;
-            while *&*ptr.offset(length) != 0 {
-                length += 1;
+        let length = match length {
+            Some(v) => v,
+            None => {
+                let mut length: isize = 0;
+                while *&*ptr.offset(length) != 0 {
+                    length += 1;
+                }
+
+                length as usize
             }
+        };
 
-            length as usize
-        }
-    };
-
-    let array: &[u16] = from_raw_parts(ptr, length);
-    OsString::from_wide(array)
+        let array: &[u16] = from_raw_parts(ptr, length);
+        OsString::from_wide(array)
+    }
 }
 
 /**
@@ -100,30 +106,32 @@ pub unsafe fn os_string_from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> O
 */
 #[allow(unused)]
 pub unsafe fn get_system_error() -> (DWORD, String) {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
-    use winapi::um::errhandlingapi::GetLastError;
-    use winapi::um::winbase::{FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM};
-    use winapi::um::winnt::{LANG_NEUTRAL, MAKELANGID, SUBLANG_DEFAULT};
+    unsafe {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStringExt;
+        use winapi::um::errhandlingapi::GetLastError;
+        use winapi::um::winbase::{FORMAT_MESSAGE_FROM_SYSTEM, FormatMessageW};
+        use winapi::um::winnt::{LANG_NEUTRAL, MAKELANGID, SUBLANG_DEFAULT};
 
-    let code = GetLastError();
-    let lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT) as DWORD;
-    let mut buf: Vec<u16> = Vec::with_capacity(1024);
-    buf.set_len(1024);
-    FormatMessageW(
-        FORMAT_MESSAGE_FROM_SYSTEM,
-        ptr::null(),
-        code,
-        lang,
-        buf.as_mut_ptr(),
-        1024,
-        ptr::null_mut(),
-    );
+        let code = GetLastError();
+        let lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT) as DWORD;
+        let mut buf: Vec<u16> = Vec::with_capacity(1024);
+        buf.set_len(1024);
+        FormatMessageW(
+            FORMAT_MESSAGE_FROM_SYSTEM,
+            ptr::null(),
+            code,
+            lang,
+            buf.as_mut_ptr(),
+            1024,
+            ptr::null_mut(),
+        );
 
-    let end = buf.iter().position(|&i| i == 0).unwrap_or(1024);
-    let error_message = OsString::from_wide(&buf[..end])
-        .into_string()
-        .unwrap_or("Error while decoding system error message".to_string());
+        let end = buf.iter().position(|&i| i == 0).unwrap_or(1024);
+        let error_message = OsString::from_wide(&buf[..end])
+            .into_string()
+            .unwrap_or("Error while decoding system error message".to_string());
 
-    (code, error_message)
+        (code, error_message)
+    }
 }

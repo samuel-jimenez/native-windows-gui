@@ -1,10 +1,10 @@
 use super::{Bitmap, Cursor, Icon};
-use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::NwgError;
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use std::{ptr, slice};
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{HGLOBAL, HINSTANCE, HRSRC};
-use winapi::um::winuser::{LoadImageW, LR_CREATEDIBSECTION, LR_DEFAULTSIZE};
+use winapi::um::winuser::{LR_CREATEDIBSECTION, LR_DEFAULTSIZE, LoadImageW};
 
 /// Raw resource type that can be stored into an embedded resource.
 #[derive(Copy, Clone, Debug)]
@@ -74,7 +74,7 @@ impl RawResource {
 
     /// Return the resource data as a byte slice. This is equivalent to using `slice::from_raw_parts_mut`
     pub unsafe fn as_mut_slice(&self) -> &mut [u8] {
-        std::slice::from_raw_parts_mut(self.lock() as *mut u8, self.len())
+        unsafe { std::slice::from_raw_parts_mut(self.lock() as *mut u8, self.len()) }
     }
 
     fn lock(&self) -> *mut c_void {
@@ -259,8 +259,8 @@ impl EmbedResource {
 
     /// Return a wrapper over the data of an embed resource. Return `None` `id` does not map to a resource.
     pub fn raw(&self, id: usize, ty: RawResourceType) -> Option<RawResource> {
-        use winapi::um::libloaderapi::{FindResourceW, LoadResource};
         use RawResourceType::*;
+        use winapi::um::libloaderapi::{FindResourceW, LoadResource};
 
         unsafe {
             let data_u16;

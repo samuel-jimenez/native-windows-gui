@@ -30,25 +30,18 @@ pub struct RichText {
 impl RichText {
     fn init_text(&self) {
         let text = concat!(
-            "Russian political jokes\r\n",  //0..24
-
+            "Russian political jokes\r\n", //0..24
             // 25..187
             "Russian political jokes are a part of Russian humour and can be grouped into the major time periods: Imperial Russia, Soviet Union and finally post-Soviet Russia.\r\n",
-
             "Imperial Russia\r\n", // 187..203
-
             // 203..411
             "In Imperial Russia, most political jokes were of the polite variety that circulated in educated society. Few of the political jokes of the time are recorded, but some were printed in a 1904 German anthology.\r\n",
-
             // 411..660
             "A man was reported to have said: \"Nikolay is a moron!\" and was arrested by a policeman. \"No, sir, I meant not our respected Emperor, but another Nikolay!\" - \"Don't try to trick me: if you say \"moron\", you are obviously referring to our tsar!\r\n",
-
             // 660..861
             "A respected merchant, Sevenassov (Semizhopov in the original Russian), wants to change his surname, and asks the Tsar for permission. The Tsar gives his decision in writing: \"Permitted to subtract two asses\"\r\n",
-
             // 861..873
             "Soviet Union\r\n",
-
             // 873..1106
             "Every nation enjoys political jokes, but in the Soviet Union telling political jokes could be regarded as type of extreme sport: according to Article 58 (RSFSR Penal Code), \"anti-Soviet propaganda\" was a potentially capital offense.\r\n",
         );

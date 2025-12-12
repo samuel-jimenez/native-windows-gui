@@ -13,7 +13,7 @@ use std::cell::{Cell, RefCell};
 use std::mem;
 use winapi::shared::windef::{HBRUSH, HPEN};
 use winapi::um::wingdi::{
-    CreatePen, CreateSolidBrush, Ellipse, Polygon, SelectObject, PS_SOLID, RGB,
+    CreatePen, CreateSolidBrush, Ellipse, PS_SOLID, Polygon, RGB, SelectObject,
 };
 
 pub struct PaintData {

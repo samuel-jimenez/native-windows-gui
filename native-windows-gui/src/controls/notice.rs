@@ -1,6 +1,6 @@
 use super::control_handle::ControlHandle;
-use crate::win32::{window::build_notice, window_helper as wh};
 use crate::NwgError;
+use crate::win32::{window::build_notice, window_helper as wh};
 
 const NOT_BOUND: &'static str = "Notice is not yet bound to a winapi object";
 const UNUSABLE_NOTICE: &'static str = "Notice parent window was freed";

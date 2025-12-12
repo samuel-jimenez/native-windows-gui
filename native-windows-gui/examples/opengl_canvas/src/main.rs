@@ -10,8 +10,8 @@ extern crate glutin;
 extern crate native_windows_gui as nwg;
 
 use crate::glutin::{
-    dpi::PhysicalSize, os::windows::RawContextExt, Api, ContextBuilder, GlProfile, GlRequest,
-    PossiblyCurrent, RawContext,
+    Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
+    os::windows::RawContextExt,
 };
 use crate::nwg::NativeUi;
 use std::cell::RefCell;

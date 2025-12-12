@@ -3,11 +3,11 @@ use crate::win32::base_helper::to_utf16;
 use crate::win32::window_helper as wh;
 use crate::{Icon, NwgError};
 use std::{mem, ptr};
-use winapi::um::shellapi::{Shell_NotifyIconW, NOTIFYICONDATAW};
 use winapi::um::shellapi::{
     NIIF_ERROR, NIIF_INFO, NIIF_LARGE_ICON, NIIF_NONE, NIIF_NOSOUND, NIIF_RESPECT_QUIET_TIME,
     NIIF_USER, NIIF_WARNING,
 };
+use winapi::um::shellapi::{NOTIFYICONDATAW, Shell_NotifyIconW};
 
 const NOT_BOUND: &'static str = "TrayNotification is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TrayNotification handle is not HWND!";
@@ -357,8 +357,8 @@ impl<'a> TrayNotificationBuilder<'a> {
     pub fn build(self, out: &mut TrayNotification) -> Result<(), NwgError> {
         use winapi::shared::windef::HICON;
         use winapi::um::shellapi::{
-            NOTIFYICONDATAW_u, NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_REALTIME, NIF_SHOWTIP,
-            NIF_STATE, NIF_TIP, NIM_ADD, NIS_HIDDEN, NOTIFYICON_VERSION_4,
+            NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_REALTIME, NIF_SHOWTIP, NIF_STATE, NIF_TIP,
+            NIM_ADD, NIS_HIDDEN, NOTIFYICON_VERSION_4, NOTIFYICONDATAW_u,
         };
         use winapi::um::winnt::WCHAR;
 

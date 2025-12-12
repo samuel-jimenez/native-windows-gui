@@ -17,8 +17,8 @@
     When making a system-tray application (with TrayNotification), this is the recommended top level window type.
 */
 use super::ControlHandle;
-use crate::win32::window::create_message_window;
 use crate::NwgError;
+use crate::win32::window::create_message_window;
 
 /**
     A message only top level window. At least one top level window is required to make a NWG application.

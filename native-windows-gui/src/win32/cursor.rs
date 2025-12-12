@@ -1,6 +1,6 @@
+use crate::Cursor;
 use crate::controls::ControlHandle;
 use crate::win32::high_dpi;
-use crate::Cursor;
 
 /**
     A global object that wraps the system cursor.

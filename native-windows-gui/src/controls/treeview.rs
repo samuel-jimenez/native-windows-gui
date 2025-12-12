@@ -388,7 +388,7 @@ impl TreeView {
     ) -> TreeItem {
         use winapi::um::commctrl::TVINSERTSTRUCTW_u;
         use winapi::um::commctrl::{
-            TVIF_TEXT, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVM_INSERTITEMW,
+            TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_TEXT, TVINSERTSTRUCTW, TVM_INSERTITEMW,
         };
         use winapi::um::winnt::LPWSTR;
 
@@ -436,7 +436,7 @@ impl TreeView {
     ) -> TreeItem {
         use winapi::um::commctrl::TVINSERTSTRUCTW_u;
         use winapi::um::commctrl::{
-            TVIF_PARAM, TVIF_TEXT, TVINSERTSTRUCTW, TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT,
+            TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_PARAM, TVIF_TEXT, TVINSERTSTRUCTW,
             TVM_INSERTITEMW,
         };
         use winapi::um::winnt::LPWSTR;

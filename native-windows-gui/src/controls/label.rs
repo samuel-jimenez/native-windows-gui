@@ -6,7 +6,7 @@ use winapi::um::{
 use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
-use crate::{unbind_raw_event_handler, Font, HTextAlign, NwgError, RawEventHandler, VTextAlign};
+use crate::{Font, HTextAlign, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler};
 use std::cell::RefCell;
 use winapi::shared::windef::HBRUSH;
 
@@ -216,14 +216,14 @@ impl Label {
         use std::{mem, ptr};
         use winapi::shared::windef::{HGDIOBJ, HWND, POINT, RECT};
         use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT};
-        use winapi::um::wingdi::{CreateSolidBrush, SelectObject, RGB};
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, GetWindowTextLengthW,
-            GetWindowTextW, ReleaseDC, ScreenToClient, SetWindowPos,
-        };
+        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
         use winapi::um::winuser::{
             COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_CTLCOLORSTATIC,
             WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE,
+        };
+        use winapi::um::winuser::{
+            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, GetWindowTextLengthW,
+            GetWindowTextW, ReleaseDC, ScreenToClient, SetWindowPos,
         };
         use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
 

@@ -1,10 +1,10 @@
-use crate::controls::ControlHandle;
 use crate::NwgError;
+use crate::controls::ControlHandle;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::{mem, ptr};
 use winapi::shared::{minwindef::DWORD, windef::COLORREF};
-use winapi::um::commdlg::{ChooseColorW, CC_RGBINIT, CHOOSECOLORW};
+use winapi::um::commdlg::{CC_RGBINIT, CHOOSECOLORW, ChooseColorW};
 use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue, RGB};
 
 struct InnerColorDialog {

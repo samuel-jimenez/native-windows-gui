@@ -720,9 +720,13 @@ impl MinMaxInfo {
 
 impl fmt::Debug for MinMaxInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,
+        write!(
+            f,
             "MinMaxInfo {{ maximized_size: {:?}, maximized_pos: {:?}, max_size: {:?}, min_size: {:?} }}",
-            self.maximized_size(), self.maximized_pos(), self.max_size(), self.min_size()
+            self.maximized_size(),
+            self.maximized_pos(),
+            self.max_size(),
+            self.min_size()
         )
     }
 }

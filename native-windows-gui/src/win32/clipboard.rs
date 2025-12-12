@@ -21,8 +21,8 @@ pub enum ClipboardFormat {
 
 impl ClipboardFormat {
     fn into_raw(&self) -> u32 {
-        use winapi::um::winuser::RegisterClipboardFormatW;
         use ClipboardFormat::*;
+        use winapi::um::winuser::RegisterClipboardFormatW;
 
         match self {
             Text => CF_TEXT,
@@ -156,7 +156,7 @@ impl Clipboard {
         use winapi::shared::basetsd::SIZE_T;
         use winapi::um::stringapiset::MultiByteToWideChar;
         use winapi::um::winbase::{
-            GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
+            GMEM_MOVEABLE, GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock,
         };
         use winapi::um::winnls::CP_UTF8;
         use winapi::um::winuser::SetClipboardData;
@@ -279,22 +279,24 @@ impl Clipboard {
         * Note 2: When copying text, the null byte must be included.
     */
     pub unsafe fn set_data<D: Copy>(fmt: ClipboardFormat, data: *const D, count: usize) {
-        use std::{mem, ptr};
-        use winapi::shared::basetsd::SIZE_T;
-        use winapi::um::winbase::{
-            GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
-        };
-        use winapi::um::winuser::SetClipboardData;
+        unsafe {
+            use std::{mem, ptr};
+            use winapi::shared::basetsd::SIZE_T;
+            use winapi::um::winbase::{
+                GMEM_MOVEABLE, GlobalAlloc, GlobalFree, GlobalLock, GlobalUnlock,
+            };
+            use winapi::um::winuser::SetClipboardData;
 
-        let fmt = fmt.into_raw();
-        let alloc_size = (mem::size_of::<D>() * count) as SIZE_T;
-        let alloc = GlobalAlloc(GMEM_MOVEABLE, alloc_size);
+            let fmt = fmt.into_raw();
+            let alloc_size = (mem::size_of::<D>() * count) as SIZE_T;
+            let alloc = GlobalAlloc(GMEM_MOVEABLE, alloc_size);
 
-        ptr::copy_nonoverlapping(data, GlobalLock(alloc) as *mut D, count);
-        GlobalUnlock(alloc);
+            ptr::copy_nonoverlapping(data, GlobalLock(alloc) as *mut D, count);
+            GlobalUnlock(alloc);
 
-        if SetClipboardData(fmt, alloc as HANDLE).is_null() {
-            GlobalFree(alloc);
+            if SetClipboardData(fmt, alloc as HANDLE).is_null() {
+                GlobalFree(alloc);
+            }
         }
     }
 
@@ -317,21 +319,23 @@ impl Clipboard {
         If no data is found with the selected clipboard format, `None` is returned.
     */
     pub unsafe fn data<D: Copy>(fmt: ClipboardFormat) -> Option<D> {
-        use std::{mem, ptr};
-        use winapi::um::winbase::{GlobalLock, GlobalUnlock};
-        use winapi::um::winuser::GetClipboardData;
+        unsafe {
+            use std::{mem, ptr};
+            use winapi::um::winbase::{GlobalLock, GlobalUnlock};
+            use winapi::um::winuser::GetClipboardData;
 
-        let fmt = fmt.into_raw();
-        let handle = GetClipboardData(fmt);
-        if handle.is_null() {
-            return None;
+            let fmt = fmt.into_raw();
+            let handle = GetClipboardData(fmt);
+            if handle.is_null() {
+                return None;
+            }
+
+            let mut data = mem::zeroed();
+            ptr::copy_nonoverlapping(GlobalLock(handle) as *const D, &mut data, 1);
+            GlobalUnlock(handle);
+
+            Some(data)
         }
-
-        let mut data = mem::zeroed();
-        ptr::copy_nonoverlapping(GlobalLock(handle) as *const D, &mut data, 1);
-        GlobalUnlock(handle);
-
-        Some(data)
     }
 
     /**
@@ -343,14 +347,16 @@ impl Clipboard {
         If no data is found with the selected clipboard format, `None` is returned.
     */
     pub unsafe fn data_handle(fmt: ClipboardFormat) -> Option<ClipboardData> {
-        use winapi::um::winbase::GlobalLock;
-        use winapi::um::winuser::GetClipboardData;
+        unsafe {
+            use winapi::um::winbase::GlobalLock;
+            use winapi::um::winuser::GetClipboardData;
 
-        let fmt = fmt.into_raw();
-        let handle = GetClipboardData(fmt);
-        match handle.is_null() {
-            true => None,
-            false => Some(ClipboardData(GlobalLock(handle))),
+            let fmt = fmt.into_raw();
+            let handle = GetClipboardData(fmt);
+            match handle.is_null() {
+                true => None,
+                false => Some(ClipboardData(GlobalLock(handle))),
+            }
         }
     }
 
@@ -395,30 +401,34 @@ impl Clipboard {
 }
 
 unsafe fn from_wide_ptr(ptr: *const u16) -> Option<String> {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
-    use std::slice::from_raw_parts;
+    unsafe {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStringExt;
+        use std::slice::from_raw_parts;
 
-    let mut length: isize = 0;
-    while *&*ptr.offset(length) != 0 {
-        length += 1;
+        let mut length: isize = 0;
+        while *&*ptr.offset(length) != 0 {
+            length += 1;
+        }
+
+        let array: &[u16] = from_raw_parts(ptr, length as usize);
+
+        OsString::from_wide(&array).into_string().ok()
     }
-
-    let array: &[u16] = from_raw_parts(ptr, length as usize);
-
-    OsString::from_wide(&array).into_string().ok()
 }
 
 unsafe fn from_ptr(ptr: *const u8) -> Option<String> {
-    use std::slice::from_raw_parts;
-    use std::str;
+    unsafe {
+        use std::slice::from_raw_parts;
+        use std::str;
 
-    let mut length: isize = 0;
-    while *&*ptr.offset(length) != 0 {
-        length += 1;
+        let mut length: isize = 0;
+        while *&*ptr.offset(length) != 0 {
+            length += 1;
+        }
+
+        let array: &[u8] = from_raw_parts(ptr, length as usize);
+
+        str::from_utf8(array).map(|s| s.into()).ok()
     }
-
-    let array: &[u8] = from_raw_parts(ptr, length as usize);
-
-    str::from_utf8(array).map(|s| s.into()).ok()
 }

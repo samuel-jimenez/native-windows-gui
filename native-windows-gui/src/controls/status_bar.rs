@@ -1,7 +1,7 @@
 use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
-use crate::{unbind_raw_event_handler, Font, NwgError, RawEventHandler};
+use crate::{Font, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::cell::RefCell;
 use winapi::shared::minwindef::{LPARAM, WPARAM};
 

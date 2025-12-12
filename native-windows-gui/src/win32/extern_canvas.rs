@@ -39,18 +39,20 @@ unsafe extern "system" fn extern_canvas_proc(
     w: WPARAM,
     l: LPARAM,
 ) -> LRESULT {
-    use winapi::um::winuser::DefWindowProcW;
-    use winapi::um::winuser::{WM_CREATE, WM_ERASEBKGND};
+    unsafe {
+        use winapi::um::winuser::DefWindowProcW;
+        use winapi::um::winuser::{WM_CREATE, WM_ERASEBKGND};
 
-    let handled = match msg {
-        WM_CREATE => Some(0),
-        WM_ERASEBKGND => Some(1),
-        _ => None,
-    };
+        let handled = match msg {
+            WM_CREATE => Some(0),
+            WM_ERASEBKGND => Some(1),
+            _ => None,
+        };
 
-    if let Some(result) = handled {
-        result
-    } else {
-        DefWindowProcW(hwnd, msg, w, l)
+        if let Some(result) = handled {
+            result
+        } else {
+            DefWindowProcW(hwnd, msg, w, l)
+        }
     }
 }

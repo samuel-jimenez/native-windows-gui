@@ -210,137 +210,143 @@ impl ScrollBar {
 
     /// Scrollbar are useless on their own. We need to hook them and handle ALL the message ourself. yay windows...
     unsafe fn hook_scrollbar_controls(&self) {
-        use crate::bind_raw_event_handler_inner;
-        use winapi::shared::{
-            minwindef::{LOWORD, TRUE},
-            windef::HWND,
-        };
-        use winapi::um::winuser::{
-            GetScrollInfo, SetScrollInfo, GET_WHEEL_DELTA_WPARAM, SB_BOTTOM, SB_CTL, SB_LINEDOWN,
-            SB_LINELEFT, SB_LINERIGHT, SB_LINEUP, SB_PAGEDOWN, SB_PAGELEFT, SB_PAGERIGHT,
-            SB_PAGEUP, SB_THUMBTRACK, SB_TOP, SCROLLINFO, SIF_ALL, SIF_POS, WM_HSCROLL,
-            WM_MOUSEWHEEL, WM_VSCROLL,
-        };
+        unsafe {
+            use crate::bind_raw_event_handler_inner;
+            use winapi::shared::{
+                minwindef::{LOWORD, TRUE},
+                windef::HWND,
+            };
+            use winapi::um::winuser::{
+                GET_WHEEL_DELTA_WPARAM, GetScrollInfo, SB_BOTTOM, SB_CTL, SB_LINEDOWN, SB_LINELEFT,
+                SB_LINERIGHT, SB_LINEUP, SB_PAGEDOWN, SB_PAGELEFT, SB_PAGERIGHT, SB_PAGEUP,
+                SB_THUMBTRACK, SB_TOP, SCROLLINFO, SIF_ALL, SIF_POS, SetScrollInfo, WM_HSCROLL,
+                WM_MOUSEWHEEL, WM_VSCROLL,
+            };
 
-        if self.handle.blank() {
-            panic!("{}", NOT_BOUND);
-        }
-        let handle = self.handle.hwnd().expect(BAD_HANDLE);
-        let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
-
-        let handler1 =
-            bind_raw_event_handler_inner(&parent_handle, handle as _, move |_hwnd, msg, w, l| {
-                let mut si: SCROLLINFO = mem::zeroed();
-                match msg {
-                    WM_HSCROLL => {
-                        if (l as HWND) != handle {
-                            return None;
-                        }
-
-                        si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                        si.fMask = SIF_ALL;
-                        GetScrollInfo(handle, SB_CTL as i32, &mut si);
-
-                        let event = LOWORD(w as u32) as isize;
-                        match event {
-                            SB_LINELEFT => {
-                                si.nPos -= 1;
-                            }
-                            SB_LINERIGHT => {
-                                si.nPos += 1;
-                            }
-                            SB_PAGELEFT => {
-                                si.nPos -= si.nPage as i32;
-                            }
-                            SB_PAGERIGHT => {
-                                si.nPos += si.nPage as i32;
-                            }
-                            SB_THUMBTRACK => {
-                                si.nPos = si.nTrackPos;
-                            }
-                            _ => {}
-                        }
-
-                        si.fMask = SIF_POS;
-                        SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                        //return Some(0);
-                    }
-                    WM_VSCROLL => {
-                        if (l as HWND) != handle {
-                            return None;
-                        }
-
-                        si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                        si.fMask = SIF_ALL;
-                        GetScrollInfo(handle, SB_CTL as i32, &mut si);
-
-                        let event = LOWORD(w as u32) as isize;
-                        match event {
-                            SB_TOP => {
-                                si.nPos = si.nMin;
-                            }
-                            SB_BOTTOM => {
-                                si.nPos = si.nMax;
-                            }
-                            SB_LINEUP => {
-                                si.nPos -= 1;
-                            }
-                            SB_LINEDOWN => {
-                                si.nPos += 1;
-                            }
-                            SB_PAGEUP => {
-                                si.nPos -= si.nPage as i32;
-                            }
-                            SB_PAGEDOWN => {
-                                si.nPos += si.nPage as i32;
-                            }
-                            SB_THUMBTRACK => {
-                                si.nPos = si.nTrackPos;
-                            }
-                            _ => {}
-                        }
-
-                        si.fMask = SIF_POS;
-                        SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                        //return Some(0);
-                    }
-                    _ => {}
-                }
-
-                None
-            });
-
-        let handler2 = bind_raw_event_handler_inner(&self.handle, 0, move |_hwnd, msg, w, _l| {
-            match msg {
-                WM_MOUSEWHEEL => {
-                    let mut si: SCROLLINFO = mem::zeroed();
-
-                    si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
-                    si.fMask = SIF_ALL;
-                    GetScrollInfo(handle, SB_CTL as i32, &mut si);
-
-                    let delta = GET_WHEEL_DELTA_WPARAM(w);
-                    match delta > 0 {
-                        true => {
-                            si.nPos -= 1;
-                        }
-                        false => {
-                            si.nPos += 1;
-                        }
-                    }
-
-                    si.fMask = SIF_POS;
-                    SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
-                    return Some(0);
-                }
-                _ => {}
+            if self.handle.blank() {
+                panic!("{}", NOT_BOUND);
             }
+            let handle = self.handle.hwnd().expect(BAD_HANDLE);
+            let parent_handle = ControlHandle::Hwnd(wh::get_window_parent(handle));
 
-            None
-        });
+            let handler1 = bind_raw_event_handler_inner(
+                &parent_handle,
+                handle as _,
+                move |_hwnd, msg, w, l| {
+                    let mut si: SCROLLINFO = mem::zeroed();
+                    match msg {
+                        WM_HSCROLL => {
+                            if (l as HWND) != handle {
+                                return None;
+                            }
 
-        *self.handler0.borrow_mut() = Some(handler1.unwrap());
-        *self.handler1.borrow_mut() = Some(handler2.unwrap());
+                            si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
+                            si.fMask = SIF_ALL;
+                            GetScrollInfo(handle, SB_CTL as i32, &mut si);
+
+                            let event = LOWORD(w as u32) as isize;
+                            match event {
+                                SB_LINELEFT => {
+                                    si.nPos -= 1;
+                                }
+                                SB_LINERIGHT => {
+                                    si.nPos += 1;
+                                }
+                                SB_PAGELEFT => {
+                                    si.nPos -= si.nPage as i32;
+                                }
+                                SB_PAGERIGHT => {
+                                    si.nPos += si.nPage as i32;
+                                }
+                                SB_THUMBTRACK => {
+                                    si.nPos = si.nTrackPos;
+                                }
+                                _ => {}
+                            }
+
+                            si.fMask = SIF_POS;
+                            SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
+                            //return Some(0);
+                        }
+                        WM_VSCROLL => {
+                            if (l as HWND) != handle {
+                                return None;
+                            }
+
+                            si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
+                            si.fMask = SIF_ALL;
+                            GetScrollInfo(handle, SB_CTL as i32, &mut si);
+
+                            let event = LOWORD(w as u32) as isize;
+                            match event {
+                                SB_TOP => {
+                                    si.nPos = si.nMin;
+                                }
+                                SB_BOTTOM => {
+                                    si.nPos = si.nMax;
+                                }
+                                SB_LINEUP => {
+                                    si.nPos -= 1;
+                                }
+                                SB_LINEDOWN => {
+                                    si.nPos += 1;
+                                }
+                                SB_PAGEUP => {
+                                    si.nPos -= si.nPage as i32;
+                                }
+                                SB_PAGEDOWN => {
+                                    si.nPos += si.nPage as i32;
+                                }
+                                SB_THUMBTRACK => {
+                                    si.nPos = si.nTrackPos;
+                                }
+                                _ => {}
+                            }
+
+                            si.fMask = SIF_POS;
+                            SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
+                            //return Some(0);
+                        }
+                        _ => {}
+                    }
+
+                    None
+                },
+            );
+
+            let handler2 =
+                bind_raw_event_handler_inner(&self.handle, 0, move |_hwnd, msg, w, _l| {
+                    match msg {
+                        WM_MOUSEWHEEL => {
+                            let mut si: SCROLLINFO = mem::zeroed();
+
+                            si.cbSize = mem::size_of::<SCROLLINFO>() as u32;
+                            si.fMask = SIF_ALL;
+                            GetScrollInfo(handle, SB_CTL as i32, &mut si);
+
+                            let delta = GET_WHEEL_DELTA_WPARAM(w);
+                            match delta > 0 {
+                                true => {
+                                    si.nPos -= 1;
+                                }
+                                false => {
+                                    si.nPos += 1;
+                                }
+                            }
+
+                            si.fMask = SIF_POS;
+                            SetScrollInfo(handle, SB_CTL as _, &si, TRUE);
+                            return Some(0);
+                        }
+                        _ => {}
+                    }
+
+                    None
+                });
+
+            *self.handler0.borrow_mut() = Some(handler1.unwrap());
+            *self.handler1.borrow_mut() = Some(handler2.unwrap());
+        }
     }
 }
 

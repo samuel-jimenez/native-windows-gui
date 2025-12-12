@@ -2,7 +2,7 @@ use crate::ControlHandle;
 use std::mem;
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
-    GetMonitorInfoW, GetSystemMetrics, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    GetMonitorInfoW, GetSystemMetrics, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromWindow,
     SM_CXSCREEN, SM_CXVIRTUALSCREEN, SM_CYSCREEN, SM_CYVIRTUALSCREEN,
 };
 

@@ -1,9 +1,9 @@
+use crate::NwgError;
 use crate::controls::ControlHandle;
 use crate::win32::window::{
-    bind_raw_event_handler_inner, unbind_raw_event_handler, RawEventHandler,
+    RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler,
 };
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use std::{
     cell::{Ref, RefCell, RefMut},
     ptr,
@@ -206,7 +206,7 @@ impl FlexboxLayout {
         Panic:
         - The layout must have been successfully built otherwise this function will panic.
     */
-    pub fn children(&self) -> FlexboxLayoutChildren {
+    pub fn children(&self) -> FlexboxLayoutChildren<'_> {
         let inner = self.inner.borrow();
         if inner.base.is_null() {
             panic!("Flexbox layout is not yet initialized!");
@@ -224,7 +224,7 @@ impl FlexboxLayout {
         Panic:
         - The layout must have been successfully built otherwise this function will panic.
     */
-    pub fn children_mut(&self) -> FlexboxLayoutChildrenMut {
+    pub fn children_mut(&self) -> FlexboxLayoutChildrenMut<'_> {
         let inner = self.inner.borrow_mut();
         if inner.base.is_null() {
             panic!("Flexbox layout is not yet initialized!");
@@ -395,26 +395,27 @@ impl FlexboxLayout {
         stretch.compute_layout(node, Size::undefined())?;
 
         // Keep a fallback case to prevent panics if the layout is too large to be deferred
-        if let Ok(mut positioner) = wh::DeferredWindowPositioner::new(item_count as i32) {
-            let layout_result = FlexboxLayout::apply_layout_deferred(
-                &mut positioner,
-                &mut stretch,
-                nodes,
-                self.children().children(),
-                &mut None,
-                offset,
-            );
-            positioner.end();
+        match wh::DeferredWindowPositioner::new(item_count as i32) {
+            Ok(mut positioner) => {
+                let layout_result = FlexboxLayout::apply_layout_deferred(
+                    &mut positioner,
+                    &mut stretch,
+                    nodes,
+                    self.children().children(),
+                    &mut None,
+                    offset,
+                );
+                positioner.end();
 
-            layout_result
-        } else {
-            FlexboxLayout::apply_layout_immediate(
+                layout_result
+            }
+            _ => FlexboxLayout::apply_layout_immediate(
                 &mut stretch,
                 nodes,
                 self.children().children(),
                 &mut None,
                 offset,
-            )
+            ),
         }
     }
 }

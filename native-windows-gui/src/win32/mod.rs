@@ -34,7 +34,7 @@ use crate::errors::NwgError;
 use std::{fs, mem, ptr};
 
 use winapi::um::winuser::{
-    DispatchMessageW, GetAncestor, IsDialogMessageW, TranslateMessage, GA_ROOT,
+    DispatchMessageW, GA_ROOT, GetAncestor, IsDialogMessageW, TranslateMessage,
 };
 
 /**
@@ -64,7 +64,7 @@ where
     F: FnMut() -> () + 'static,
 {
     use winapi::um::winuser::MSG;
-    use winapi::um::winuser::{PeekMessageW, PM_REMOVE, WM_QUIT};
+    use winapi::um::winuser::{PM_REMOVE, PeekMessageW, WM_QUIT};
 
     unsafe {
         let mut msg: MSG = mem::zeroed();
@@ -99,7 +99,7 @@ pub fn enable_visual_styles() {
     use winapi::shared::basetsd::ULONG_PTR;
     use winapi::shared::minwindef::{DWORD, MAX_PATH, ULONG};
     use winapi::um::fileapi::{GetTempFileNameW, GetTempPathW};
-    use winapi::um::winbase::{ActivateActCtx, CreateActCtxW, ACTCTXW};
+    use winapi::um::winbase::{ACTCTXW, ActivateActCtx, CreateActCtxW};
 
     const MANIFEST_CONTENT: &str = r#"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -156,11 +156,11 @@ pub fn enable_visual_styles() {
 */
 pub fn init_common_controls() -> Result<(), NwgError> {
     use winapi::shared::winerror::{S_FALSE, S_OK};
-    use winapi::um::commctrl::{InitCommonControlsEx, INITCOMMONCONTROLSEX};
     use winapi::um::commctrl::{
         ICC_BAR_CLASSES, ICC_DATE_CLASSES, ICC_LISTVIEW_CLASSES, ICC_PROGRESS_CLASS,
         ICC_STANDARD_CLASSES, ICC_TAB_CLASSES, ICC_TREEVIEW_CLASSES,
     };
+    use winapi::um::commctrl::{INITCOMMONCONTROLSEX, InitCommonControlsEx};
     use winapi::um::libloaderapi::LoadLibraryW;
     use winapi::um::objbase::CoInitialize;
 

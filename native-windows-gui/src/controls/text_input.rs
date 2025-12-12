@@ -143,7 +143,7 @@ impl TextInput {
     /// Set or Remove the password character displayed by the text input.
     /// If the input is not a password all character are re-rendered with the new character
     pub fn set_password_char(&self, c: Option<char>) {
-        use winapi::um::winuser::{InvalidateRect, EM_SETPASSWORDCHAR};
+        use winapi::um::winuser::{EM_SETPASSWORDCHAR, InvalidateRect};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(
@@ -380,14 +380,14 @@ impl TextInput {
         use crate::bind_raw_event_handler_inner;
         use std::{mem, ptr};
         use winapi::shared::windef::{HGDIOBJ, POINT, RECT};
-        use winapi::um::wingdi::{CreateSolidBrush, SelectObject, RGB};
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-            SetWindowPos,
-        };
+        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
         use winapi::um::winuser::{
             COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_NCCALCSIZE, WM_NCPAINT,
             WM_SIZE,
+        };
+        use winapi::um::winuser::{
+            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
+            SetWindowPos,
         };
         use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
 

@@ -2,7 +2,7 @@
 name = "syncdraw"
 version = "0.1.0"
 authors = ["gdube <gdube.475@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,4 +13,4 @@ glutin = "0.21"
 gl = "0.6"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["winuser", "psapi", "processthreadsapi", "synchapi"] }
+winapi = { version = "0.3", features = ["winuser", "psapi", "processthreadsapi", "synchapi","memoryapi"] }

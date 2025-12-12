@@ -1,7 +1,7 @@
 use crate::gl;
 use crate::glutin::{
-    dpi::PhysicalSize, os::windows::RawContextExt, Api, ContextBuilder, GlProfile, GlRequest,
-    PossiblyCurrent, RawContext,
+    Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
+    os::windows::RawContextExt,
 };
 use crate::nwg;
 
@@ -13,7 +13,7 @@ use std::{mem, ptr};
     A macro that loads the required opengl functions pointers.
 */
 macro_rules! gl {
-    ($ctx:expr, [$($fn:ident),+]) => (
+    ($ctx:expr_2021, [$($fn:ident),+]) => (
         $(gl::$fn::load_with(|s| $ctx.get_proc_address(s) as *const _));+
     )
 }
@@ -338,67 +338,73 @@ impl OpenGlCanvas {
 }
 
 unsafe fn check_shader_status(shader: u32) {
-    use std::ffi::CStr;
+    unsafe {
+        use std::ffi::CStr;
 
-    let mut status = 1;
-    gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
-    if status == 0 {
-        let mut error_length = 0;
-        gl::GetShaderiv(shader, gl::SHADER_SOURCE_LENGTH, &mut error_length);
+        let mut status = 1;
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
+        if status == 0 {
+            let mut error_length = 0;
+            gl::GetShaderiv(shader, gl::SHADER_SOURCE_LENGTH, &mut error_length);
 
-        error_length += 1;
-        let mut logs: Vec<gl::types::GLchar> = Vec::with_capacity(error_length as usize);
-        logs.set_len(error_length as usize);
+            error_length += 1;
+            let mut logs: Vec<gl::types::GLchar> = Vec::with_capacity(error_length as usize);
+            logs.set_len(error_length as usize);
 
-        gl::GetShaderInfoLog(shader, error_length, &mut error_length, logs.as_mut_ptr());
+            gl::GetShaderInfoLog(shader, error_length, &mut error_length, logs.as_mut_ptr());
 
-        panic!(
-            "\n\n{}\n\n",
-            CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
-        );
+            panic!(
+                "\n\n{}\n\n",
+                CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
+            );
+        }
     }
 }
 
 unsafe fn check_program_status(program: u32) {
-    use std::ffi::CStr;
+    unsafe {
+        use std::ffi::CStr;
 
-    let mut status = 1;
-    gl::GetProgramiv(program, gl::COMPILE_STATUS, &mut status);
-    if status == 0 {
-        let mut error_length = 0;
-        gl::GetProgramiv(program, gl::SHADER_SOURCE_LENGTH, &mut error_length);
+        let mut status = 1;
+        gl::GetProgramiv(program, gl::COMPILE_STATUS, &mut status);
+        if status == 0 {
+            let mut error_length = 0;
+            gl::GetProgramiv(program, gl::SHADER_SOURCE_LENGTH, &mut error_length);
 
-        error_length += 1;
-        let mut logs: Vec<gl::types::GLchar> = Vec::with_capacity(error_length as usize);
-        logs.set_len(error_length as usize);
+            error_length += 1;
+            let mut logs: Vec<gl::types::GLchar> = Vec::with_capacity(error_length as usize);
+            logs.set_len(error_length as usize);
 
-        gl::GetProgramInfoLog(program, error_length, &mut error_length, logs.as_mut_ptr());
+            gl::GetProgramInfoLog(program, error_length, &mut error_length, logs.as_mut_ptr());
 
-        panic!(
-            "\n\n{}\n\n",
-            CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
-        );
+            panic!(
+                "\n\n{}\n\n",
+                CStr::from_ptr(logs.as_ptr()).to_str().unwrap()
+            );
+        }
     }
 }
 
 unsafe fn clear_texture(w: u32, h: u32) {
-    let texel_count = (w * h) as usize;
-    let mut texture_data: Vec<Texel> = Vec::with_capacity(texel_count);
-    for _ in 0..texel_count {
-        texture_data.push([255, 255, 255, 255]);
-    }
+    unsafe {
+        let texel_count = (w * h) as usize;
+        let mut texture_data: Vec<Texel> = Vec::with_capacity(texel_count);
+        for _ in 0..texel_count {
+            texture_data.push([255, 255, 255, 255]);
+        }
 
-    gl::TexSubImage2D(
-        gl::TEXTURE_2D,
-        0, // mip level
-        0,
-        0, // offset
-        w as _,
-        h as _,
-        gl::RGBA,
-        gl::UNSIGNED_BYTE,
-        texture_data.as_mut_ptr() as *mut c_void,
-    );
+        gl::TexSubImage2D(
+            gl::TEXTURE_2D,
+            0, // mip level
+            0,
+            0, // offset
+            w as _,
+            h as _,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            texture_data.as_mut_ptr() as *mut c_void,
+        );
+    }
 }
 
 //

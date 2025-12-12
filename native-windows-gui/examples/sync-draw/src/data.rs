@@ -3,7 +3,7 @@ use std::thread;
 use winapi::shared::minwindef::DWORD;
 
 use crate::opengl_canvas::Texel;
-use crate::{nwg, SharedMemory, Win32Event, Win32EventWaitResult};
+use crate::{SharedMemory, Win32Event, Win32EventWaitResult, nwg};
 
 type Size = (u32, u32);
 

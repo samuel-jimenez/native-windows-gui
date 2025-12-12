@@ -1,6 +1,6 @@
 use super::ControlHandle;
-use crate::win32::window::{build_hwnd_control, build_notice, build_timer};
 use crate::NwgError;
+use crate::win32::window::{build_hwnd_control, build_notice, build_timer};
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::windef::HWND;
 

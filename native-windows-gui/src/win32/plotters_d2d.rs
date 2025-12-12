@@ -5,7 +5,7 @@ use winapi::shared::windef::HWND;
 use winapi::shared::winerror::{D2DERR_RECREATE_TARGET, S_OK};
 use winapi::um::d2d1::*;
 use winapi::um::dwrite::{
-    DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat, DWRITE_FACTORY_TYPE_SHARED,
+    DWRITE_FACTORY_TYPE_SHARED, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat,
 };
 
 use super::base_helper::to_utf16;
@@ -319,7 +319,7 @@ impl PlottersBackend {
         Ok(())
     }
 
-    fn target(&self) -> Ref<Target> {
+    fn target(&self) -> Ref<'_, Target> {
         self.target.borrow()
     }
 
@@ -365,7 +365,7 @@ impl PlottersBackend {
         *text_format
     }
 
-    fn target_mut(&self) -> RefMut<Target> {
+    fn target_mut(&self) -> RefMut<'_, Target> {
         self.target.borrow_mut()
     }
 }
@@ -738,136 +738,145 @@ unsafe fn build_render_target(
     hwnd: HWND,
     factory: &mut ID2D1Factory,
 ) -> Result<Target, PlottersError> {
-    use winapi::shared::dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM;
-    use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT, D2D_SIZE_U};
+    unsafe {
+        use winapi::shared::dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM;
+        use winapi::um::dcommon::{D2D_SIZE_U, D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT};
 
-    let (width, height) = client_size(hwnd);
-    let size = D2D_SIZE_U { width, height };
+        let (width, height) = client_size(hwnd);
+        let size = D2D_SIZE_U { width, height };
 
-    let pixel_format = D2D1_PIXEL_FORMAT {
-        format: DXGI_FORMAT_B8G8R8A8_UNORM,
-        alphaMode: D2D1_ALPHA_MODE_PREMULTIPLIED,
-    };
+        let pixel_format = D2D1_PIXEL_FORMAT {
+            format: DXGI_FORMAT_B8G8R8A8_UNORM,
+            alphaMode: D2D1_ALPHA_MODE_PREMULTIPLIED,
+        };
 
-    let render_props = D2D1_RENDER_TARGET_PROPERTIES {
-        _type: D2D1_RENDER_TARGET_TYPE_DEFAULT,
-        pixelFormat: pixel_format,
-        dpiX: 0.0,
-        dpiY: 0.0,
-        usage: D2D1_RENDER_TARGET_USAGE_NONE,
-        minLevel: D2D1_FEATURE_LEVEL_DEFAULT,
-    };
+        let render_props = D2D1_RENDER_TARGET_PROPERTIES {
+            _type: D2D1_RENDER_TARGET_TYPE_DEFAULT,
+            pixelFormat: pixel_format,
+            dpiX: 0.0,
+            dpiY: 0.0,
+            usage: D2D1_RENDER_TARGET_USAGE_NONE,
+            minLevel: D2D1_FEATURE_LEVEL_DEFAULT,
+        };
 
-    let hwnd_render_props = D2D1_HWND_RENDER_TARGET_PROPERTIES {
-        hwnd: hwnd,
-        pixelSize: size,
-        presentOptions: D2D1_PRESENT_OPTIONS_NONE,
-    };
+        let hwnd_render_props = D2D1_HWND_RENDER_TARGET_PROPERTIES {
+            hwnd: hwnd,
+            pixelSize: size,
+            presentOptions: D2D1_PRESENT_OPTIONS_NONE,
+        };
 
-    let mut render_target: *mut ID2D1HwndRenderTarget = ptr::null_mut();
-    if factory.CreateHwndRenderTarget(&render_props, &hwnd_render_props, &mut render_target) != S_OK
-    {
-        factory.Release();
-        Err(PlottersError::RendererInit(
-            "Failed to create the direct2D render target".into(),
-        ))
-    } else {
-        Ok(Target {
-            render_target,
-            brushes: Default::default(),
-            pixel_bitmap: None,
-            write_pixels: false,
-            size: (width, height),
-            last_error: S_OK,
-        })
+        let mut render_target: *mut ID2D1HwndRenderTarget = ptr::null_mut();
+        if factory.CreateHwndRenderTarget(&render_props, &hwnd_render_props, &mut render_target)
+            != S_OK
+        {
+            factory.Release();
+            Err(PlottersError::RendererInit(
+                "Failed to create the direct2D render target".into(),
+            ))
+        } else {
+            Ok(Target {
+                render_target,
+                brushes: Default::default(),
+                pixel_bitmap: None,
+                write_pixels: false,
+                size: (width, height),
+                last_error: S_OK,
+            })
+        }
     }
 }
 
 unsafe fn build_static_resources(backend: &mut PlottersBackend) -> Result<(), PlottersError> {
-    let f = &mut *backend.renderer;
+    unsafe {
+        let f = &mut *backend.renderer;
 
-    let props = D2D1_STROKE_STYLE_PROPERTIES {
-        startCap: D2D1_CAP_STYLE_ROUND,
-        endCap: D2D1_CAP_STYLE_ROUND,
-        dashCap: D2D1_CAP_STYLE_ROUND,
-        lineJoin: D2D1_LINE_JOIN_MITER,
-        miterLimit: 0.0,
-        dashStyle: D2D1_DASH_STYLE_SOLID,
-        dashOffset: 0.0,
-    };
+        let props = D2D1_STROKE_STYLE_PROPERTIES {
+            startCap: D2D1_CAP_STYLE_ROUND,
+            endCap: D2D1_CAP_STYLE_ROUND,
+            dashCap: D2D1_CAP_STYLE_ROUND,
+            lineJoin: D2D1_LINE_JOIN_MITER,
+            miterLimit: 0.0,
+            dashStyle: D2D1_DASH_STYLE_SOLID,
+            dashOffset: 0.0,
+        };
 
-    f.CreateStrokeStyle(&props, ptr::null(), 0, &mut backend.simple_stroke_style);
+        f.CreateStrokeStyle(&props, ptr::null(), 0, &mut backend.simple_stroke_style);
 
-    Ok(())
+        Ok(())
+    }
 }
 
 unsafe fn client_size(hwnd: HWND) -> (u32, u32) {
-    window_helper::get_window_physical_size(hwnd)
+    unsafe { window_helper::get_window_physical_size(hwnd) }
 }
 
 unsafe fn locale_name() -> Vec<u16> {
-    use winapi::um::winnls::GetUserDefaultLocaleName;
-    use winapi::um::winnt::LOCALE_NAME_MAX_LENGTH;
+    unsafe {
+        use winapi::um::winnls::GetUserDefaultLocaleName;
+        use winapi::um::winnt::LOCALE_NAME_MAX_LENGTH;
 
-    let mut name_buffer: Vec<u16> = vec![0; LOCALE_NAME_MAX_LENGTH];
-    GetUserDefaultLocaleName(name_buffer.as_mut_ptr(), LOCALE_NAME_MAX_LENGTH as i32);
+        let mut name_buffer: Vec<u16> = vec![0; LOCALE_NAME_MAX_LENGTH];
+        GetUserDefaultLocaleName(name_buffer.as_mut_ptr(), LOCALE_NAME_MAX_LENGTH as i32);
 
-    name_buffer
+        name_buffer
+    }
 }
 
 unsafe fn build_renderer(handle: HWND) -> Result<PlottersBackend, PlottersError> {
-    use winapi::ctypes::c_void;
-    use winapi::Interface;
+    unsafe {
+        use winapi::Interface;
+        use winapi::ctypes::c_void;
 
-    // Build the write factory
-    let mut write_factory: *mut IDWriteFactory = ptr::null_mut();
-    let result = DWriteCreateFactory(
-        DWRITE_FACTORY_TYPE_SHARED,
-        &IDWriteFactory::uuidof(),
-        (&mut write_factory as *mut *mut IDWriteFactory) as _,
-    );
-    if result != S_OK {
-        return Err(PlottersError::RendererInit(
-            "Failed to create the direct2D factory".into(),
-        ));
-    }
-
-    // Build the factory
-    let mut renderer: *mut ID2D1Factory = ptr::null_mut();
-    let result = D2D1CreateFactory(
-        D2D1_FACTORY_TYPE_SINGLE_THREADED,
-        &ID2D1Factory::uuidof(),
-        ptr::null(),
-        (&mut renderer as *mut *mut ID2D1Factory) as *mut *mut c_void,
-    );
-
-    if result != S_OK {
-        (&*write_factory).Release();
-        return Err(PlottersError::RendererInit(
-            "Failed to create the direct2D factory".into(),
-        ));
-    }
-
-    // Build the render target
-    let target = match build_render_target(handle, &mut *renderer) {
-        Ok(target) => target,
-        e @ Err(_) => {
-            (&*renderer).Release();
-            (&*write_factory).Release();
-            e?
+        // Build the write factory
+        let mut write_factory: *mut IDWriteFactory = ptr::null_mut();
+        let result = DWriteCreateFactory(
+            DWRITE_FACTORY_TYPE_SHARED,
+            &IDWriteFactory::uuidof(),
+            (&mut write_factory as *mut *mut IDWriteFactory) as _,
+        );
+        if result != S_OK {
+            return Err(PlottersError::RendererInit(
+                "Failed to create the direct2D factory".into(),
+            ));
         }
-    };
 
-    let mut renderer = PlottersBackend {
-        renderer,
-        write_factory,
-        text_formats: RefCell::new(Default::default()),
-        target: RefCell::new(target),
-        simple_stroke_style: ptr::null_mut(),
-    };
+        // Build the factory
+        let mut renderer: *mut ID2D1Factory = ptr::null_mut();
+        let result = D2D1CreateFactory(
+            D2D1_FACTORY_TYPE_SINGLE_THREADED,
+            &ID2D1Factory::uuidof(),
+            ptr::null(),
+            (&mut renderer as *mut *mut ID2D1Factory) as *mut *mut c_void,
+        );
 
-    // Build static resources
-    build_static_resources(&mut renderer)?;
+        if result != S_OK {
+            (&*write_factory).Release();
+            return Err(PlottersError::RendererInit(
+                "Failed to create the direct2D factory".into(),
+            ));
+        }
 
-    Ok(renderer)
+        // Build the render target
+        let target = match build_render_target(handle, &mut *renderer) {
+            Ok(target) => target,
+            e @ Err(_) => {
+                (&*renderer).Release();
+                (&*write_factory).Release();
+                e?
+            }
+        };
+
+        let mut renderer = PlottersBackend {
+            renderer,
+            write_factory,
+            text_formats: RefCell::new(Default::default()),
+            target: RefCell::new(target),
+            simple_stroke_style: ptr::null_mut(),
+        };
+
+        // Build static resources
+        build_static_resources(&mut renderer)?;
+
+        Ok(renderer)
+    }
 }

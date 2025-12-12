@@ -4,8 +4,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate winapi;
-
 #[cfg(feature = "flexbox")]
 pub extern crate stretch;
 
@@ -29,8 +27,8 @@ pub use win32::{
     message_box::*,
     stop_thread_dispatch,
     window::{
-        bind_event_handler, bind_raw_event_handler, full_bind_event_handler, has_raw_handler,
-        unbind_event_handler, unbind_raw_event_handler, EventHandler, RawEventHandler,
+        EventHandler, RawEventHandler, bind_event_handler, bind_raw_event_handler,
+        full_bind_event_handler, has_raw_handler, unbind_event_handler, unbind_raw_event_handler,
     },
 };
 

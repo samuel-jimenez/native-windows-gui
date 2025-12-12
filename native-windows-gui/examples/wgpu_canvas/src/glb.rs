@@ -181,7 +181,7 @@ impl<'a> SceneRef<'a> {
             .unwrap_or("NO_NAME")
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = NodeRef<'a>> {
+    pub fn nodes(&self) -> impl Iterator<Item = NodeRef<'a>> + use<'a> {
         let nodes = self.nodes;
         self.scene
             .get("nodes")
@@ -464,7 +464,10 @@ impl GlbFile {
             offset += 4;
             let json: Value = {
                 if (offset as usize) + json_size > src_size {
-                    let msg = format!("JSON chunk size exceed buffer size. Reported chunk size: {}, total buffer size: {}", json_size, src_size);
+                    let msg = format!(
+                        "JSON chunk size exceed buffer size. Reported chunk size: {}, total buffer size: {}",
+                        json_size, src_size
+                    );
                     return Err(msg);
                 }
 
@@ -494,7 +497,10 @@ impl GlbFile {
             offset += 4;
 
             if (offset as usize) + size > src_size {
-                let msg = format!("BIN chunk size exceed buffer size. Reported chunk size: {}, total buffer size: {}", size, src_size);
+                let msg = format!(
+                    "BIN chunk size exceed buffer size. Reported chunk size: {}, total buffer size: {}",
+                    size, src_size
+                );
                 return Err(msg);
             }
 

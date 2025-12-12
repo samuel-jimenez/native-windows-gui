@@ -1,7 +1,7 @@
+use crate::NwgError;
 use crate::controls::ControlHandle;
 use crate::win32::window::bind_raw_event_handler_inner;
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;

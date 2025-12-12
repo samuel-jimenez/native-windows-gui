@@ -2,7 +2,7 @@ use super::{CharFormat, ControlBase, ControlHandle, ParaFormat};
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::richedit as rich;
 use crate::win32::window_helper as wh;
-use crate::{unbind_raw_event_handler, Font, HTextAlign, NwgError, RawEventHandler};
+use crate::{Font, HTextAlign, NwgError, RawEventHandler, unbind_raw_event_handler};
 use winapi::um::winuser::{EM_SETSEL, ES_MULTILINE, WS_DISABLED, WS_VISIBLE};
 
 use std::{cell::RefCell, ops::Range, rc::Rc};
@@ -267,110 +267,113 @@ impl RichLabel {
     }
 
     unsafe fn override_events(&self) {
-        use crate::bind_raw_event_handler_inner;
-        use std::{mem, ptr};
-        use winapi::shared::windef::{HBRUSH, POINT, RECT};
-        use winapi::um::winuser::{
-            FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient, SetWindowPos,
-        };
-        use winapi::um::winuser::{
-            COLOR_WINDOW, NCCALCSIZE_PARAMS, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER,
-            SWP_NOSIZE,
-        };
-        use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE};
+        unsafe {
+            use crate::bind_raw_event_handler_inner;
+            use std::{mem, ptr};
+            use winapi::shared::windef::{HBRUSH, POINT, RECT};
+            use winapi::um::winuser::{
+                COLOR_WINDOW, NCCALCSIZE_PARAMS, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER,
+                SWP_NOSIZE,
+            };
+            use winapi::um::winuser::{
+                FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
+                SetWindowPos,
+            };
+            use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE};
 
-        let callback_line_height = self.line_height.clone();
+            let callback_line_height = self.line_height.clone();
 
-        //let cursor = Cursor::from_system(OemCursor::Normal);
-        let handler0 = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
-            match msg {
-                WM_NCCALCSIZE => {
-                    let client_height = *callback_line_height.borrow();
-                    if w == 0 || client_height.is_none() {
-                        return None;
+            //let cursor = Cursor::from_system(OemCursor::Normal);
+            let handler0 = bind_raw_event_handler_inner(&self.handle, 0, move |hwnd, msg, w, l| {
+                match msg {
+                    WM_NCCALCSIZE => {
+                        let client_height = *callback_line_height.borrow();
+                        if w == 0 || client_height.is_none() {
+                            return None;
+                        }
+
+                        let client_height = client_height.unwrap();
+
+                        // Calculate NC area to center text.
+                        let mut client: RECT = mem::zeroed();
+                        let mut window: RECT = mem::zeroed();
+                        GetClientRect(hwnd, &mut client);
+                        GetWindowRect(hwnd, &mut window);
+
+                        let window_height = window.bottom - window.top;
+                        let center = ((window_height - client_height) / 2) - 1;
+
+                        // Save the info
+                        let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
+                        let info = &mut *info_ptr;
+
+                        info.rgrc[0].top += center;
+                        info.rgrc[0].bottom -= center;
+
+                        None
                     }
+                    WM_NCPAINT => {
+                        let client_height = *callback_line_height.borrow();
+                        if client_height.is_none() {
+                            return None;
+                        }
 
-                    let client_height = client_height.unwrap();
+                        let mut window: RECT = mem::zeroed();
+                        let mut client: RECT = mem::zeroed();
+                        GetWindowRect(hwnd, &mut window);
+                        GetClientRect(hwnd, &mut client);
 
-                    // Calculate NC area to center text.
-                    let mut client: RECT = mem::zeroed();
-                    let mut window: RECT = mem::zeroed();
-                    GetClientRect(hwnd, &mut client);
-                    GetWindowRect(hwnd, &mut window);
+                        let mut pt1 = POINT {
+                            x: window.left,
+                            y: window.top,
+                        };
+                        ScreenToClient(hwnd, &mut pt1);
 
-                    let window_height = window.bottom - window.top;
-                    let center = ((window_height - client_height) / 2) - 1;
+                        let mut pt2 = POINT {
+                            x: window.right,
+                            y: window.bottom,
+                        };
+                        ScreenToClient(hwnd, &mut pt2);
 
-                    // Save the info
-                    let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
-                    let info = &mut *info_ptr;
+                        let top = RECT {
+                            left: 0,
+                            top: pt1.y,
+                            right: client.right,
+                            bottom: client.top,
+                        };
 
-                    info.rgrc[0].top += center;
-                    info.rgrc[0].bottom -= center;
+                        let bottom = RECT {
+                            left: 0,
+                            top: client.bottom,
+                            right: client.right,
+                            bottom: pt2.y,
+                        };
 
-                    None
-                }
-                WM_NCPAINT => {
-                    let client_height = *callback_line_height.borrow();
-                    if client_height.is_none() {
-                        return None;
+                        let dc = GetDC(hwnd);
+                        let brush = COLOR_WINDOW as HBRUSH;
+                        FillRect(dc, &top, brush);
+                        FillRect(dc, &bottom, brush);
+                        ReleaseDC(hwnd, dc);
+                        None
                     }
-
-                    let mut window: RECT = mem::zeroed();
-                    let mut client: RECT = mem::zeroed();
-                    GetWindowRect(hwnd, &mut window);
-                    GetClientRect(hwnd, &mut client);
-
-                    let mut pt1 = POINT {
-                        x: window.left,
-                        y: window.top,
-                    };
-                    ScreenToClient(hwnd, &mut pt1);
-
-                    let mut pt2 = POINT {
-                        x: window.right,
-                        y: window.bottom,
-                    };
-                    ScreenToClient(hwnd, &mut pt2);
-
-                    let top = RECT {
-                        left: 0,
-                        top: pt1.y,
-                        right: client.right,
-                        bottom: client.top,
-                    };
-
-                    let bottom = RECT {
-                        left: 0,
-                        top: client.bottom,
-                        right: client.right,
-                        bottom: pt2.y,
-                    };
-
-                    let dc = GetDC(hwnd);
-                    let brush = COLOR_WINDOW as HBRUSH;
-                    FillRect(dc, &top, brush);
-                    FillRect(dc, &bottom, brush);
-                    ReleaseDC(hwnd, dc);
-                    None
+                    WM_SIZE => {
+                        SetWindowPos(
+                            hwnd,
+                            ptr::null_mut(),
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
+                        );
+                        None
+                    }
+                    _ => None,
                 }
-                WM_SIZE => {
-                    SetWindowPos(
-                        hwnd,
-                        ptr::null_mut(),
-                        0,
-                        0,
-                        0,
-                        0,
-                        SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
-                    );
-                    None
-                }
-                _ => None,
-            }
-        });
+            });
 
-        *self.handler0.borrow_mut() = Some(handler0.unwrap());
+            *self.handler0.borrow_mut() = Some(handler0.unwrap());
+        }
     }
 }
 

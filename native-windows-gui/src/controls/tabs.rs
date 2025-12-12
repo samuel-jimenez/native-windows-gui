@@ -3,7 +3,7 @@ use crate::win32::{
     base_helper::{check_hwnd, to_utf16},
     window_helper as wh,
 };
-use crate::{unbind_raw_event_handler, Font, NwgError, RawEventHandler};
+use crate::{Font, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::{cell::RefCell, mem};
 use winapi::shared::minwindef::{BOOL, LPARAM, WPARAM};
 use winapi::shared::windef::HWND;
@@ -304,7 +304,7 @@ impl TabsContainer {
                             use winapi::shared::windef::{HGDIOBJ, RECT};
                             use winapi::um::wingdi::SelectObject;
                             use winapi::um::winuser::{
-                                DrawTextW, GetDC, ReleaseDC, DT_CALCRECT, DT_LEFT,
+                                DT_CALCRECT, DT_LEFT, DrawTextW, GetDC, ReleaseDC,
                             };
 
                             let size = l as u32;
@@ -616,25 +616,27 @@ impl Tab {
 
     /// Set and initialize a tab as active
     unsafe fn init(current_handle: HWND, tab_view_handle: HWND, index: usize) {
-        use winapi::um::winuser::GWL_USERDATA;
+        unsafe {
+            use winapi::um::winuser::GWL_USERDATA;
 
-        // Save the index of the tab in the window data
-        wh::set_window_long(current_handle, GWL_USERDATA, index);
+            // Save the index of the tab in the window data
+            wh::set_window_long(current_handle, GWL_USERDATA, index);
 
-        // Resize the tabs so that they match the tab view size and hide all children tabs
-        let (w, h) = wh::get_window_size(tab_view_handle);
-        let width = w - 11;
-        let height = h - 33;
+            // Resize the tabs so that they match the tab view size and hide all children tabs
+            let (w, h) = wh::get_window_size(tab_view_handle);
+            let width = w - 11;
+            let height = h - 33;
 
-        // Resize the tab to match the tab view
-        wh::set_window_size(current_handle, width, height, false);
+            // Resize the tab to match the tab view
+            wh::set_window_size(current_handle, width, height, false);
 
-        // Move the tab under the headers
-        wh::set_window_position(current_handle, 5, 25);
+            // Move the tab under the headers
+            wh::set_window_position(current_handle, 5, 25);
 
-        // Make the current tab visible
-        if index == 1 {
-            wh::set_window_visibility(current_handle, true);
+            // Make the current tab visible
+            if index == 1 {
+                wh::set_window_visibility(current_handle, true);
+            }
         }
     }
 
@@ -780,39 +782,45 @@ struct ResizeDirectChildrenParams {
 }
 
 unsafe extern "system" fn resize_direct_children(handle: HWND, params: LPARAM) -> BOOL {
-    let params: &ResizeDirectChildrenParams = &*(params as *const ResizeDirectChildrenParams);
-    if wh::get_window_parent(handle) == params.parent {
-        wh::set_window_size(handle, params.width, params.height, false);
+    unsafe {
+        let params: &ResizeDirectChildrenParams = &*(params as *const ResizeDirectChildrenParams);
+        if wh::get_window_parent(handle) == params.parent {
+            wh::set_window_size(handle, params.width, params.height, false);
 
-        let (x, _y) = wh::get_window_position(handle);
-        wh::set_window_position(handle, x, params.tab_offset_y as i32);
+            let (x, _y) = wh::get_window_position(handle);
+            wh::set_window_position(handle, x, params.tab_offset_y as i32);
+        }
+
+        1
     }
-
-    1
 }
 
 unsafe extern "system" fn count_children(handle: HWND, params: LPARAM) -> BOOL {
-    use winapi::um::winuser::GWL_USERDATA;
+    unsafe {
+        use winapi::um::winuser::GWL_USERDATA;
 
-    if &wh::get_window_class_name(handle) == "NWG_TAB" {
-        let tab_index = (wh::get_window_long(handle, GWL_USERDATA)) as WPARAM;
-        let count = params as *mut usize;
-        *count = usize::max(tab_index + 1, *count);
+        if &wh::get_window_class_name(handle) == "NWG_TAB" {
+            let tab_index = (wh::get_window_long(handle, GWL_USERDATA)) as WPARAM;
+            let count = params as *mut usize;
+            *count = usize::max(tab_index + 1, *count);
+        }
+
+        1
     }
-
-    1
 }
 
 /// Toggle the visibility of the active and inactive tab.
 unsafe extern "system" fn toggle_children_tabs(handle: HWND, params: LPARAM) -> BOOL {
-    use winapi::um::winuser::GWL_USERDATA;
+    unsafe {
+        use winapi::um::winuser::GWL_USERDATA;
 
-    let (parent, index) = *(params as *const (HWND, i32));
-    if wh::get_window_parent(handle) == parent {
-        let tab_index = wh::get_window_long(handle, GWL_USERDATA) as i32;
-        let visible = tab_index == index + 1;
-        wh::set_window_visibility(handle, visible);
+        let (parent, index) = *(params as *const (HWND, i32));
+        if wh::get_window_parent(handle) == parent {
+            let tab_index = wh::get_window_long(handle, GWL_USERDATA) as i32;
+            let visible = tab_index == index + 1;
+            wh::set_window_visibility(handle, visible);
+        }
+
+        1
     }
-
-    1
 }

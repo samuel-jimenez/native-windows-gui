@@ -7,11 +7,11 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
+use nwg::NativeUi;
 use nwg::stretch::{
     geometry::*,
     style::{Dimension::*, *},
 };
-use nwg::NativeUi;
 use plotters::prelude::*;
 use std::{
     cell::RefCell,

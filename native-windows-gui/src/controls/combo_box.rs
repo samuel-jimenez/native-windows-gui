@@ -1,7 +1,7 @@
 use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
 use crate::win32::window_helper as wh;
-use crate::{unbind_raw_event_handler, Font, NwgError, RawEventHandler, VTextAlign};
+use crate::{Font, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler};
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::Display;
 use std::mem;
@@ -384,14 +384,14 @@ impl<D: Display + Default> ComboBox<D> {
     /// Get read-only access to the inner collection of the combobox
     /// This call refcell.borrow under the hood. Be sure to drop the value before
     /// calling other combobox methods
-    pub fn collection(&self) -> Ref<Vec<D>> {
+    pub fn collection(&self) -> Ref<'_, Vec<D>> {
         self.collection.borrow()
     }
 
     /// Get mutable access to the inner collection of the combobox. Does not update the visual
     /// control. Call `sync` to update the view. This call refcell.borrow_mut under the hood.
     /// Be sure to drop the value before calling other combobox methods
-    pub fn collection_mut(&self) -> RefMut<Vec<D>> {
+    pub fn collection_mut(&self) -> RefMut<'_, Vec<D>> {
         self.collection.borrow_mut()
     }
 
@@ -423,14 +423,14 @@ impl<D: Display + Default> ComboBox<D> {
         use crate::bind_raw_event_handler_inner;
         use std::ptr;
         use winapi::shared::windef::{HBRUSH, HGDIOBJ, POINT, RECT};
-        use winapi::um::wingdi::{CreateSolidBrush, SelectObject, RGB};
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-            SetWindowPos,
-        };
+        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
         use winapi::um::winuser::{
             COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_NCCALCSIZE, WM_NCPAINT,
             WM_SIZE,
+        };
+        use winapi::um::winuser::{
+            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
+            SetWindowPos,
         };
         use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
 

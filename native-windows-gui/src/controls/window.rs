@@ -270,7 +270,7 @@ impl Drop for Window {
 }
 
 #[cfg(feature = "raw-win-handle")]
-use raw_window_handle::{windows::WindowsHandle, HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, windows::WindowsHandle};
 
 #[cfg(feature = "raw-win-handle")]
 unsafe impl HasRawWindowHandle for Window {

@@ -1,17 +1,17 @@
 use super::{ControlBase, ControlHandle};
 use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
 use crate::win32::window_helper as wh;
-use crate::{unbind_raw_event_handler, NwgError, RawEventHandler};
+use crate::{NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::{cell::RefCell, mem, ptr, rc::Rc};
 use winapi::shared::windef::{HBITMAP, HBRUSH};
 use winapi::um::commctrl::{
-    HDF_SORTDOWN, HDF_SORTUP, HDITEMW, HDI_FORMAT, HDM_GETITEMW, HDM_SETITEMW,
-    LVCFMT_BITMAP_ON_RIGHT, LVCFMT_CENTER, LVCFMT_COL_HAS_IMAGES, LVCFMT_IMAGE, LVCFMT_JUSTIFYMASK,
-    LVCFMT_LEFT, LVCFMT_RIGHT, LVCF_FMT, LVCF_TEXT, LVCF_WIDTH, LVCOLUMNW, LVIF_IMAGE, LVIF_TEXT,
-    LVITEMW, LVM_GETHEADER, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_AUTOSIZECOLUMNS,
-    LVS_EX_BORDERSELECT, LVS_EX_FULLROWSELECT, LVS_EX_GRIDLINES, LVS_EX_HEADERDRAGDROP,
-    LVS_EX_HEADERINALLVIEWS, LVS_ICON, LVS_LIST, LVS_NOCOLUMNHEADER, LVS_REPORT, LVS_SHOWSELALWAYS,
-    LVS_SINGLESEL, LVS_SMALLICON,
+    HDF_SORTDOWN, HDF_SORTUP, HDI_FORMAT, HDITEMW, HDM_GETITEMW, HDM_SETITEMW, LVCF_FMT, LVCF_TEXT,
+    LVCF_WIDTH, LVCFMT_BITMAP_ON_RIGHT, LVCFMT_CENTER, LVCFMT_COL_HAS_IMAGES, LVCFMT_IMAGE,
+    LVCFMT_JUSTIFYMASK, LVCFMT_LEFT, LVCFMT_RIGHT, LVCOLUMNW, LVIF_IMAGE, LVIF_TEXT, LVITEMW,
+    LVM_GETHEADER, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_AUTOSIZECOLUMNS, LVS_EX_BORDERSELECT,
+    LVS_EX_FULLROWSELECT, LVS_EX_GRIDLINES, LVS_EX_HEADERDRAGDROP, LVS_EX_HEADERINALLVIEWS,
+    LVS_ICON, LVS_LIST, LVS_NOCOLUMNHEADER, LVS_REPORT, LVS_SHOWSELALWAYS, LVS_SINGLESEL,
+    LVS_SMALLICON,
 };
 use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
@@ -1073,11 +1073,11 @@ impl ListView {
         let handler = bind_raw_event_handler_inner(&self.handle, 0x020, move |hwnd, msg, _, _| {
             use winapi::um::wingdi::{
                 BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject,
-                SelectObject, SRCCOPY,
+                SRCCOPY, SelectObject,
             };
             use winapi::um::winuser::{
-                BeginPaint, EndPaint, FillRect, GetClientRect, RedrawWindow, SendMessageW,
-                RDW_ERASENOW, RDW_INVALIDATE, RDW_UPDATENOW,
+                BeginPaint, EndPaint, FillRect, GetClientRect, RDW_ERASENOW, RDW_INVALIDATE,
+                RDW_UPDATENOW, RedrawWindow, SendMessageW,
             };
             use winapi::um::winuser::{PAINTSTRUCT, WM_ERASEBKGND, WM_PAINT, WM_PRINTCLIENT};
 
@@ -1361,11 +1361,7 @@ impl From<String> for InsertListViewColumn {
 
 #[cfg(feature = "image-list")]
 fn check_image_mask(i: &InsertListViewItem) -> u32 {
-    if i.image.is_some() {
-        LVIF_IMAGE
-    } else {
-        0
-    }
+    if i.image.is_some() { LVIF_IMAGE } else { 0 }
 }
 
 #[cfg(feature = "image-list")]

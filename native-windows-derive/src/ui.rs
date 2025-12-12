@@ -1,5 +1,5 @@
 use crate::events::ControlEvents;
-use crate::layouts::{layout_parameters, FlexboxLayoutChild, GridLayoutChild, LayoutChild};
+use crate::layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters};
 use crate::shared::Parameters;
 use quote::ToTokens;
 
@@ -76,9 +76,15 @@ impl<'a> NwgControl<'a> {
         match &field.ty {
             syn::Type::Path(p) => match p.path.segments.last() {
                 Some(seg) => seg.ident.clone(),
-                None => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.", field.ident)
+                None => panic!(
+                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
+                    field.ident
+                ),
             },
-            _ => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.", field.ident)
+            _ => panic!(
+                "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
+                field.ident
+            ),
         }
     }
 
@@ -166,9 +172,15 @@ impl<'a> NwgResource<'a> {
         match &field.ty {
             syn::Type::Path(p) => match p.path.segments.last() {
                 Some(seg) => seg.ident.clone(),
-                None => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.", field.ident)
+                None => panic!(
+                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.",
+                    field.ident
+                ),
             },
-            _ => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.", field.ident)
+            _ => panic!(
+                "Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.",
+                field.ident
+            ),
         }
     }
 }
@@ -197,9 +209,15 @@ impl<'a> NwgLayout<'a> {
         match &field.ty {
             syn::Type::Path(p) => match p.path.segments.last() {
                 Some(seg) => &seg.ident,
-                None => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.", field.ident)
+                None => panic!(
+                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
+                    field.ident
+                ),
             },
-            _ => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.", field.ident)
+            _ => panic!(
+                "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
+                field.ident
+            ),
         }
     }
 
@@ -244,9 +262,15 @@ impl<'a> NwgPartial<'a> {
         match &field.ty {
             syn::Type::Path(p) => match p.path.segments.last() {
                 Some(seg) => &seg.ident,
-                None => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.", field.ident)
+                None => panic!(
+                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.",
+                    field.ident
+                ),
             },
-            _ => panic!("Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.", field.ident)
+            _ => panic!(
+                "Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.",
+                field.ident
+            ),
         }
     }
 
@@ -384,17 +408,26 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let id = &c.id;
 
                 let item_tk = match &c.layout {
-                    Some(LayoutChild::Grid( GridLayoutChild {col, row, col_span, row_span} )) =>
-                        quote! {
-                            child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
-                        },
-                    Some(LayoutChild::Flexbox( FlexboxLayoutChild { param_names, param_values } )) =>
-                        quote! {
-                            child(&ui.#id)
-                            #(.#param_names(#param_values))*
-                        },
-                    Some(LayoutChild::Init{ field_name, .. }) => panic!("Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?", field_name),
-                    None => panic!("Unfiltered layout item")
+                    Some(LayoutChild::Grid(GridLayoutChild {
+                        col,
+                        row,
+                        col_span,
+                        row_span,
+                    })) => quote! {
+                        child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
+                    },
+                    Some(LayoutChild::Flexbox(FlexboxLayoutChild {
+                        param_names,
+                        param_values,
+                    })) => quote! {
+                        child(&ui.#id)
+                        #(.#param_names(#param_values))*
+                    },
+                    Some(LayoutChild::Init { field_name, .. }) => panic!(
+                        "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
+                        field_name
+                    ),
+                    None => panic!("Unfiltered layout item"),
                 };
 
                 item_tk.to_tokens(tokens);
@@ -588,7 +621,9 @@ impl<'a> NwgUi<'a> {
                     layouts[i].names.push(parent_ident.clone());
                     layouts[i].values.push(partial_parent_expr.clone());
                 } else {
-                    panic!("Auto detection of layout parent outside of partial is not yet implemented!");
+                    panic!(
+                        "Auto detection of layout parent outside of partial is not yet implemented!"
+                    );
                 }
             }
 
@@ -677,23 +712,23 @@ impl<'a> NwgUi<'a> {
         }
     }
 
-    pub fn controls(&self) -> NwgUiControls {
+    pub fn controls(&self) -> NwgUiControls<'_> {
         NwgUiControls(self)
     }
 
-    pub fn resources(&self) -> NwgUiResources {
+    pub fn resources(&self) -> NwgUiResources<'_> {
         NwgUiResources(self)
     }
 
-    pub fn events(&self) -> NwgUiEvents {
+    pub fn events(&self) -> NwgUiEvents<'_> {
         NwgUiEvents(self)
     }
 
-    pub fn layouts(&self) -> NwgUiLayouts {
+    pub fn layouts(&self) -> NwgUiLayouts<'_> {
         NwgUiLayouts(self)
     }
 
-    pub fn partials(&self) -> NwgUiPartials {
+    pub fn partials(&self) -> NwgUiPartials<'_> {
         NwgUiPartials(self)
     }
 }

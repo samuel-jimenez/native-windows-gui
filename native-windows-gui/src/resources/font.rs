@@ -1,6 +1,6 @@
+use crate::NwgError;
 use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::win32::resources_helper as rh;
-use crate::NwgError;
 use std::ptr;
 use winapi::shared::windef::HFONT;
 use winapi::um::winnt::HANDLE;
@@ -186,7 +186,7 @@ impl Font {
     pub fn families() -> Vec<String> {
         use std::mem;
         use winapi::shared::minwindef::{DWORD, LPARAM};
-        use winapi::um::wingdi::{EnumFontFamiliesExW, DEFAULT_CHARSET, LOGFONTW, TEXTMETRICW};
+        use winapi::um::wingdi::{DEFAULT_CHARSET, EnumFontFamiliesExW, LOGFONTW, TEXTMETRICW};
         use winapi::um::winuser::GetDC;
 
         let mut families = Vec::with_capacity(16);
@@ -197,16 +197,18 @@ impl Font {
             _font_type: DWORD,
             lparam: LPARAM,
         ) -> i32 {
-            let families_ptr = lparam as *mut Vec<String>;
-            let families = &mut *families_ptr;
+            unsafe {
+                let families_ptr = lparam as *mut Vec<String>;
+                let families = &mut *families_ptr;
 
-            let font = &*font_ptr;
-            let family_text = from_utf16(&font.lfFaceName);
-            if !families.iter().any(|f| f == &family_text) {
-                families.push(family_text);
+                let font = &*font_ptr;
+                let family_text = from_utf16(&font.lfFaceName);
+                if !families.iter().any(|f| f == &family_text) {
+                    families.push(family_text);
+                }
+
+                1
             }
-
-            1
         }
 
         unsafe {

@@ -1,7 +1,7 @@
 use crate::{Bitmap, Icon, NwgError};
 use std::ptr;
 use winapi::shared::windef::{HBITMAP, HICON};
-use winapi::um::commctrl::{ImageList_AddMasked, HIMAGELIST};
+use winapi::um::commctrl::{HIMAGELIST, ImageList_AddMasked};
 
 const NOT_BOUND: &'static str = "ImageList is not yet bound to a winapi object";
 
@@ -276,7 +276,7 @@ impl ImageListBuilder {
     }
 
     pub fn build(self, list: &mut ImageList) -> Result<(), NwgError> {
-        use winapi::um::commctrl::{ImageList_Create, ILC_COLOR32, ILC_MASK};
+        use winapi::um::commctrl::{ILC_COLOR32, ILC_MASK, ImageList_Create};
 
         unsafe {
             let (w, h) = self.size;

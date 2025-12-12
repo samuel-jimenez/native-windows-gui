@@ -10,6 +10,7 @@ members = [
     "native-windows-gui/examples/wgpu_canvas",
     "native-windows-gui/examples/hdpi_plotting",
 ]
+resolver = "3"
 
 [profile.dev]
 panic = 'abort'

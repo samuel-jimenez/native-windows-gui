@@ -8,7 +8,7 @@ extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 #[allow(unused, deprecated)]
-use nwg::{set_dpi_awareness, NativeUi};
+use nwg::{NativeUi, set_dpi_awareness};
 use plotters::prelude::*;
 use std::time::Duration;
 

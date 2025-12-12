@@ -3,7 +3,7 @@ Native Windows GUI windowing base. Includes events dispatching and window creati
 
 Warning. Not for the faint of heart.
 */
-use super::base_helper::{to_utf16, CUSTOM_ID_BEGIN};
+use super::base_helper::{CUSTOM_ID_BEGIN, to_utf16};
 use super::high_dpi;
 use super::window_helper::{NOTICE_MESSAGE, NWG_INIT, NWG_TIMER_STOP, NWG_TIMER_TICK, NWG_TRAY};
 use crate::controls::ControlHandle;
@@ -57,15 +57,17 @@ pub fn build_notice(parent: HWND) -> ControlHandle {
 }
 
 pub unsafe fn build_timer(parent: HWND, interval: u32, stopped: bool) -> ControlHandle {
-    use winapi::um::winuser::SetTimer;
+    unsafe {
+        use winapi::um::winuser::SetTimer;
 
-    let id = TIMER_ID.fetch_add(1, Ordering::SeqCst);
+        let id = TIMER_ID.fetch_add(1, Ordering::SeqCst);
 
-    if !stopped {
-        SetTimer(parent, id as UINT_PTR, interval as UINT, None);
+        if !stopped {
+            SetTimer(parent, id as UINT_PTR, interval as UINT, None);
+        }
+
+        ControlHandle::Timer(parent, id)
     }
-
-    ControlHandle::Timer(parent, id)
 }
 
 /**
@@ -91,35 +93,39 @@ where
         Function that iters over a top level window and bind the events dispatch callback
     */
     unsafe extern "system" fn set_children_subclass(h: HWND, p: LPARAM) -> i32 {
-        let params_ptr = p as *mut SetSubclassParam;
-        let params = &*params_ptr;
+        unsafe {
+            let params_ptr = p as *mut SetSubclassParam;
+            let params = &*params_ptr;
 
-        let cb: Rc<Callback> = Rc::from_raw(*params.callback_ptr);
+            let cb: Rc<Callback> = Rc::from_raw(*params.callback_ptr);
 
-        // Simply increase the rc count because the callback
-        // will also be stored into the current children window.
-        mem::forget(cb.clone());
-        SetWindowSubclass(
-            h,
-            Some(process_events),
-            params.subclass_id,
-            params.callback_ptr as UINT_PTR,
-        );
+            // Simply increase the rc count because the callback
+            // will also be stored into the current children window.
+            mem::forget(cb.clone());
+            SetWindowSubclass(
+                h,
+                Some(process_events),
+                params.subclass_id,
+                params.callback_ptr as UINT_PTR,
+            );
 
-        // Do not decrease the refcount
-        mem::forget(cb);
+            // Do not decrease the refcount
+            mem::forget(cb);
 
-        1
+            1
+        }
     }
 
     /**
         Push the children window handle into the EventHandler
     */
     unsafe extern "system" fn handler_children(h: HWND, p: LPARAM) -> i32 {
-        let handles_ptr: *mut Vec<HWND> = p as *mut Vec<HWND>;
-        let handles = &mut *handles_ptr;
-        handles.push(h);
-        1
+        unsafe {
+            let handles_ptr: *mut Vec<HWND> = p as *mut Vec<HWND>;
+            let handles = &mut *handles_ptr;
+            handles.push(h);
+            1
+        }
     }
 
     let hwnd = handle
@@ -405,64 +411,67 @@ pub(crate) unsafe fn build_hwnd_control<'a>(
     forced_flags: DWORD,
     parent: Option<HWND>,
 ) -> Result<ControlHandle, NwgError> {
-    use winapi::shared::windef::RECT;
-    use winapi::um::libloaderapi::GetModuleHandleW;
-    use winapi::um::winuser::{AdjustWindowRectEx, CreateWindowExW};
-    use winapi::um::winuser::{
-        WS_CLIPCHILDREN, /*WS_EX_LAYERED*/
-        WS_OVERLAPPEDWINDOW, WS_VISIBLE,
-    };
-
-    let hmod = GetModuleHandleW(ptr::null_mut());
-    if hmod.is_null() {
-        return Err(NwgError::initialization("GetModuleHandleW failed"));
-    }
-
-    let class_name = to_utf16(class_name);
-    let window_title = to_utf16(window_title.unwrap_or("New Window"));
-    let ex_flags = ex_flags.unwrap_or(0);
-    let flags = flags.unwrap_or(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_VISIBLE) | forced_flags;
-
-    let pos = pos.unwrap_or((0, 0));
-    let size = size.unwrap_or((500, 500));
-    let (px, py) = high_dpi::logical_to_physical(pos.0, pos.1);
-    let (mut sx, mut sy) = high_dpi::logical_to_physical(size.0, size.1);
-    let parent_handle = parent.unwrap_or(ptr::null_mut());
-    let menu = ptr::null_mut();
-    let lp_params = ptr::null_mut();
-
-    if parent.is_none() {
-        let mut rect = RECT {
-            left: 0,
-            top: 0,
-            right: sx,
-            bottom: sy,
+    unsafe {
+        use winapi::shared::windef::RECT;
+        use winapi::um::libloaderapi::GetModuleHandleW;
+        use winapi::um::winuser::{AdjustWindowRectEx, CreateWindowExW};
+        use winapi::um::winuser::{
+            WS_CLIPCHILDREN, /*WS_EX_LAYERED*/
+            WS_OVERLAPPEDWINDOW, WS_VISIBLE,
         };
-        AdjustWindowRectEx(&mut rect, flags, 0, ex_flags);
 
-        sx = rect.right - rect.left;
-        sy = rect.bottom - rect.top;
-    }
+        let hmod = GetModuleHandleW(ptr::null_mut());
+        if hmod.is_null() {
+            return Err(NwgError::initialization("GetModuleHandleW failed"));
+        }
 
-    let handle = CreateWindowExW(
-        ex_flags,
-        class_name.as_ptr(),
-        window_title.as_ptr(),
-        flags,
-        px,
-        py,
-        sx,
-        sy,
-        parent_handle,
-        menu,
-        hmod,
-        lp_params,
-    );
+        let class_name = to_utf16(class_name);
+        let window_title = to_utf16(window_title.unwrap_or("New Window"));
+        let ex_flags = ex_flags.unwrap_or(0);
+        let flags =
+            flags.unwrap_or(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_VISIBLE) | forced_flags;
 
-    if handle.is_null() {
-        Err(NwgError::initialization("Window creation failed"))
-    } else {
-        Ok(ControlHandle::Hwnd(handle))
+        let pos = pos.unwrap_or((0, 0));
+        let size = size.unwrap_or((500, 500));
+        let (px, py) = high_dpi::logical_to_physical(pos.0, pos.1);
+        let (mut sx, mut sy) = high_dpi::logical_to_physical(size.0, size.1);
+        let parent_handle = parent.unwrap_or(ptr::null_mut());
+        let menu = ptr::null_mut();
+        let lp_params = ptr::null_mut();
+
+        if parent.is_none() {
+            let mut rect = RECT {
+                left: 0,
+                top: 0,
+                right: sx,
+                bottom: sy,
+            };
+            AdjustWindowRectEx(&mut rect, flags, 0, ex_flags);
+
+            sx = rect.right - rect.left;
+            sy = rect.bottom - rect.top;
+        }
+
+        let handle = CreateWindowExW(
+            ex_flags,
+            class_name.as_ptr(),
+            window_title.as_ptr(),
+            flags,
+            px,
+            py,
+            sx,
+            sy,
+            parent_handle,
+            menu,
+            hmod,
+            lp_params,
+        );
+
+        if handle.is_null() {
+            Err(NwgError::initialization("Window creation failed"))
+        } else {
+            Ok(ControlHandle::Hwnd(handle))
+        }
     }
 }
 
@@ -473,35 +482,37 @@ pub(crate) unsafe fn build_sysclass<'a>(
     background: Option<HBRUSH>,
     style: Option<UINT>,
 ) -> Result<(), NwgError> {
-    use winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS;
-    use winapi::um::errhandlingapi::GetLastError;
-    use winapi::um::winuser::{LoadCursorW, RegisterClassExW};
-    use winapi::um::winuser::{COLOR_WINDOW, CS_HREDRAW, CS_VREDRAW, IDC_ARROW, WNDCLASSEXW};
+    unsafe {
+        use winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS;
+        use winapi::um::errhandlingapi::GetLastError;
+        use winapi::um::winuser::{COLOR_WINDOW, CS_HREDRAW, CS_VREDRAW, IDC_ARROW, WNDCLASSEXW};
+        use winapi::um::winuser::{LoadCursorW, RegisterClassExW};
 
-    let class_name = to_utf16(class_name);
-    let background: HBRUSH = background.unwrap_or(COLOR_WINDOW as usize as HBRUSH);
-    let style: UINT = style.unwrap_or(CS_HREDRAW | CS_VREDRAW);
+        let class_name = to_utf16(class_name);
+        let background: HBRUSH = background.unwrap_or(COLOR_WINDOW as usize as HBRUSH);
+        let style: UINT = style.unwrap_or(CS_HREDRAW | CS_VREDRAW);
 
-    let class = WNDCLASSEXW {
-        cbSize: mem::size_of::<WNDCLASSEXW>() as UINT,
-        style,
-        lpfnWndProc: clsproc,
-        cbClsExtra: 0,
-        cbWndExtra: 0,
-        hInstance: hmod,
-        hIcon: ptr::null_mut(),
-        hCursor: LoadCursorW(ptr::null_mut(), IDC_ARROW),
-        hbrBackground: background,
-        lpszMenuName: ptr::null(),
-        lpszClassName: class_name.as_ptr(),
-        hIconSm: ptr::null_mut(),
-    };
+        let class = WNDCLASSEXW {
+            cbSize: mem::size_of::<WNDCLASSEXW>() as UINT,
+            style,
+            lpfnWndProc: clsproc,
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hInstance: hmod,
+            hIcon: ptr::null_mut(),
+            hCursor: LoadCursorW(ptr::null_mut(), IDC_ARROW),
+            hbrBackground: background,
+            lpszMenuName: ptr::null(),
+            lpszClassName: class_name.as_ptr(),
+            hIconSm: ptr::null_mut(),
+        };
 
-    let class_token = RegisterClassExW(&class);
-    if class_token == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS {
-        Err(NwgError::initialization("System class creation failed"))
-    } else {
-        Ok(())
+        let class_token = RegisterClassExW(&class);
+        if class_token == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS {
+            Err(NwgError::initialization("System class creation failed"))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -594,25 +605,27 @@ unsafe extern "system" fn blank_window_proc(
     w: WPARAM,
     l: LPARAM,
 ) -> LRESULT {
-    use winapi::um::winuser::{DefWindowProcW, PostMessageW, ShowWindow};
-    use winapi::um::winuser::{SW_HIDE, WM_CLOSE, WM_CREATE};
+    unsafe {
+        use winapi::um::winuser::{DefWindowProcW, PostMessageW, ShowWindow};
+        use winapi::um::winuser::{SW_HIDE, WM_CLOSE, WM_CREATE};
 
-    let handled = match msg {
-        WM_CREATE => {
-            PostMessageW(hwnd, NWG_INIT, 0, 0);
-            true
-        }
-        WM_CLOSE => {
-            ShowWindow(hwnd, SW_HIDE);
-            true
-        }
-        _ => false,
-    };
+        let handled = match msg {
+            WM_CREATE => {
+                PostMessageW(hwnd, NWG_INIT, 0, 0);
+                true
+            }
+            WM_CLOSE => {
+                ShowWindow(hwnd, SW_HIDE);
+                true
+            }
+            _ => false,
+        };
 
-    if handled {
-        0
-    } else {
-        DefWindowProcW(hwnd, msg, w, l)
+        if handled {
+            0
+        } else {
+            DefWindowProcW(hwnd, msg, w, l)
+        }
     }
 }
 
@@ -628,276 +641,282 @@ unsafe extern "system" fn process_events(
     id: UINT_PTR,
     data: DWORD_PTR,
 ) -> LRESULT {
-    use crate::events::*;
-    use std::char;
+    unsafe {
+        use crate::events::*;
+        use std::char;
 
-    use winapi::shared::minwindef::{HIWORD, LOWORD};
-    use winapi::um::commctrl::{DefSubclassProc, TTN_GETDISPINFOW};
-    use winapi::um::shellapi::{
-        NIN_BALLOONHIDE, NIN_BALLOONSHOW, NIN_BALLOONTIMEOUT, NIN_BALLOONUSERCLICK,
-    };
-    use winapi::um::winnt::WCHAR;
-    use winapi::um::winuser::{GetClassNameW, GetMenuItemID, GetSubMenu};
-    use winapi::um::winuser::{
-        GET_WHEEL_DELTA_WPARAM, SIZE_MAXIMIZED, SIZE_MINIMIZED, WM_CHAR, WM_CLOSE, WM_COMMAND,
-        WM_CONTEXTMENU, WM_DROPFILES, WM_ENTERMENULOOP, WM_ENTERSIZEMOVE, WM_EXITMENULOOP,
-        WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_HSCROLL, WM_INITMENUPOPUP, WM_KEYDOWN, WM_KEYUP,
-        WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MENUCOMMAND, WM_MENUSELECT, WM_MOUSEMOVE, WM_MOUSEWHEEL,
-        WM_MOVE, WM_NOTIFY, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SIZE, WM_SYSKEYDOWN,
-        WM_SYSKEYUP, WM_TIMER, WM_VSCROLL,
-    };
+        use winapi::shared::minwindef::{HIWORD, LOWORD};
+        use winapi::um::commctrl::{DefSubclassProc, TTN_GETDISPINFOW};
+        use winapi::um::shellapi::{
+            NIN_BALLOONHIDE, NIN_BALLOONSHOW, NIN_BALLOONTIMEOUT, NIN_BALLOONUSERCLICK,
+        };
+        use winapi::um::winnt::WCHAR;
+        use winapi::um::winuser::{
+            GET_WHEEL_DELTA_WPARAM, SIZE_MAXIMIZED, SIZE_MINIMIZED, WM_CHAR, WM_CLOSE, WM_COMMAND,
+            WM_CONTEXTMENU, WM_DROPFILES, WM_ENTERMENULOOP, WM_ENTERSIZEMOVE, WM_EXITMENULOOP,
+            WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_HSCROLL, WM_INITMENUPOPUP, WM_KEYDOWN, WM_KEYUP,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MENUCOMMAND, WM_MENUSELECT, WM_MOUSEMOVE,
+            WM_MOUSEWHEEL, WM_MOVE, WM_NOTIFY, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SIZE,
+            WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TIMER, WM_VSCROLL,
+        };
+        use winapi::um::winuser::{GetClassNameW, GetMenuItemID, GetSubMenu};
 
-    let callback_ptr = data as *mut *const Callback;
-    Rc::increment_strong_count(*callback_ptr);
-    let callback = Rc::from_raw(*callback_ptr);
-    let callback = &*callback;
+        let callback_ptr = data as *mut *const Callback;
+        Rc::increment_strong_count(*callback_ptr);
+        let callback = Rc::from_raw(*callback_ptr);
+        let callback = &*callback;
 
-    let base_handle = ControlHandle::Hwnd(hwnd);
+        let base_handle = ControlHandle::Hwnd(hwnd);
 
-    match msg {
-        WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
-            let evt = match msg {
+        match msg {
+            WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
+                let evt = match msg {
                 WM_SYSKEYDOWN => Event::OnSysKeyPress,
                 WM_SYSKEYUP=> Event::OnSysKeyRelease,
                 WM_KEYDOWN => Event::OnKeyPress,
                 _ /* WM_KEYUP */ => Event::OnKeyRelease,
             };
 
-            // Block the textbox ESC key from closing the whole application
-            if w == 27 {
-                if is_textbox_control(hwnd) {
+                // Block the textbox ESC key from closing the whole application
+                if w == 27 {
+                    if is_textbox_control(hwnd) {
+                        return 0;
+                    }
+                }
+
+                let keycode = w as u32;
+                let data = EventData::OnKey(keycode);
+                callback(evt, data, base_handle);
+            }
+            WM_NOTIFY => {
+                let code = {
+                    let notif_ptr = l as *mut NMHDR;
+                    (&*notif_ptr).code
+                };
+
+                match code {
+                    TTN_GETDISPINFOW => handle_tooltip_callback(l as *mut NMTTDISPINFOW, callback),
+                    _ => handle_default_notify_callback(l as *const NMHDR, callback),
+                }
+            }
+            WM_MENUCOMMAND => {
+                let parent_handle = l as HMENU;
+                let item_id = GetMenuItemID(parent_handle, w as i32);
+                let handle = ControlHandle::MenuItem(parent_handle, item_id);
+                callback(Event::OnMenuItemSelected, NO_DATA, handle);
+            }
+            WM_INITMENUPOPUP => {
+                callback(
+                    Event::OnMenuOpen,
+                    NO_DATA,
+                    ControlHandle::Menu(ptr::null_mut(), w as HMENU),
+                );
+            }
+            WM_ENTERMENULOOP => {
+                callback(
+                    Event::OnMenuEnter,
+                    NO_DATA,
+                    ControlHandle::Menu(ptr::null_mut(), w as HMENU),
+                );
+            }
+            WM_EXITMENULOOP => {
+                callback(
+                    Event::OnMenuExit,
+                    NO_DATA,
+                    ControlHandle::Menu(ptr::null_mut(), w as HMENU),
+                );
+            }
+            WM_MOUSEWHEEL => {
+                callback(
+                    Event::OnMouseWheel,
+                    EventData::OnMouseWheel(GET_WHEEL_DELTA_WPARAM(w) as i32),
+                    base_handle,
+                );
+            }
+            WM_MENUSELECT => {
+                let index = LOWORD(w as u32) as u32;
+                let parent = l as HMENU;
+                if index < CUSTOM_ID_BEGIN {
+                    // Item is a sub menu
+                    callback(
+                        Event::OnMenuHover,
+                        NO_DATA,
+                        ControlHandle::Menu(parent, GetSubMenu(parent, index as i32)),
+                    );
+                } else {
+                    // Item is a menu item
+                    callback(
+                        Event::OnMenuHover,
+                        NO_DATA,
+                        ControlHandle::MenuItem(parent, index),
+                    );
+                }
+            }
+            WM_COMMAND => {
+                let child_handle: HWND = l as HWND;
+                let message = HIWORD(w as u32) as u16;
+                let handle = ControlHandle::Hwnd(child_handle);
+
+                // Converting the class name into rust string might not be the most efficient way to do this
+                // It might be a good idea to just compare the class_name_raw
+                let mut class_name_raw: [WCHAR; 100] = [0; 100];
+                let count = GetClassNameW(child_handle, class_name_raw.as_mut_ptr(), 100) as usize;
+                let class_name = OsString::from_wide(&class_name_raw[..count])
+                    .into_string()
+                    .unwrap_or("".to_string());
+
+                match &class_name as &str {
+                    "Button" => callback(button_commands(message), NO_DATA, handle),
+                    "Edit" => callback(edit_commands(message), NO_DATA, handle),
+                    "ComboBox" => callback(combo_commands(message), NO_DATA, handle),
+                    "Static" => callback(static_commands(child_handle, message), NO_DATA, handle),
+                    "ListBox" => callback(listbox_commands(message), NO_DATA, handle),
+                    _ => match w as i32 {
+                        IDOK | IDCANCEL => {
+                            callback(no_class_name_commands(w), NO_DATA, base_handle)
+                        }
+                        _ => {}
+                    },
+                }
+            }
+            WM_CONTEXTMENU => {
+                let target_handle = w as HWND;
+                let handle = ControlHandle::Hwnd(target_handle);
+                callback(Event::OnContextMenu, NO_DATA, handle);
+            }
+            NWG_TRAY => {
+                let msg = LOWORD(l as u32) as u32;
+                let handle = ControlHandle::SystemTray(hwnd);
+
+                match msg {
+                    NIN_BALLOONSHOW => callback(Event::OnTrayNotificationShow, NO_DATA, handle),
+                    NIN_BALLOONHIDE => callback(Event::OnTrayNotificationHide, NO_DATA, handle),
+                    NIN_BALLOONTIMEOUT => {
+                        callback(Event::OnTrayNotificationTimeout, NO_DATA, handle)
+                    }
+                    NIN_BALLOONUSERCLICK => {
+                        callback(Event::OnTrayNotificationUserClose, NO_DATA, handle)
+                    }
+                    WM_LBUTTONUP => callback(
+                        Event::OnMousePress(MousePressEvent::MousePressLeftUp),
+                        NO_DATA,
+                        handle,
+                    ),
+                    WM_LBUTTONDOWN => callback(
+                        Event::OnMousePress(MousePressEvent::MousePressLeftDown),
+                        NO_DATA,
+                        handle,
+                    ),
+                    WM_RBUTTONUP => {
+                        callback(
+                            Event::OnMousePress(MousePressEvent::MousePressRightUp),
+                            NO_DATA,
+                            handle,
+                        );
+                        callback(Event::OnContextMenu, NO_DATA, handle);
+                    }
+                    WM_RBUTTONDOWN => callback(
+                        Event::OnMousePress(MousePressEvent::MousePressRightDown),
+                        NO_DATA,
+                        handle,
+                    ),
+                    WM_MOUSEMOVE => callback(Event::OnMouseMove, NO_DATA, handle),
+                    _ => {}
+                }
+            }
+            WM_SIZE => match w {
+                SIZE_MAXIMIZED => callback(Event::OnWindowMaximize, NO_DATA, base_handle),
+                SIZE_MINIMIZED => callback(Event::OnWindowMinimize, NO_DATA, base_handle),
+                _ => callback(Event::OnResize, NO_DATA, base_handle),
+            },
+            WM_PAINT => {
+                let data = EventData::OnPaint(PaintData { hwnd });
+                callback(Event::OnPaint, data, base_handle)
+            }
+            WM_DROPFILES => {
+                let data = EventData::OnFileDrop(DropFiles { drop: w as _ });
+                callback(Event::OnFileDrop, data, base_handle)
+            }
+            WM_GETMINMAXINFO => {
+                let data = EventData::OnMinMaxInfo(MinMaxInfo { inner: l as _ });
+                callback(Event::OnMinMaxInfo, data, base_handle)
+            }
+            WM_CHAR => callback(
+                Event::OnChar,
+                EventData::OnChar(char::from_u32(w as u32).unwrap_or('?')),
+                base_handle,
+            ),
+            WM_EXITSIZEMOVE => callback(Event::OnResizeEnd, NO_DATA, base_handle),
+            WM_ENTERSIZEMOVE => callback(Event::OnResizeBegin, NO_DATA, base_handle),
+            WM_TIMER => callback(
+                Event::OnTimerTick,
+                NO_DATA,
+                ControlHandle::Timer(hwnd, w as u32),
+            ),
+            WM_MOVE => callback(Event::OnMove, NO_DATA, base_handle),
+            WM_HSCROLL => callback(
+                Event::OnHorizontalScroll,
+                NO_DATA,
+                ControlHandle::Hwnd(l as HWND),
+            ),
+            WM_VSCROLL => callback(
+                Event::OnVerticalScroll,
+                NO_DATA,
+                ControlHandle::Hwnd(l as HWND),
+            ),
+            WM_MOUSEMOVE => callback(Event::OnMouseMove, NO_DATA, base_handle),
+            WM_LBUTTONUP => callback(
+                Event::OnMousePress(MousePressEvent::MousePressLeftUp),
+                NO_DATA,
+                base_handle,
+            ),
+            WM_LBUTTONDOWN => callback(
+                Event::OnMousePress(MousePressEvent::MousePressLeftDown),
+                NO_DATA,
+                base_handle,
+            ),
+            WM_RBUTTONUP => callback(
+                Event::OnMousePress(MousePressEvent::MousePressRightUp),
+                NO_DATA,
+                base_handle,
+            ),
+            WM_RBUTTONDOWN => callback(
+                Event::OnMousePress(MousePressEvent::MousePressRightDown),
+                NO_DATA,
+                base_handle,
+            ),
+            NOTICE_MESSAGE => callback(
+                Event::OnNotice,
+                NO_DATA,
+                ControlHandle::Notice(hwnd, w as u32),
+            ),
+            NWG_TIMER_STOP => callback(
+                Event::OnTimerStop,
+                NO_DATA,
+                ControlHandle::Timer(hwnd, w as u32),
+            ),
+            NWG_TIMER_TICK => callback(
+                Event::OnTimerTick,
+                NO_DATA,
+                ControlHandle::Timer(hwnd, w as u32),
+            ),
+            NWG_INIT => callback(Event::OnInit, NO_DATA, base_handle),
+            WM_CLOSE => {
+                let mut should_exit = true;
+                let data = EventData::OnWindowClose(WindowCloseData {
+                    data: &mut should_exit as *mut bool,
+                });
+                callback(Event::OnWindowClose, data, base_handle);
+
+                if !should_exit {
                     return 0;
                 }
             }
+            _ => {}
+        }
 
-            let keycode = w as u32;
-            let data = EventData::OnKey(keycode);
-            callback(evt, data, base_handle);
-        }
-        WM_NOTIFY => {
-            let code = {
-                let notif_ptr = l as *mut NMHDR;
-                (&*notif_ptr).code
-            };
-
-            match code {
-                TTN_GETDISPINFOW => handle_tooltip_callback(l as *mut NMTTDISPINFOW, callback),
-                _ => handle_default_notify_callback(l as *const NMHDR, callback),
-            }
-        }
-        WM_MENUCOMMAND => {
-            let parent_handle = l as HMENU;
-            let item_id = GetMenuItemID(parent_handle, w as i32);
-            let handle = ControlHandle::MenuItem(parent_handle, item_id);
-            callback(Event::OnMenuItemSelected, NO_DATA, handle);
-        }
-        WM_INITMENUPOPUP => {
-            callback(
-                Event::OnMenuOpen,
-                NO_DATA,
-                ControlHandle::Menu(ptr::null_mut(), w as HMENU),
-            );
-        }
-        WM_ENTERMENULOOP => {
-            callback(
-                Event::OnMenuEnter,
-                NO_DATA,
-                ControlHandle::Menu(ptr::null_mut(), w as HMENU),
-            );
-        }
-        WM_EXITMENULOOP => {
-            callback(
-                Event::OnMenuExit,
-                NO_DATA,
-                ControlHandle::Menu(ptr::null_mut(), w as HMENU),
-            );
-        }
-        WM_MOUSEWHEEL => {
-            callback(
-                Event::OnMouseWheel,
-                EventData::OnMouseWheel(GET_WHEEL_DELTA_WPARAM(w) as i32),
-                base_handle,
-            );
-        }
-        WM_MENUSELECT => {
-            let index = LOWORD(w as u32) as u32;
-            let parent = l as HMENU;
-            if index < CUSTOM_ID_BEGIN {
-                // Item is a sub menu
-                callback(
-                    Event::OnMenuHover,
-                    NO_DATA,
-                    ControlHandle::Menu(parent, GetSubMenu(parent, index as i32)),
-                );
-            } else {
-                // Item is a menu item
-                callback(
-                    Event::OnMenuHover,
-                    NO_DATA,
-                    ControlHandle::MenuItem(parent, index),
-                );
-            }
-        }
-        WM_COMMAND => {
-            let child_handle: HWND = l as HWND;
-            let message = HIWORD(w as u32) as u16;
-            let handle = ControlHandle::Hwnd(child_handle);
-
-            // Converting the class name into rust string might not be the most efficient way to do this
-            // It might be a good idea to just compare the class_name_raw
-            let mut class_name_raw: [WCHAR; 100] = [0; 100];
-            let count = GetClassNameW(child_handle, class_name_raw.as_mut_ptr(), 100) as usize;
-            let class_name = OsString::from_wide(&class_name_raw[..count])
-                .into_string()
-                .unwrap_or("".to_string());
-
-            match &class_name as &str {
-                "Button" => callback(button_commands(message), NO_DATA, handle),
-                "Edit" => callback(edit_commands(message), NO_DATA, handle),
-                "ComboBox" => callback(combo_commands(message), NO_DATA, handle),
-                "Static" => callback(static_commands(child_handle, message), NO_DATA, handle),
-                "ListBox" => callback(listbox_commands(message), NO_DATA, handle),
-                _ => match w as i32 {
-                    IDOK | IDCANCEL => callback(no_class_name_commands(w), NO_DATA, base_handle),
-                    _ => {}
-                },
-            }
-        }
-        WM_CONTEXTMENU => {
-            let target_handle = w as HWND;
-            let handle = ControlHandle::Hwnd(target_handle);
-            callback(Event::OnContextMenu, NO_DATA, handle);
-        }
-        NWG_TRAY => {
-            let msg = LOWORD(l as u32) as u32;
-            let handle = ControlHandle::SystemTray(hwnd);
-
-            match msg {
-                NIN_BALLOONSHOW => callback(Event::OnTrayNotificationShow, NO_DATA, handle),
-                NIN_BALLOONHIDE => callback(Event::OnTrayNotificationHide, NO_DATA, handle),
-                NIN_BALLOONTIMEOUT => callback(Event::OnTrayNotificationTimeout, NO_DATA, handle),
-                NIN_BALLOONUSERCLICK => {
-                    callback(Event::OnTrayNotificationUserClose, NO_DATA, handle)
-                }
-                WM_LBUTTONUP => callback(
-                    Event::OnMousePress(MousePressEvent::MousePressLeftUp),
-                    NO_DATA,
-                    handle,
-                ),
-                WM_LBUTTONDOWN => callback(
-                    Event::OnMousePress(MousePressEvent::MousePressLeftDown),
-                    NO_DATA,
-                    handle,
-                ),
-                WM_RBUTTONUP => {
-                    callback(
-                        Event::OnMousePress(MousePressEvent::MousePressRightUp),
-                        NO_DATA,
-                        handle,
-                    );
-                    callback(Event::OnContextMenu, NO_DATA, handle);
-                }
-                WM_RBUTTONDOWN => callback(
-                    Event::OnMousePress(MousePressEvent::MousePressRightDown),
-                    NO_DATA,
-                    handle,
-                ),
-                WM_MOUSEMOVE => callback(Event::OnMouseMove, NO_DATA, handle),
-                _ => {}
-            }
-        }
-        WM_SIZE => match w {
-            SIZE_MAXIMIZED => callback(Event::OnWindowMaximize, NO_DATA, base_handle),
-            SIZE_MINIMIZED => callback(Event::OnWindowMinimize, NO_DATA, base_handle),
-            _ => callback(Event::OnResize, NO_DATA, base_handle),
-        },
-        WM_PAINT => {
-            let data = EventData::OnPaint(PaintData { hwnd });
-            callback(Event::OnPaint, data, base_handle)
-        }
-        WM_DROPFILES => {
-            let data = EventData::OnFileDrop(DropFiles { drop: w as _ });
-            callback(Event::OnFileDrop, data, base_handle)
-        }
-        WM_GETMINMAXINFO => {
-            let data = EventData::OnMinMaxInfo(MinMaxInfo { inner: l as _ });
-            callback(Event::OnMinMaxInfo, data, base_handle)
-        }
-        WM_CHAR => callback(
-            Event::OnChar,
-            EventData::OnChar(char::from_u32(w as u32).unwrap_or('?')),
-            base_handle,
-        ),
-        WM_EXITSIZEMOVE => callback(Event::OnResizeEnd, NO_DATA, base_handle),
-        WM_ENTERSIZEMOVE => callback(Event::OnResizeBegin, NO_DATA, base_handle),
-        WM_TIMER => callback(
-            Event::OnTimerTick,
-            NO_DATA,
-            ControlHandle::Timer(hwnd, w as u32),
-        ),
-        WM_MOVE => callback(Event::OnMove, NO_DATA, base_handle),
-        WM_HSCROLL => callback(
-            Event::OnHorizontalScroll,
-            NO_DATA,
-            ControlHandle::Hwnd(l as HWND),
-        ),
-        WM_VSCROLL => callback(
-            Event::OnVerticalScroll,
-            NO_DATA,
-            ControlHandle::Hwnd(l as HWND),
-        ),
-        WM_MOUSEMOVE => callback(Event::OnMouseMove, NO_DATA, base_handle),
-        WM_LBUTTONUP => callback(
-            Event::OnMousePress(MousePressEvent::MousePressLeftUp),
-            NO_DATA,
-            base_handle,
-        ),
-        WM_LBUTTONDOWN => callback(
-            Event::OnMousePress(MousePressEvent::MousePressLeftDown),
-            NO_DATA,
-            base_handle,
-        ),
-        WM_RBUTTONUP => callback(
-            Event::OnMousePress(MousePressEvent::MousePressRightUp),
-            NO_DATA,
-            base_handle,
-        ),
-        WM_RBUTTONDOWN => callback(
-            Event::OnMousePress(MousePressEvent::MousePressRightDown),
-            NO_DATA,
-            base_handle,
-        ),
-        NOTICE_MESSAGE => callback(
-            Event::OnNotice,
-            NO_DATA,
-            ControlHandle::Notice(hwnd, w as u32),
-        ),
-        NWG_TIMER_STOP => callback(
-            Event::OnTimerStop,
-            NO_DATA,
-            ControlHandle::Timer(hwnd, w as u32),
-        ),
-        NWG_TIMER_TICK => callback(
-            Event::OnTimerTick,
-            NO_DATA,
-            ControlHandle::Timer(hwnd, w as u32),
-        ),
-        NWG_INIT => callback(Event::OnInit, NO_DATA, base_handle),
-        WM_CLOSE => {
-            let mut should_exit = true;
-            let data = EventData::OnWindowClose(WindowCloseData {
-                data: &mut should_exit as *mut bool,
-            });
-            callback(Event::OnWindowClose, data, base_handle);
-
-            if !should_exit {
-                return 0;
-            }
-        }
-        _ => {}
+        DefSubclassProc(hwnd, msg, w, l)
     }
-
-    DefSubclassProc(hwnd, msg, w, l)
 }
 
 /**
@@ -912,15 +931,17 @@ unsafe extern "system" fn process_raw_events(
     id: UINT_PTR,
     data: DWORD_PTR,
 ) -> LRESULT {
-    let callback_wrapper_ptr = data as *mut *mut RawCallback;
-    let callback: Box<RawCallback> = Box::from_raw(*callback_wrapper_ptr);
+    unsafe {
+        let callback_wrapper_ptr = data as *mut *mut RawCallback;
+        let callback: Box<RawCallback> = Box::from_raw(*callback_wrapper_ptr);
 
-    let result = callback(hwnd, msg, w, l);
-    Box::into_raw(callback);
+        let result = callback(hwnd, msg, w, l);
+        Box::into_raw(callback);
 
-    match result {
-        Some(r) => r,
-        None => ::winapi::um::commctrl::DefSubclassProc(hwnd, msg, w, l),
+        match result {
+            Some(r) => r,
+            None => ::winapi::um::commctrl::DefSubclassProc(hwnd, msg, w, l),
+        }
     }
 }
 
@@ -1109,10 +1130,12 @@ fn tree_data(m: u32, notif_raw: *const NMHDR) -> EventData {
 }
 
 unsafe fn u16_ptr_to_string(ptr: *const u16) -> OsString {
-    let len = (0..).take_while(|&i| *ptr.offset(i) != 0).count();
-    let slice = std::slice::from_raw_parts(ptr, len);
+    unsafe {
+        let len = (0..).take_while(|&i| *ptr.offset(i) != 0).count();
+        let slice = std::slice::from_raw_parts(ptr, len);
 
-    OsString::from_wide(slice)
+        OsString::from_wide(slice)
+    }
 }
 
 #[cfg(not(feature = "tree-view"))]
@@ -1125,7 +1148,7 @@ fn tree_data(_m: u32, _notif_raw: *const NMHDR) -> EventData {
 fn list_view_data(m: u32, notif_raw: *const NMHDR) -> EventData {
     use winapi::um::commctrl::{
         LVIS_SELECTED, LVN_COLUMNCLICK, LVN_DELETEITEM, LVN_INSERTITEM, LVN_ITEMACTIVATE,
-        LVN_ITEMCHANGED, NMITEMACTIVATE, NMLISTVIEW, NM_CLICK, NM_DBLCLK, NM_RCLICK,
+        LVN_ITEMCHANGED, NM_CLICK, NM_DBLCLK, NM_RCLICK, NMITEMACTIVATE, NMLISTVIEW,
     };
 
     match m {
@@ -1162,26 +1185,28 @@ fn list_view_data(_m: u32, _notif_raw: *const NMHDR) -> EventData {
 }
 
 unsafe fn static_commands(handle: HWND, m: u16) -> Event {
-    use winapi::um::winuser::SendMessageW;
-    use winapi::um::winuser::{
-        IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, STM_GETIMAGE, STN_CLICKED, STN_DBLCLK,
-    };
+    unsafe {
+        use winapi::um::winuser::SendMessageW;
+        use winapi::um::winuser::{
+            IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, STM_GETIMAGE, STN_CLICKED, STN_DBLCLK,
+        };
 
-    let has_image = SendMessageW(handle, STM_GETIMAGE, IMAGE_BITMAP as usize, 0) != 0;
-    let has_icon = SendMessageW(handle, STM_GETIMAGE, IMAGE_ICON as usize, 0) != 0;
-    let has_cursor = SendMessageW(handle, STM_GETIMAGE, IMAGE_CURSOR as usize, 0) != 0;
+        let has_image = SendMessageW(handle, STM_GETIMAGE, IMAGE_BITMAP as usize, 0) != 0;
+        let has_icon = SendMessageW(handle, STM_GETIMAGE, IMAGE_ICON as usize, 0) != 0;
+        let has_cursor = SendMessageW(handle, STM_GETIMAGE, IMAGE_CURSOR as usize, 0) != 0;
 
-    if has_image | has_icon | has_cursor {
-        match m {
-            STN_CLICKED => Event::OnImageFrameClick,
-            STN_DBLCLK => Event::OnImageFrameDoubleClick,
-            _ => Event::Unknown,
-        }
-    } else {
-        match m {
-            STN_CLICKED => Event::OnLabelClick,
-            STN_DBLCLK => Event::OnLabelDoubleClick,
-            _ => Event::Unknown,
+        if has_image | has_icon | has_cursor {
+            match m {
+                STN_CLICKED => Event::OnImageFrameClick,
+                STN_DBLCLK => Event::OnImageFrameDoubleClick,
+                _ => Event::Unknown,
+            }
+        } else {
+            match m {
+                STN_CLICKED => Event::OnLabelClick,
+                STN_DBLCLK => Event::OnLabelDoubleClick,
+                _ => Event::Unknown,
+            }
         }
     }
 }
@@ -1197,56 +1222,62 @@ unsafe fn listbox_commands(m: u16) -> Event {
 }
 
 unsafe fn handle_tooltip_callback<'a>(notif: *mut NMTTDISPINFOW, callback: &Callback) {
-    use crate::events::ToolTipTextData;
+    unsafe {
+        use crate::events::ToolTipTextData;
 
-    let notif = &mut *notif;
-    let handle = ControlHandle::Hwnd(notif.hdr.idFrom as HWND);
-    let data = EventData::OnTooltipText(ToolTipTextData { data: notif });
-    callback(Event::OnTooltipText, data, handle);
+        let notif = &mut *notif;
+        let handle = ControlHandle::Hwnd(notif.hdr.idFrom as HWND);
+        let data = EventData::OnTooltipText(ToolTipTextData { data: notif });
+        callback(Event::OnTooltipText, data, handle);
+    }
 }
 
 unsafe fn handle_default_notify_callback<'a>(notif_raw: *const NMHDR, callback: &Callback) {
-    use winapi::um::winnt::WCHAR;
-    use winapi::um::winuser::GetClassNameW;
+    unsafe {
+        use winapi::um::winnt::WCHAR;
+        use winapi::um::winuser::GetClassNameW;
 
-    let notif = &*notif_raw;
-    let handle = ControlHandle::Hwnd(notif.hwndFrom);
+        let notif = &*notif_raw;
+        let handle = ControlHandle::Hwnd(notif.hwndFrom);
 
-    let mut class_name_raw: [WCHAR; 100] = mem::zeroed();
-    let count = GetClassNameW(notif.hwndFrom, class_name_raw.as_mut_ptr(), 100) as usize;
-    let class_name = OsString::from_wide(&class_name_raw[..count])
-        .into_string()
-        .unwrap_or("".to_string());
+        let mut class_name_raw: [WCHAR; 100] = mem::zeroed();
+        let count = GetClassNameW(notif.hwndFrom, class_name_raw.as_mut_ptr(), 100) as usize;
+        let class_name = OsString::from_wide(&class_name_raw[..count])
+            .into_string()
+            .unwrap_or("".to_string());
 
-    let code = notif.code;
+        let code = notif.code;
 
-    match &class_name as &str {
-        "SysDateTimePick32" => callback(datetimepick_commands(code), NO_DATA, handle),
-        "SysTabControl32" => callback(tabs_commands(code), NO_DATA, handle),
-        "msctls_trackbar32" => callback(track_commands(code), NO_DATA, handle),
-        winapi::um::commctrl::WC_TREEVIEW => {
-            callback(tree_commands(code), tree_data(code, notif_raw), handle)
+        match &class_name as &str {
+            "SysDateTimePick32" => callback(datetimepick_commands(code), NO_DATA, handle),
+            "SysTabControl32" => callback(tabs_commands(code), NO_DATA, handle),
+            "msctls_trackbar32" => callback(track_commands(code), NO_DATA, handle),
+            winapi::um::commctrl::WC_TREEVIEW => {
+                callback(tree_commands(code), tree_data(code, notif_raw), handle)
+            }
+            winapi::um::commctrl::WC_LISTVIEW => callback(
+                list_view_commands(code),
+                list_view_data(code, notif_raw),
+                handle,
+            ),
+            _ => {}
         }
-        winapi::um::commctrl::WC_LISTVIEW => callback(
-            list_view_commands(code),
-            list_view_data(code, notif_raw),
-            handle,
-        ),
-        _ => {}
     }
 }
 
 unsafe fn is_textbox_control(hwnd: HWND) -> bool {
-    use winapi::um::winnt::WCHAR;
-    use winapi::um::winuser::GetClassNameW;
+    unsafe {
+        use winapi::um::winnt::WCHAR;
+        use winapi::um::winuser::GetClassNameW;
 
-    let mut class_name_raw: [WCHAR; 100] = [0; 100];
-    let count = GetClassNameW(hwnd, class_name_raw.as_mut_ptr(), 100) as usize;
-    let class_name = OsString::from_wide(&class_name_raw[..count])
-        .into_string()
-        .unwrap_or("".to_string());
+        let mut class_name_raw: [WCHAR; 100] = [0; 100];
+        let count = GetClassNameW(hwnd, class_name_raw.as_mut_ptr(), 100) as usize;
+        let class_name = OsString::from_wide(&class_name_raw[..count])
+            .into_string()
+            .unwrap_or("".to_string());
 
-    class_name == "Edit" || class_name == "RICHEDIT50W"
+        class_name == "Edit" || class_name == "RICHEDIT50W"
+    }
 }
 
 //
@@ -1360,8 +1391,10 @@ unsafe fn GetWindowSubclass(
     uid: UINT_PTR,
     data: *mut DWORD_PTR,
 ) -> BOOL {
-    use winapi::um::commctrl::GetWindowSubclass;
-    GetWindowSubclass(hwnd, proc, uid, data)
+    unsafe {
+        use winapi::um::commctrl::GetWindowSubclass;
+        GetWindowSubclass(hwnd, proc, uid, data)
+    }
 }
 
 #[cfg(not(target_env = "gnu"))]
@@ -1372,13 +1405,17 @@ unsafe fn SetWindowSubclass(
     uid: UINT_PTR,
     data: DWORD_PTR,
 ) -> BOOL {
-    use winapi::um::commctrl::SetWindowSubclass;
-    SetWindowSubclass(hwnd, proc, uid, data)
+    unsafe {
+        use winapi::um::commctrl::SetWindowSubclass;
+        SetWindowSubclass(hwnd, proc, uid, data)
+    }
 }
 
 #[cfg(not(target_env = "gnu"))]
 #[allow(non_snake_case)]
 unsafe fn RemoveWindowSubclass(hwnd: HWND, proc: SUBCLASSPROC, uid: UINT_PTR) -> BOOL {
-    use winapi::um::commctrl::RemoveWindowSubclass;
-    RemoveWindowSubclass(hwnd, proc, uid)
+    unsafe {
+        use winapi::um::commctrl::RemoveWindowSubclass;
+        RemoveWindowSubclass(hwnd, proc, uid)
+    }
 }

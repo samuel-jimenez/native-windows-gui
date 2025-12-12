@@ -1,6 +1,6 @@
+use crate::NwgError;
 use crate::controls::ControlHandle;
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use std::{
     sync::{Arc, Mutex},
     thread,

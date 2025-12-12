@@ -1,11 +1,11 @@
 use super::FontInfo;
-use crate::controls::ControlHandle;
 use crate::NwgError;
+use crate::controls::ControlHandle;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::{mem, ptr};
 use winapi::shared::minwindef::DWORD;
-use winapi::um::commdlg::{ChooseFontW, CHOOSEFONTW};
+use winapi::um::commdlg::{CHOOSEFONTW, ChooseFontW};
 use winapi::um::wingdi::LOGFONTW;
 
 struct InnerFontDialog {

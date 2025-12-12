@@ -1,6 +1,6 @@
 use super::*;
-use crate::win32::base_helper::{from_utf16, to_utf16};
 use crate::NwgError;
+use crate::win32::base_helper::{from_utf16, to_utf16};
 use std::{mem, ptr};
 use winapi::um::winnls::{
     GetLocaleInfoEx, GetSystemDefaultLocaleName, GetUserDefaultLocaleName, LCTYPE,
@@ -58,9 +58,11 @@ impl Locale {
         use winapi::um::winnls::EnumSystemLocalesEx;
 
         unsafe extern "system" fn enum_locales(locale: LPWSTR, _flags: DWORD, p: LPARAM) -> BOOL {
-            let locales: *mut Vec<String> = p as *mut Vec<String>;
-            (&mut *locales).push(from_wide_ptr(locale, None));
-            1
+            unsafe {
+                let locales: *mut Vec<String> = p as *mut Vec<String>;
+                (&mut *locales).push(from_wide_ptr(locale, None));
+                1
+            }
         }
 
         unsafe {

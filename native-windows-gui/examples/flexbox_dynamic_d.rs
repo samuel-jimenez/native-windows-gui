@@ -6,7 +6,7 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::{stretch, NativeUi};
+use nwg::{NativeUi, stretch};
 use stretch::geometry::Size;
 use stretch::style::*;
 

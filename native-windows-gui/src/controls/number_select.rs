@@ -6,7 +6,7 @@ use super::{Button, ButtonFlags, ControlBase, ControlHandle, TextInput, TextInpu
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
 use crate::{
-    bind_raw_event_handler_inner, unbind_raw_event_handler, Font, NwgError, RawEventHandler,
+    Font, NwgError, RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler,
 };
 
 const NOT_BOUND: &'static str = "UpDown is not yet bound to a winapi object";

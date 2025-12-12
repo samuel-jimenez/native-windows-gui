@@ -2,7 +2,7 @@
 name = "native-windows-canvas"
 version = "0.0.1"
 authors = ["Gabriel D <gdube.475@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 description = "A low level Direct2D wrapper for native-windows-gui"
 repository = "https://github.com/gabdube/native-windows-gui"

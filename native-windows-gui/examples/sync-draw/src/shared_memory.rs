@@ -3,7 +3,7 @@ use std::{mem, ptr};
 use winapi::shared::basetsd::SIZE_T;
 use winapi::shared::minwindef::DWORD;
 use winapi::um::handleapi::CloseHandle;
-use winapi::um::memoryapi::{MapViewOfFile, UnmapViewOfFile, FILE_MAP_ALL_ACCESS};
+use winapi::um::memoryapi::{FILE_MAP_ALL_ACCESS, MapViewOfFile, UnmapViewOfFile};
 use winapi::um::winnt::{HANDLE, WCHAR};
 
 const NAME: &'static str = "SyncDraw_Shared_Memory";

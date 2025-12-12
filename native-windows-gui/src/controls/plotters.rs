@@ -1,7 +1,7 @@
 use super::{ControlBase, ControlHandle};
+use crate::NwgError;
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::window_helper as wh;
-use crate::NwgError;
 use winapi::um::winuser::{WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE};
 
 pub use crate::win32::plotters_d2d::{PlottersBackend, PlottersError};

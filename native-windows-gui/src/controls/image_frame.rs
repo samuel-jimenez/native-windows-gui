@@ -1,6 +1,6 @@
 use super::{ControlBase, ControlHandle};
 use crate::win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh};
-use crate::{unbind_raw_event_handler, Bitmap, Icon, NwgError, RawEventHandler};
+use crate::{Bitmap, Icon, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::cell::RefCell;
 use winapi::shared::windef::HBRUSH;
 use winapi::um::wingdi::DeleteObject;
