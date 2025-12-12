@@ -100,7 +100,9 @@ impl SharedMemory {
                 None => {}
             }
 
-            drop(header);
+            // [rustc] (dropping_references) calls to `std::mem::drop` with a reference instead of an owned value does nothing
+            // drop(header);
+            let _ = header;
 
             CloseHandle(self.handle);
         }

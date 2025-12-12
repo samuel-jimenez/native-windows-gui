@@ -160,7 +160,7 @@ where
         );
         EnumChildWindows(hwnd, Some(set_children_subclass), params_ptr as LPARAM);
         SetWindowSubclass(hwnd, callback_fn, subclass_id, callback_ptr as UINT_PTR);
-        Box::from_raw(params_ptr);
+        let _ = Box::from_raw(params_ptr);
     }
 
     handler
@@ -254,7 +254,7 @@ pub fn unbind_event_handler(handler: &EventHandler) {
 
     // Finally free the pointer to the pointer to the callback
     unsafe {
-        Box::from_raw(callback_ptr);
+        let _ = Box::from_raw(callback_ptr);
     }
 }
 
@@ -936,7 +936,7 @@ unsafe extern "system" fn process_raw_events(
         let callback: Box<RawCallback> = Box::from_raw(*callback_wrapper_ptr);
 
         let result = callback(hwnd, msg, w, l);
-        Box::into_raw(callback);
+        let _ = Box::into_raw(callback);
 
         match result {
             Some(r) => r,
