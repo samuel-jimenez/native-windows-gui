@@ -122,6 +122,15 @@ pub enum Event {
     /// When the current selection of the combobox was changed
     OnComboxBoxSelection,
 
+    /// When the control value is changed
+    OnComboxBoxInput,
+
+    /// When the control has acquired the input focus
+    OnComboxBoxFocus,
+
+    /// When the control has lost the input focus
+    OnComboxBoxFocusLost,
+
     /// When the date select dropdown is expanded
     OnDatePickerDropdown,
 

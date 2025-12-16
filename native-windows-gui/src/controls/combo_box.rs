@@ -7,7 +7,7 @@ use std::fmt::Display;
 use std::mem;
 use winapi::shared::minwindef::{LPARAM, WPARAM};
 use winapi::shared::windef::HWND;
-use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
+use winapi::um::winuser::{CBS_DROPDOWNLIST, WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
 const NOT_BOUND: &'static str = "Combobox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Combobox handle is not HWND!";
@@ -16,16 +16,18 @@ bitflags! {
     /**
         The ComboBox flags
 
-        * NONE:     No flags. Equivalent to a invisible combobox.
-        * VISIBLE:  The combobox is immediatly visible after creation
-        * DISABLED: The combobox cannot be interacted with by the user. It also has a grayed out look.
-        * TAB_STOP: The control can be selected using tab navigation
-    */
+        * NONE:         No flags. Equivalent to a invisible combobox.
+        * VISIBLE:      The combobox is immediatly visible after creation
+        * DISABLED:     The combobox cannot be interacted with by the user. It also has a grayed out look.
+        * TAB_STOP:     The control can be selected using tab navigation
+        * DROPDOWNLIST: The combobox can only select options from the dropdown list, with no edit option.
+        */
     pub struct ComboBoxFlags: u32 {
         const NONE = 0;
         const VISIBLE = WS_VISIBLE;
         const DISABLED = WS_DISABLED;
         const TAB_STOP = WS_TABSTOP;
+        const DROPDOWNLIST = CBS_DROPDOWNLIST;
     }
 }
 
@@ -137,7 +139,7 @@ impl<D: Display + Default> ComboBox<D> {
         wh::send_message(handle, CB_SHOWDROPDOWN, v as usize, 0);
     }
 
-    /// Return the index of the currencty selected item. Return `None` if no item is selected.
+    /// Return the index of the currently selected item. Return `None` if no item is selected.
     pub fn selection(&self) -> Option<usize> {
         use winapi::um::winuser::{CB_ERR, CB_GETCURSEL};
 
@@ -152,7 +154,7 @@ impl<D: Display + Default> ComboBox<D> {
         }
     }
 
-    /// Return the display value of the currenctly selected item
+    /// Return the display value of the currently selected item
     /// Return `None` if no item is selected. This reads the visual value.
     pub fn selection_string(&self) -> Option<String> {
         use winapi::shared::ntdef::WCHAR;
@@ -175,6 +177,10 @@ impl<D: Display + Default> ComboBox<D> {
 
             Some(from_utf16(&buffer))
         }
+    }
+
+    pub fn selection_string_or_text(&self) -> String {
+        self.selection_string().unwrap_or(self.text())
     }
 
     /// Set the currently selected item in the combobox.
@@ -381,6 +387,18 @@ impl<D: Display + Default> ComboBox<D> {
         unsafe { wh::set_window_position(handle, x, y) }
     }
 
+    /// Return the text displayed in the TextInput
+    pub fn text(&self) -> String {
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        unsafe { wh::get_window_text(handle) }
+    }
+
+    /// Set the text displayed in the TextInput
+    pub fn set_text<'a>(&self, v: &'a str) {
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        unsafe { wh::set_window_text(handle, v) }
+    }
+
     /// Get read-only access to the inner collection of the combobox
     /// This call refcell.borrow under the hood. Be sure to drop the value before
     /// calling other combobox methods
@@ -407,8 +425,8 @@ impl<D: Display + Default> ComboBox<D> {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{CBS_DROPDOWNLIST, WS_BORDER, WS_CHILD};
-        CBS_DROPDOWNLIST | WS_CHILD | WS_BORDER
+        use winapi::um::winuser::{CBS_DROPDOWN, WS_BORDER, WS_CHILD};
+        CBS_DROPDOWN | WS_CHILD | WS_BORDER
     }
 
     /// Remove all value displayed in the control without touching the rust collection

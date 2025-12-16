@@ -693,7 +693,6 @@ unsafe extern "system" fn process_events(
                     let notif_ptr = l as *mut NMHDR;
                     (&*notif_ptr).code
                 };
-
                 match code {
                     TTN_GETDISPINFOW => handle_tooltip_callback(l as *mut NMTTDISPINFOW, callback),
                     _ => handle_default_notify_callback(l as *const NMHDR, callback),
@@ -764,7 +763,6 @@ unsafe extern "system" fn process_events(
                 let class_name = OsString::from_wide(&class_name_raw[..count])
                     .into_string()
                     .unwrap_or("".to_string());
-
                 match &class_name as &str {
                     "Button" => callback(button_commands(message), NO_DATA, handle),
                     "Edit" => callback(edit_commands(message), NO_DATA, handle),
@@ -956,7 +954,6 @@ fn button_commands(m: u16) -> Event {
 
 fn edit_commands(m: u16) -> Event {
     use winapi::um::winuser::EN_CHANGE;
-
     match m {
         EN_CHANGE => Event::OnTextInput,
         _ => Event::Unknown,
@@ -964,8 +961,13 @@ fn edit_commands(m: u16) -> Event {
 }
 
 fn combo_commands(m: u16) -> Event {
-    use winapi::um::winuser::{CBN_CLOSEUP, CBN_DROPDOWN, CBN_SELCHANGE};
+    use winapi::um::winuser::{
+        CBN_CLOSEUP, CBN_DROPDOWN, CBN_EDITCHANGE, CBN_KILLFOCUS, CBN_SELCHANGE, CBN_SETFOCUS,
+    };
     match m {
+        CBN_SETFOCUS => Event::OnComboxBoxFocus,
+        CBN_KILLFOCUS => Event::OnComboxBoxFocusLost,
+        CBN_EDITCHANGE => Event::OnComboxBoxInput,
         CBN_CLOSEUP => Event::OnComboBoxClosed,
         CBN_DROPDOWN => Event::OnComboBoxDropdown,
         CBN_SELCHANGE => Event::OnComboxBoxSelection,
@@ -1247,7 +1249,6 @@ unsafe fn handle_default_notify_callback<'a>(notif_raw: *const NMHDR, callback: 
             .unwrap_or("".to_string());
 
         let code = notif.code;
-
         match &class_name as &str {
             "SysDateTimePick32" => callback(datetimepick_commands(code), NO_DATA, handle),
             "SysTabControl32" => callback(tabs_commands(code), NO_DATA, handle),
