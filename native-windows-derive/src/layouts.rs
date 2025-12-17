@@ -76,7 +76,7 @@ impl LayoutChild {
                 }),
             _ => {
                 false
-                //panic!("Tried to match control to layout, but `parent_matches` was called on {:?}. It should be an `LayoutChild::Init` value", v)
+                // panic!( "Tried to match control to layout, but `parent_matches` was called on {:?}. It should be an `LayoutChild::Init` value",self)
             }
         }
     }

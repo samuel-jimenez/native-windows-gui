@@ -1,3 +1,4 @@
+
 use crate::events::ControlEvents;
 use crate::layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters};
 use crate::shared::Parameters;
@@ -189,6 +190,10 @@ impl<'a> NwgResource<'a> {
 struct NwgLayout<'a> {
     id: &'a syn::Ident,
     ty: &'a syn::Ident,
+
+    layout: Option<LayoutChild>,
+    layout_index: usize,
+
     names: Vec<syn::Ident>,
     values: Vec<syn::Expr>,
 }
@@ -401,6 +406,7 @@ pub struct NwgUiLayouts<'a>(&'a NwgUi<'a>);
 impl<'a> ToTokens for NwgUiLayouts<'a> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
         struct ControlLayout<'b>(&'b NwgControl<'b>);
+        struct ControlChildLayout<'b>(&'b NwgLayout<'b>);
 
         impl<'b> ToTokens for ControlLayout<'b> {
             fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
@@ -434,9 +440,42 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
             }
         }
 
+        impl<'b> ToTokens for ControlChildLayout<'b> {
+            fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+                let c = &self.0;
+                let id = &c.id;
+
+                let item_tk = match &c.layout {
+                    Some(LayoutChild::Grid(GridLayoutChild {
+                        col,
+                        row,
+                        col_span,
+                        row_span,
+                    })) => quote! {
+                        child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
+                    },
+                    Some(LayoutChild::Flexbox(FlexboxLayoutChild {
+                        param_names,
+                        param_values,
+                    })) => quote! {
+                        child_layout(&ui.#id)
+                        #(.#param_names(#param_values))*
+                    },
+                    Some(LayoutChild::Init { field_name, .. }) => panic!(
+                        "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
+                        field_name
+                    ),
+                    None => panic!("Unfiltered layout item"),
+                };
+
+                item_tk.to_tokens(tokens);
+            }
+        }
+
         struct LayoutGen<'b> {
             layout: &'b NwgLayout<'b>,
             children: Vec<ControlLayout<'b>>,
+            children_layout: Vec<ControlChildLayout<'b>>,
         }
 
         impl<'b> ToTokens for LayoutGen<'b> {
@@ -446,12 +485,14 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let names = &self.layout.names;
                 let values = &self.layout.values;
                 let children = &self.children;
+                let children_layout = &self.children_layout;
 
                 let layout_tk = quote! {
                     #ty::builder()
                         #(.#names(#values))*
-                        #(.#children)*
-                        .build(&ui.#id)?;
+                    #(.#children)*
+                    #(.#children_layout)*
+                    .build(&ui.#id)?;
                 };
                 layout_tk.to_tokens(tokens);
             }
@@ -469,6 +510,12 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                     .iter()
                     .filter(|c| c.layout.is_some() && c.layout_index == i)
                     .map(|c| ControlLayout(c))
+                    .collect(),
+                children_layout: ui
+                    .layouts
+                    .iter()
+                    .filter(|c| c.layout.is_some() && c.layout_index == i)
+                    .map(|c| ControlChildLayout(c))
                     .collect(),
             })
             .collect();
@@ -591,6 +638,8 @@ impl<'a> NwgUi<'a> {
                 let layout = NwgLayout {
                     id,
                     ty,
+                    layout: LayoutChild::prepare(field),
+                    layout_index: 0,
                     names,
                     values,
                 };
@@ -628,12 +677,22 @@ impl<'a> NwgUi<'a> {
             }
 
             // Match the layout item to the layout object
+            let layout_id = layouts[i].id;
+            let layout_type = layouts[i].ty;
             for control in controls.iter_mut() {
                 if let Some(child_layout) = control.layout.as_mut() {
-                    let layout = &layouts[i];
+                    if child_layout.parent_matches(layout_id) {
+                        child_layout.parse(layout_type);
+                        control.layout_index = i;
+                    }
+                }
+            }
 
-                    if child_layout.parent_matches(&layout.id) {
-                        child_layout.parse(&layout.ty);
+            // Match the layout item to the layout object
+            for control in layouts.iter_mut() {
+                if let Some(child_layout) = control.layout.as_mut() {
+                    if child_layout.parent_matches(layout_id) {
+                        child_layout.parse(layout_type);
                         control.layout_index = i;
                     }
                 }
