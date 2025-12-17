@@ -13,7 +13,7 @@ bitflags! {
         The button flags
 
         * NONE:     No flags. Equivalent to a invisible blank button.
-        * VISIBLE:  The button is immediatly visible after creation
+        * VISIBLE:  The button is immediately visible after creation
         * DISABLED: The button cannot be interacted with by the user. It also has a grayed out look.
         * BITMAP:   The button will display a bitmap image with no text. Must have a bitmap or else it will only show text.
         * ICON:     The button will display a icon image with no text. Must have a icon or else it will only show text.
