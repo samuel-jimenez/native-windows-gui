@@ -220,7 +220,68 @@ Use the `nwg_layout` attribute to instance a layout from a struct field and `nwg
 Under the hood, both these attribute work the same way as `nwg_control`. `nwg_layout` uses the builder attribute for a the layout struct and
 `nwg_layout_item` uses the parameters of the item type of the parent (ex: `GridLayoutItem` for `GridLayout`).
 
+```
+#[derive(Default, NwgUi)]
+pub struct LayoutApp {
+    #[nwg_control(size: (600, 400), flags: "MAIN_WINDOW|VISIBLE")]
+    window: nwg::Window,
+
+    #[nwg_layout(parent: window, spacing: 1, margin: [40, 5, 30, 5])]
+    grid_layout: nwg::GridLayout,
+
+    #[nwg_control(text: "Field Label")]
+    #[nwg_layout_item(layout: grid_layout, row: 0, col: 0)]
+    label: nwg::Label,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: grid_layout, row: 0, col: 1)]
+    right_edit: nwg::TextInput,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: grid_layout, row: 1, col: 0, col_span: 2)]
+    hello_button: nwg::Button,
+
+    #[nwg_control]
+    #[nwg_layout_item(layout: grid_layout, row: 2, col: 0, row_span: 2, col_span: 2)]
+    list_view: nwg::ListView,
+}
+```
+
 NWD cannot guess the parent of layout items.
+
+Flexbox layouts can be nested.
+
+```
+#[derive(Default, NwgUi)]
+pub struct NestedApp {
+
+#[nwg_control(size: (600, 400), position: (300, 300), title: "Nested example", flags: "MAIN_WINDOW|VISIBLE")]
+window: nwg::Window,
+
+#[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
+window_layout: nwg::FlexboxLayout,
+
+#[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
+#[nwg_layout_item(layout: window_layout)]
+row_layout: nwg::FlexboxLayout,
+
+#[nwg_control]
+#[nwg_layout_item(layout: window_layout)]
+hello_button: nwg::Button,
+
+#[nwg_control(text: "Left")]
+#[nwg_layout_item(layout: row_layout)]
+left_edit: nwg::TextInput,
+
+#[nwg_control(text: "Right",)]
+#[nwg_layout_item(layout: row_layout)]
+right_edit: nwg::TextInput,
+
+#[nwg_control]
+#[nwg_layout_item(layout: window_layout)]
+list_view: nwg::ListView,
+}
+```
 
 ## Partials
 

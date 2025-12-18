@@ -1,7 +1,7 @@
-
 use crate::events::ControlEvents;
 use crate::layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters};
 use crate::shared::Parameters;
+use itertools::Itertools;
 use quote::ToTokens;
 
 const TOP_LEVEL: &'static [&'static str] = &["Window", "MessageWindow", "ExternCanvas"];
@@ -196,6 +196,7 @@ struct NwgLayout<'a> {
 
     names: Vec<syn::Ident>,
     values: Vec<syn::Expr>,
+    weight: [u16; 2],
 }
 
 impl<'a> NwgLayout<'a> {
@@ -405,47 +406,27 @@ pub struct NwgUiLayouts<'a>(&'a NwgUi<'a>);
 
 impl<'a> ToTokens for NwgUiLayouts<'a> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-        struct ControlLayout<'b>(&'b NwgControl<'b>);
-        struct ControlChildLayout<'b>(&'b NwgLayout<'b>);
-
-        impl<'b> ToTokens for ControlLayout<'b> {
-            fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-                let c = &self.0;
-                let id = &c.id;
-
-                let item_tk = match &c.layout {
-                    Some(LayoutChild::Grid(GridLayoutChild {
-                        col,
-                        row,
-                        col_span,
-                        row_span,
-                    })) => quote! {
-                        child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
-                    },
-                    Some(LayoutChild::Flexbox(FlexboxLayoutChild {
-                        param_names,
-                        param_values,
-                    })) => quote! {
-                        child(&ui.#id)
-                        #(.#param_names(#param_values))*
-                    },
-                    Some(LayoutChild::Init { field_name, .. }) => panic!(
-                        "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
-                        field_name
-                    ),
-                    None => panic!("Unfiltered layout item"),
-                };
-
-                item_tk.to_tokens(tokens);
+        enum ControlLayout<'b> {
+            Control(&'b NwgControl<'b>),
+            Layout(&'b NwgLayout<'b>),
+        }
+        impl<'b> ControlLayout<'b> {
+            fn weight(&self) -> u16 {
+                match self {
+                    ControlLayout::Control(c) => c.weight[1],
+                    ControlLayout::Layout(c) => c.weight[1],
+                }
             }
         }
 
-        impl<'b> ToTokens for ControlChildLayout<'b> {
+        impl<'b> ToTokens for ControlLayout<'b> {
             fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-                let c = &self.0;
-                let id = &c.id;
+                let (id, layout, param_name) = match self {
+                    ControlLayout::Control(c) => (c.id, &c.layout, quote! {child}),
+                    ControlLayout::Layout(c) => (c.id, &c.layout, quote! {child_layout}),
+                };
 
-                let item_tk = match &c.layout {
+                let item_tk = match layout {
                     Some(LayoutChild::Grid(GridLayoutChild {
                         col,
                         row,
@@ -458,7 +439,7 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                         param_names,
                         param_values,
                     })) => quote! {
-                        child_layout(&ui.#id)
+                        #param_name(&ui.#id)
                         #(.#param_names(#param_values))*
                     },
                     Some(LayoutChild::Init { field_name, .. }) => panic!(
@@ -475,7 +456,6 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
         struct LayoutGen<'b> {
             layout: &'b NwgLayout<'b>,
             children: Vec<ControlLayout<'b>>,
-            children_layout: Vec<ControlChildLayout<'b>>,
         }
 
         impl<'b> ToTokens for LayoutGen<'b> {
@@ -485,14 +465,15 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let names = &self.layout.names;
                 let values = &self.layout.values;
                 let children = &self.children;
-                let children_layout = &self.children_layout;
-
+                let build = match &self.layout.layout {
+                    Some(..) => quote! {build_partial},
+                    None => quote! {build},
+                };
                 let layout_tk = quote! {
                     #ty::builder()
-                        #(.#names(#values))*
+                    #(.#names(#values))*
                     #(.#children)*
-                    #(.#children_layout)*
-                    .build(&ui.#id)?;
+                    .#build(&ui.#id)?;
                 };
                 layout_tk.to_tokens(tokens);
             }
@@ -509,13 +490,14 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                     .controls
                     .iter()
                     .filter(|c| c.layout.is_some() && c.layout_index == i)
-                    .map(|c| ControlLayout(c))
-                    .collect(),
-                children_layout: ui
-                    .layouts
-                    .iter()
-                    .filter(|c| c.layout.is_some() && c.layout_index == i)
-                    .map(|c| ControlChildLayout(c))
+                    .map(|c| ControlLayout::Control(c))
+                    .chain(
+                        ui.layouts
+                            .iter()
+                            .filter(|c| c.layout.is_some() && c.layout_index == i)
+                            .map(|c| ControlLayout::Layout(c)),
+                    )
+                    .sorted_by(|a, b| a.weight().cmp(&b.weight()))
                     .collect(),
             })
             .collect();
@@ -523,7 +505,8 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
         let layouts_tk = quote! {
             #(#layouts)*
         };
-
+        // Control(&'b NwgControl<'b>),
+        //
         layouts_tk.to_tokens(tokens);
     }
 }
@@ -642,9 +625,23 @@ impl<'a> NwgUi<'a> {
                     layout_index: 0,
                     names,
                     values,
+                    weight: [0, field_pos as u16],
                 };
 
-                layouts.push(layout);
+                // Reorder layouts
+                match layouts.iter().position(|control: &NwgLayout| {
+                    control
+                        .layout
+                        .as_ref()
+                        .is_some_and(|child_layout| child_layout.parent_matches(id))
+                }) {
+                    Some(index) => {
+                        layouts.insert(index, layout);
+                    }
+                    None => {
+                        layouts.push(layout);
+                    }
+                }
             } else if NwgPartial::valid(field) {
                 let partial = NwgPartial {
                     id: field.ident.as_ref().unwrap(),
@@ -658,6 +655,8 @@ impl<'a> NwgUi<'a> {
                 partials.push(partial);
             }
         }
+
+        layouts.reverse();
 
         // Parent stuff
         for i in 0..(layouts.len()) {
