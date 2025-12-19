@@ -23,6 +23,7 @@ const EM_GETPARAFORMAT: u32 = WM_USER + 61;
 const EM_SETCHARFORMAT: u32 = WM_USER + 68;
 const EM_SETPARAFORMAT: u32 = WM_USER + 71;
 const SCF_SELECTION: u32 = 1;
+const SCF_ALL: u32 = 4;
 
 const MAX_TAB_STOPS: usize = 32;
 
@@ -125,7 +126,7 @@ struct PARAFORMAT {
     wBorders: WORD,
 }
 
-pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
+pub(crate) fn set_char_format_on(handle: HWND, target: u32, fmt: &CharFormat) {
     let mut mask = 0;
     if fmt.effects.is_some() {
         mask |= CFM_EFFECTS;
@@ -194,11 +195,18 @@ pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
     wh::send_message(
         handle,
         EM_SETCHARFORMAT,
-        SCF_SELECTION as _,
+        target as _,
         &mut fmt as *mut CHARFORMATW as _,
     );
 }
 
+pub(crate) fn set_char_format_all(handle: HWND, fmt: &CharFormat) {
+    set_char_format_on(handle, SCF_ALL, fmt)
+}
+
+pub(crate) fn set_char_format(handle: HWND, fmt: &CharFormat) {
+    set_char_format_on(handle, SCF_SELECTION, fmt)
+}
 pub(crate) fn char_format(handle: HWND) -> CharFormat {
     use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
 

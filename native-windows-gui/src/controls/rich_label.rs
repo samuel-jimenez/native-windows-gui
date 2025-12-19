@@ -105,6 +105,13 @@ impl RichLabel {
         wh::send_message(handle, rich::EM_SETBKGNDCOLOR, 0, color as _);
     }
 
+
+    /// Sets the character format of the entire range of text
+    pub fn set_char_format_all(&self, fmt: &CharFormat) {
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        rich::set_char_format_all(handle, fmt);
+    }
+
     /// Sets the character format of the selected range of text
     pub fn set_char_format(&self, r: Range<u32>, fmt: &CharFormat) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
