@@ -176,8 +176,10 @@ impl FlexboxLayout {
     }
 
     /**
-        Check if the selected control is a children in the layout.
-        Does not check in the sublayouts
+        Check if the selected control is a child in the layout.
+        Does not check in the sublayouts.
+        Returns true if found.
+
 
         Panic:
         * If the control is not a window-like control.
@@ -200,13 +202,50 @@ impl FlexboxLayout {
     }
 
     /**
+     *   Searches the layout for the selected control.
+     *   If found, modifies style.
+     *   Does not check in the sublayouts.
+     *   Returns true if found.
+     *
+     *   Panic:
+     * If the control is not a window-like control.
+     * If the layout was not initialized
+     */
+    pub fn modify_child_style<W, F>(&self, c: W, fnc: F) -> bool
+    where
+        W: Into<ControlHandle>,
+        F: Fn(&mut Style),
+    {
+        let mut inner = self.inner.borrow_mut();
+        if inner.base.is_null() {
+            panic!("Flexbox layout is not yet initialized!");
+        }
+
+        let handle = c
+            .into()
+            .hwnd()
+            .expect("Control must be window like (HWND handle)");
+
+        inner
+            .children
+            .iter_mut()
+            .find(|child| child.is_item() && child.as_item().control == handle)
+            .as_mut()
+            .is_some_and(|child| {
+                // (*child).modify_style(fnc);
+                child.modify_style(fnc);
+                true
+            })
+    }
+
+    /**
         Borrow the inner value of the flexbox layout. While the returned value lives, calling other method
         of the the flexbox layout that modify the inner state will cause a panic. Simple looktup (ex: `has_child`) will still work.
 
         Panic:
         - The layout must have been successfully built otherwise this function will panic.
     */
-    pub fn children(&self) -> FlexboxLayoutChildren<'_> {
+    pub fn borrow(&self) -> FlexboxLayoutChildren<'_> {
         let inner = self.inner.borrow();
         if inner.base.is_null() {
             panic!("Flexbox layout is not yet initialized!");
@@ -224,7 +263,7 @@ impl FlexboxLayout {
         Panic:
         - The layout must have been successfully built otherwise this function will panic.
     */
-    pub fn children_mut(&self) -> FlexboxLayoutChildrenMut<'_> {
+    pub fn borrow_mut(&self) -> FlexboxLayoutChildrenMut<'_> {
         let inner = self.inner.borrow_mut();
         if inner.base.is_null() {
             panic!("Flexbox layout is not yet initialized!");
@@ -270,7 +309,7 @@ impl FlexboxLayout {
                 }
                 FlexboxLayoutChild::Flexbox(child) => {
                     let (child_count, child_nodes) =
-                        FlexboxLayout::build_child_nodes(child.children().children(), stretch)?;
+                        FlexboxLayout::build_child_nodes(child.borrow().children(), stretch)?;
                     nodes.push(stretch.new_node(child.style(), child_nodes)?);
                     item_count += child_count;
                 }
@@ -317,7 +356,7 @@ impl FlexboxLayout {
                         positioner,
                         stretch,
                         children_nodes,
-                        child.children().children(),
+                        child.borrow().children(),
                         last_handle,
                         (x as i32, y as i32),
                     )?;
@@ -360,7 +399,7 @@ impl FlexboxLayout {
                     FlexboxLayout::apply_layout_immediate(
                         stretch,
                         children_nodes,
-                        child.children().children(),
+                        child.borrow().children(),
                         last_handle,
                         (x as i32, y as i32),
                     )?;
@@ -401,7 +440,7 @@ impl FlexboxLayout {
                     &mut positioner,
                     &mut stretch,
                     nodes,
-                    self.children().children(),
+                    self.borrow().children(),
                     &mut None,
                     offset,
                 );
@@ -412,7 +451,7 @@ impl FlexboxLayout {
             _ => FlexboxLayout::apply_layout_immediate(
                 &mut stretch,
                 nodes,
-                self.children().children(),
+                self.borrow().children(),
                 &mut None,
                 offset,
             ),
