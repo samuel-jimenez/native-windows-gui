@@ -14,6 +14,8 @@ const AUTO_PARENT: &'static [&'static str] = &[
     "ExternCanvas",
 ];
 
+const AUTO_TAB_PARENT: &'static [&'static str] = &["TabsContainer"];
+
 struct NwgControl<'a> {
     id: &'a syn::Ident,
     parent_id: Option<String>,
@@ -708,11 +710,18 @@ impl<'a> NwgUi<'a> {
             if has_attr_parent {
                 controls[i].expand_parent();
             } else {
+                // Tab requires a TabsContainer parent.
+                let auto_parent = if controls[i].ty == "Tab" {
+                    AUTO_TAB_PARENT
+                } else {
+                    AUTO_PARENT
+                };
+
                 // Rewind the controls set the parent to the nearest control that supports children
                 let parent = controls[0..i]
                     .iter()
                     .rev()
-                    .find(|i| AUTO_PARENT.iter().any(|top| i.ty == top));
+                    .find(|i| auto_parent.iter().any(|top| i.ty == top));
 
                 if let Some(parent) = parent {
                     let parent_id = Some(parent.id.to_string());
