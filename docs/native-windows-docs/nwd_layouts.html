@@ -141,7 +141,7 @@
 
         <h3>Flexbox Layout Item</h3>
 
-        Flexbox is hidden behind the feature "flexbox" because it uses <b>stretch</b> as a dependency. Flexbox layout
+        Flexbox is hidden behind the feature "flexbox" because it uses <b>taffy</b> as a dependency. Flexbox layout
         values are alot more verbose than gridlayout.
 
         <br><br>
@@ -149,7 +149,7 @@
         A flexbox macro usually use a <code>child_*</code> syntax to define the layout item parameters. The derive macro removes
         the "child" prefix.<br><br>
 
-<div class="highlight"><pre style="width: auto;"><span></span><span class="k">use</span><span class="w"> </span><span class="n">nwg</span>::<span class="n">stretch</span>::<span class="p">{</span><span class="w"></span>
+<div class="highlight"><pre style="width: auto;"><span></span><span class="k">use</span><span class="w"> </span><span class="n">nwg</span>::<span class="n">taffy</span>::<span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="n">geometry</span>::<span class="p">{</span><span class="n">Size</span><span class="p">,</span><span class="w"> </span><span class="n">Rect</span><span class="p">},</span><span class="w"></span>
 <span class="w">    </span><span class="n">style</span>::<span class="p">{</span><span class="n">Dimension</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">FlexDirection</span><span class="p">,</span><span class="w"> </span><span class="n">AlignSelf</span><span class="p">}</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
@@ -170,8 +170,8 @@
 <span class="w">    </span><span class="cp">#[nwg_control(text: </span><span class="s">&quot;Btn 1&quot;</span><span class="cp">)]</span><span class="w"></span>
 <span class="w">    </span><span class="cp">#[nwg_layout_item(layout: layout,</span>
 <span class="cp">        margin: MARGIN,</span>
-<span class="cp">        max_size: Size { width: D::Points(200.0), height: D::Undefined },</span>
-<span class="cp">        size: Size { width: FIFTY_PC, height: D::Auto }</span>
+<span class="cp">        max_size: Size { width: LengthPercentage::length(200.0), height: D::Undefined },</span>
+<span class="cp">        size: Size { width: FIFTY_PC, height: Dimension::auto() }</span>
 <span class="cp">    )]</span><span class="w"></span>
 <span class="w">    </span><span class="n">button1</span>: <span class="nc">nwg</span>::<span class="n">Button</span><span class="p">,</span><span class="w"></span>
 

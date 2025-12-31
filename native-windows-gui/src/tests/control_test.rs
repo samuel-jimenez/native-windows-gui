@@ -157,8 +157,9 @@ pub struct ControlsTest {
 }
 
 mod partial_controls_test_ui {
+
     use super::*;
-    use crate::{ControlHandle, NwgError, PartialUi};
+    use crate::{ControlHandle, NwgError, PartialUi, taffy::LengthPercentage::length};
 
     impl PartialUi for ControlsTest {
         fn build_partial<W: Into<ControlHandle>>(
@@ -822,15 +823,14 @@ mod partial_controls_test_ui {
             // Layout
             //
 
-            use stretch::geometry::Rect;
-            use stretch::style::Dimension as D;
+            use taffy::Rect;
             FlexboxLayout::builder()
                 .parent(&data.window)
                 .border(Rect {
-                    start: D::Points(2.0),
-                    end: D::Points(2.0),
-                    top: D::Points(2.0),
-                    bottom: D::Points(20.0),
+                    left: length(2.0),
+                    right: length(2.0),
+                    top: length(2.0),
+                    bottom: length(20.0),
                 })
                 .child(&data.controls_holder)
                 .build(&data.tab_container_layout)?;

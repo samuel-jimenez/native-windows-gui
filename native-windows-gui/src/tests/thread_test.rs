@@ -63,7 +63,7 @@ fn notice_me(app: &ThreadTest) {
 mod partial_canvas_test_ui {
     use super::*;
     use crate::{ControlHandle, NwgError, PartialUi};
-    use stretch::style::*;
+    use taffy::style::*;
 
     impl PartialUi for ThreadTest {
         fn build_partial<W: Into<ControlHandle>>(

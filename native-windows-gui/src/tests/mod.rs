@@ -124,7 +124,7 @@ mod test_control_panel_ui {
             // Layouts
             FlexboxLayout::builder()
                 .parent(&ui.window)
-                .flex_direction(stretch::style::FlexDirection::Column)
+                .flex_direction(taffy::style::FlexDirection::Column)
                 .child(&ui.controls_test_button)
                 .child(&ui.thread_test_button)
                 .child(&ui.free_test_button)
@@ -193,6 +193,7 @@ fn everything() {
     #[cfg(feature = "high-dpi")]
     {
         unsafe {
+            #![allow(deprecated)]
             crate::win32::high_dpi::set_dpi_awareness();
         }
     }

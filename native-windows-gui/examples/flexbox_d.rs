@@ -10,23 +10,25 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-// Stretch style
-use nwg::stretch::{
+// Flexbox style
+use nwg::taffy::{LengthPercentage, LengthPercentageAuto};
+use nwg::taffy::{
     geometry::{Rect, Size},
-    style::{AlignSelf, Dimension as D, FlexDirection},
+    style::{AlignSelf, Dimension, FlexDirection},
+    style_helpers::{auto, length, percent},
 };
-const FIFTY_PC: D = D::Percent(0.5);
-const PT_10: D = D::Points(10.0);
-const PT_5: D = D::Points(5.0);
-const PADDING: Rect<D> = Rect {
-    start: PT_10,
-    end: PT_10,
+const FIFTY_PC: Dimension = Dimension::percent(0.5);
+const PT_10: LengthPercentage = LengthPercentage::length(10.0);
+const PT_5: LengthPercentageAuto = LengthPercentageAuto::length(5.0);
+const PADDING: Rect<LengthPercentage> = Rect {
+    left: PT_10,
+    right: PT_10,
     top: PT_10,
     bottom: PT_10,
 };
-const MARGIN: Rect<D> = Rect {
-    start: PT_5,
-    end: PT_5,
+const MARGIN: Rect<LengthPercentageAuto> = Rect {
+    left: PT_5,
+    right: PT_5,
     top: PT_5,
     bottom: PT_5,
 };
@@ -42,16 +44,16 @@ pub struct FlexBoxApp {
 
     #[nwg_control(text: "Btn 1")]
     #[nwg_layout_item(layout: layout, margin: MARGIN,
-        max_size: Size { width: D::Points(200.0), height: D::Undefined },
-        size: Size { width: FIFTY_PC, height: D::Auto }
+        max_size: Size { width: length(200.0), height: auto() },
+        size: Size { width: FIFTY_PC, height: auto() }
     )]
     button1: nwg::Button,
 
     #[nwg_control(text: "Btn 2")]
     #[nwg_layout_item(layout: layout,
         margin: MARGIN,
-        align_self: AlignSelf::FlexEnd,
-        size: Size { width: D::Percent(0.25), height: FIFTY_PC }
+        align_self: Some(AlignSelf::FlexEnd),
+        size: Size { width: percent(0.25), height: FIFTY_PC }
     )]
     button2: nwg::Button,
 
@@ -59,7 +61,7 @@ pub struct FlexBoxApp {
     #[nwg_layout_item(layout: layout,
         margin: MARGIN,
         flex_grow: 2.0,
-        size: Size { width: D::Auto, height: D::Auto }
+        size: Size { width: auto(), height: auto() }
     )]
     button3: nwg::Button,
 }

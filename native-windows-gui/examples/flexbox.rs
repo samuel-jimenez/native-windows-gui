@@ -91,22 +91,25 @@ mod flexbox_app_ui {
             ));
 
             // Layout
-            use nwg::stretch::{
+            use nwg::taffy::{Dimension, LengthPercentage, LengthPercentageAuto};
+            use nwg::taffy::{
                 geometry::{Rect, Size},
-                style::{AlignSelf, Dimension as D, FlexDirection},
+                style::{AlignSelf, FlexDirection},
+                style_helpers::{auto, length, percent},
             };
-            const FIFTY_PC: D = D::Percent(0.5);
-            const PT_10: D = D::Points(10.0);
-            const PT_5: D = D::Points(5.0);
-            const PADDING: Rect<D> = Rect {
-                start: PT_10,
-                end: PT_10,
+            const FIFTY_PC: Dimension = Dimension::percent(0.5);
+            const PT_10: LengthPercentage = LengthPercentage::length(10.0);
+            const PT_5: LengthPercentageAuto = LengthPercentageAuto::length(5.0);
+
+            const PADDING: Rect<LengthPercentage> = Rect {
+                left: PT_10,
+                right: PT_10,
                 top: PT_10,
                 bottom: PT_10,
             };
-            const MARGIN: Rect<D> = Rect {
-                start: PT_5,
-                end: PT_5,
+            const MARGIN: Rect<LengthPercentageAuto> = Rect {
+                left: PT_5,
+                right: PT_5,
                 top: PT_5,
                 bottom: PT_5,
             };
@@ -118,26 +121,26 @@ mod flexbox_app_ui {
                 .child(&ui.button1)
                 .child_margin(MARGIN)
                 .child_max_size(Size {
-                    width: D::Points(200.0),
-                    height: D::Undefined,
+                    width: length(200.0),
+                    height: auto(),
                 })
                 .child_size(Size {
                     width: FIFTY_PC,
-                    height: D::Auto,
+                    height: auto(),
                 })
                 .child(&ui.button2)
                 .child_margin(MARGIN)
-                .child_align_self(AlignSelf::FlexEnd)
+                .child_align_self(Some(AlignSelf::FlexEnd))
                 .child_size(Size {
-                    width: D::Percent(0.25),
+                    width: percent(0.25),
                     height: FIFTY_PC,
                 })
                 .child(&ui.button3)
                 .child_margin(MARGIN)
                 .child_flex_grow(2.0)
                 .child_size(Size {
-                    width: D::Auto,
-                    height: D::Auto,
+                    width: auto(),
+                    height: auto(),
                 })
                 .build(&ui.layout)?;
 

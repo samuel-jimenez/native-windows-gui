@@ -9,7 +9,7 @@ extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
-use nwg::stretch::style::FlexDirection;
+use nwg::taffy::style::FlexDirection;
 
 type UserButton = nwg::Button;
 

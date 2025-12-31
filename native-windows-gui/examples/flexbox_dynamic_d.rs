@@ -6,9 +6,12 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::{NativeUi, stretch};
-use stretch::geometry::Size;
-use stretch::style::*;
+use nwg::{NativeUi, taffy};
+use taffy::{
+    geometry::Size,
+    style::*,
+    style_helpers::{auto, length},
+};
 
 use std::cell::RefCell;
 
@@ -40,10 +43,10 @@ impl FlexboxDynamic {
 
             let style = Style {
                 size: Size {
-                    width: Dimension::Auto,
-                    height: Dimension::Points(100.0),
+                    width: auto(),
+                    height: length(100.0),
                 },
-                justify_content: JustifyContent::Center,
+                justify_content: Some(JustifyContent::Center),
                 ..Default::default()
             };
 

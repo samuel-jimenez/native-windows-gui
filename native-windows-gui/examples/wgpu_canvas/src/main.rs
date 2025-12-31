@@ -5,10 +5,7 @@ extern crate native_windows_gui as nwg;
 use core::num::NonZeroU64;
 use nwd::NwgUi;
 use nwg::NativeUi;
-use nwg::stretch::{
-    geometry::*,
-    style::{Dimension::*, *},
-};
+use nwg::taffy::{geometry::*, style::*,style_helpers::*};
 use std::{borrow::Cow, cell::RefCell, mem, ops::Range, slice, time::Duration};
 
 mod glb;
@@ -165,31 +162,31 @@ pub struct CanvasTest {
         parent: options_frame,
         auto_size: false,
         flex_direction: FlexDirection::Column,
-        padding: Rect { start: Points(5.0), end: Points(5.0), top: Points(5.0), bottom: Points(5.0) }
+        padding: Rect { left: length(5.0), right: length(5.0), top: length(5.0), bottom: length(5.0) }
     )]
     options_layout: nwg::FlexboxLayout,
 
     #[nwg_control(parent: options_frame, text: "Animate")]
     #[nwg_events(OnButtonClick: [CanvasTest::update_anim])]
-    #[nwg_layout_item(layout: options_layout, size: Size { width: Auto, height: Points(30.0) })]
+    #[nwg_layout_item(layout: options_layout, size: Size { width: auto(), height: length(30.0) })]
     animate_check: nwg::CheckBox,
 
     #[nwg_control(parent: options_frame, text: "Models:")]
-    #[nwg_layout_item(layout: options_layout, size: Size { width: Auto, height: Points(30.0) })]
+    #[nwg_layout_item(layout: options_layout, size: Size { width: auto(), height: length(30.0) })]
     label1: nwg::Label,
 
     #[nwg_control(parent: options_frame, selected_index: Some(0), collection: MODELS.to_vec())]
     #[nwg_events(OnListBoxSelect: [CanvasTest::change_model])]
-    #[nwg_layout_item(layout: options_layout, size: Size { width: Auto, height: Points(200.0) })]
+    #[nwg_layout_item(layout: options_layout, size: Size { width: auto(), height: length(200.0) })]
     model_list: nwg::ListBox<&'static str>,
 
     #[nwg_control(parent: options_frame, text: "Materials:")]
-    #[nwg_layout_item(layout: options_layout, size: Size { width: Auto, height: Points(30.0) })]
+    #[nwg_layout_item(layout: options_layout, size: Size { width: auto(), height: length(30.0) })]
     label2: nwg::Label,
 
     #[nwg_control(parent: options_frame, selected_index: Some(0), collection: MATERIALS.to_vec())]
     #[nwg_events(OnListBoxSelect: [CanvasTest::change_material])]
-    #[nwg_layout_item(layout: options_layout, size: Size { width: Auto, height: Points(200.0) })]
+    #[nwg_layout_item(layout: options_layout, size: Size { width: auto(), height: length(200.0) })]
     material_list: nwg::ListBox<&'static str>,
 }
 

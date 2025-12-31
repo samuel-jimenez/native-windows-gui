@@ -7,15 +7,16 @@ use std::rc::Rc;
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-use nwg::stretch::{
+use nwg::taffy::LengthPercentage;
+use nwg::taffy::{
+    style_helpers::{length, percent},
     geometry::{Rect, Size},
-    style::{Dimension, FlexDirection, JustifyContent, Style},
+    style::{FlexDirection, JustifyContent, Style},
 };
-
-const PT_10: Dimension = Dimension::Points(10.0);
-const PAD: Rect<Dimension> = Rect {
-    start: PT_10,
-    end: PT_10,
+const PT_10: LengthPercentage = LengthPercentage::length(10.0);
+const PAD: Rect<LengthPercentage> = Rect {
+    left: PT_10,
+    right: PT_10,
     top: PT_10,
     bottom: PT_10,
 };
@@ -26,16 +27,16 @@ pub struct MyApp {
     #[nwg_events(OnWindowClose: [nwg::stop_thread_dispatch()], OnInit: [MyApp::setup_combo_callback(RC_SELF)])]
     window: nwg::Window,
 
-    #[nwg_layout(parent: window, padding: PAD, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: JustifyContent::Center)]
+    #[nwg_layout(parent: window, padding: PAD, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: Some(JustifyContent::Center))]
     main_layout: nwg::FlexboxLayout,
 
     #[nwg_control(text: "Add combobox")]
-    #[nwg_layout_item(layout: main_layout, size: Size { width: Dimension::Percent(1.0), height: Dimension::Points(40.0)})]
+    #[nwg_layout_item(layout: main_layout, size: Size { width: percent(1.0), height: length(40.0)})]
     #[nwg_events(OnButtonClick: [MyApp::add_combobox])]
     button: nwg::Button,
 
     #[nwg_control(parent: window, flags: "VISIBLE")]
-    #[nwg_layout_item(layout: main_layout, size: Size { width: Dimension::Percent(1.0), height: Dimension::Points(290.0)})]
+    #[nwg_layout_item(layout: main_layout, size: Size { width: percent(1.0), height: length(290.0)})]
     frame: nwg::Frame,
 
     #[nwg_layout(parent: frame, padding: PAD, auto_spacing: None, flex_direction: FlexDirection::Column)]
@@ -86,8 +87,8 @@ impl MyApp {
 
         let style = Style {
             size: Size {
-                width: Dimension::Percent(1.0),
-                height: Dimension::Points(40.0),
+                width: percent(1.0),
+                height: length(40.0),
             },
             ..Default::default()
         };

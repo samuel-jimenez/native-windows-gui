@@ -39,14 +39,15 @@ impl PartialDemo {
             layout.remove_child(&self.frame3);
         }
 
-        use nwg::stretch::{
+        use nwg::taffy::{
             geometry::Size,
-            style::{Dimension as D, Style},
+            style::Style,
+            style_helpers::{auto, percent},
         };
         let mut style = Style::default();
         style.size = Size {
-            width: D::Percent(1.0),
-            height: D::Auto,
+            width: percent(1.0),
+            height: auto(),
         };
 
         match self.menu.selection() {
@@ -221,19 +222,22 @@ mod partial_demo_ui {
             }
 
             // Layout
-            use nwg::stretch::{geometry::Size, style::Dimension as D};
+            use nwg::taffy::{
+                geometry::Size,
+                style_helpers::{auto, percent},
+            };
 
             nwg::FlexboxLayout::builder()
                 .parent(&ui.window)
                 .child(&ui.menu)
                 .child_size(Size {
-                    width: D::Percent(0.3),
-                    height: D::Auto,
+                    width: percent(0.3),
+                    height: auto(),
                 })
                 .child(&ui.frame1)
                 .child_size(Size {
-                    width: D::Percent(1.0),
-                    height: D::Auto,
+                    width: percent(1.0),
+                    height: auto(),
                 })
                 .build(&ui.layout)?;
 

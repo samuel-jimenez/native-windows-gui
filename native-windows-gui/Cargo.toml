@@ -23,7 +23,7 @@ winapi = { version = "0.3", features = [
 lazy_static = "1.4.0"
 bitflags = "1.1.0"
 newline-converter = { version = "0.2.0", optional = true }
-stretch = { version = "0.3.2", optional = true }
+taffy = { version = "0.9.2", optional = true }
 muldiv = { version = "0.2", optional = true }
 plotters = { version = "0.3", optional = true, default-features=false, features=["all_series", "all_elements"] }
 plotters-backend = { version = "0.3", optional = true }
@@ -75,7 +75,7 @@ scroll-bar = []
 tree-view-iterator = []
 dynamic_layout = []
 plotting = ["plotters", "plotters-backend"]
-flexbox = ["stretch"]
+flexbox = ["taffy"]
 high-dpi = ["muldiv"]
 raw-win-handle = ["raw-window-handle"]
 all = ["file-dialog", "color-dialog", "font-dialog", "datetime-picker", "progress-bar", "timer", "notice", "list-view", "cursor", "image-decoder",

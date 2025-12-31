@@ -151,9 +151,9 @@ A grid layout example:
 
 <h3>FlexboxLayout</h3>  
 
-Flexbox layout uses <a href="https://github.com/vislyhq/stretch">stretch</a> to align children controls in a row or in column. <br><br>
+Flexbox layout uses <a href="https://github.com/DioxusLabs/taffy">taffy</a> to align children controls in a row or in column. <br><br>
 
-Internally, nwg controls (both the parent and the children) are associated with a stretch node/style. See the flexbox layout docs for the style methods.<br><br>
+Internally, nwg controls (both the parent and the children) are associated with a taffy node/style. See the flexbox layout docs for the style methods.<br><br>
 
 At building time, a new children can be added to the layout using the <code>child</code> method. Following this method, any <code>child_*</code> method call will
 customize the style of this child. Another call to <code>child</code> will finalize the current child style<br><br>
@@ -162,8 +162,8 @@ A flexbox layout example:
 
 <div class="highlight"><pre style="width: auto"><span></span><span class="k">use</span><span class="w"> </span><span class="n">native_windows_gui</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">nwg</span><span class="p">;</span><span class="w"></span>
 
-<span class="c1">// native_windows_gui exports stretch</span>
-<span class="k">use</span><span class="w"> </span><span class="n">nwg</span>::<span class="n">stretch</span>::<span class="p">{</span><span class="n">geometry</span>::<span class="p">{</span><span class="n">Size</span><span class="p">,</span><span class="w"> </span><span class="n">Rect</span><span class="p">},</span><span class="w"> </span><span class="n">style</span>::<span class="p">{</span><span class="n">Dimension</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">FlexDirection</span><span class="p">}};</span><span class="w"></span>
+<span class="c1">// native_windows_gui exports taffy</span>
+<span class="k">use</span><span class="w"> </span><span class="n">nwg</span>::<span class="n">taffy</span>::<span class="p">{</span><span class="n">geometry</span>::<span class="p">{</span><span class="n">Size</span><span class="p">,</span><span class="w"> </span><span class="n">Rect</span><span class="p">},</span><span class="w"> </span><span class="n">style</span>::<span class="p">{</span><span class="n">Dimension</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">FlexDirection</span><span class="p">}};</span><span class="w"></span>
 
 <span class="k">const</span><span class="w"> </span><span class="n">FIFTY_PC</span>: <span class="nc">D</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">D</span>::<span class="n">Percent</span><span class="p">(</span><span class="mf">0.5</span><span class="p">);</span><span class="w"></span>
 <span class="k">const</span><span class="w"> </span><span class="n">PT_10</span>: <span class="nc">D</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">D</span>::<span class="n">Points</span><span class="p">(</span><span class="mf">10.0</span><span class="p">);</span><span class="w"></span>
@@ -196,14 +196,14 @@ Flexbox with sub layouts:
 
 <pre style="line-height: 125%;"><span></span><span style="color: #008000; font-weight: bold">use</span><span style="color: #bbbbbb"> </span>native_windows_gui<span style="color: #bbbbbb"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #bbbbbb"> </span>nwg;<span style="color: #bbbbbb"></span>
 
-<span style="color: #408080; font-style: italic">// native_windows_gui exports stretch</span>
-<span style="color: #008000; font-weight: bold">use</span><span style="color: #bbbbbb"> </span>nwg::stretch::{<span style="color: #bbbbbb"></span>
+<span style="color: #408080; font-style: italic">// native_windows_gui exports taffy</span>
+<span style="color: #008000; font-weight: bold">use</span><span style="color: #bbbbbb"> </span>nwg::taffy::{<span style="color: #bbbbbb"></span>
 <span style="color: #bbbbbb">    </span>geometry::Size,<span style="color: #bbbbbb"></span>
 <span style="color: #bbbbbb">    </span>style::{Dimension<span style="color: #bbbbbb"> </span><span style="color: #008000; font-weight: bold">as</span><span style="color: #bbbbbb"> </span>D,<span style="color: #bbbbbb"> </span>FlexDirection,<span style="color: #bbbbbb"> </span>JustifyContent},<span style="color: #bbbbbb"></span>
 };<span style="color: #bbbbbb"></span>
 
-<span style="color: #008000; font-weight: bold">const</span><span style="color: #bbbbbb"> </span>PC_50: <span style="color: #0000FF; font-weight: bold">D</span><span style="color: #bbbbbb"> </span><span style="color: #666666">=</span><span style="color: #bbbbbb"> </span>D::Percent(<span style="color: #666666">0.5</span>);<span style="color: #bbbbbb"></span>
-<span style="color: #008000; font-weight: bold">const</span><span style="color: #bbbbbb"> </span>PT_50: <span style="color: #0000FF; font-weight: bold">D</span><span style="color: #bbbbbb"> </span><span style="color: #666666">=</span><span style="color: #bbbbbb"> </span>D::Points(<span style="color: #666666">50.0</span>);<span style="color: #bbbbbb"></span>
+<span style="color: #008000; font-weight: bold">const</span><span style="color: #bbbbbb"> </span>PC_50: <span style="color: #0000FF; font-weight: bold">D</span><span style="color: #bbbbbb"> </span><span style="color: #666666">=</span><span style="color: #bbbbbb"> </span>LengthPercentage::from_percent(<span style="color: #666666">0.5</span>);<span style="color: #bbbbbb"></span>
+<span style="color: #008000; font-weight: bold">const</span><span style="color: #bbbbbb"> </span>PT_50: <span style="color: #0000FF; font-weight: bold">D</span><span style="color: #bbbbbb"> </span><span style="color: #666666">=</span><span style="color: #bbbbbb"> </span>LengthPercentage::length(<span style="color: #666666">50.0</span>);<span style="color: #bbbbbb"></span>
 
 <span style="color: #008000; font-weight: bold">fn</span> <span style="color: #0000FF">build_complex_layout</span>(<span style="color: #bbbbbb"></span>
 <span style="color: #bbbbbb">    </span>window: <span style="color: #008000">&amp;</span><span style="color: #0000FF; font-weight: bold">nwg</span>::Window,<span style="color: #bbbbbb"></span>

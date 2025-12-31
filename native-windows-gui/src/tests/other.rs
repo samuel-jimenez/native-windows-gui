@@ -66,7 +66,7 @@ mod other_tests_ui {
 
             FlexboxLayout::builder()
                 .parent(&ui.window)
-                .flex_direction(stretch::style::FlexDirection::Column)
+                .flex_direction(taffy::style::FlexDirection::Column)
                 .child(&ui.test)
                 .build(&ui.layout)?;
 

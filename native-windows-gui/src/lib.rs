@@ -5,7 +5,7 @@ extern crate bitflags;
 extern crate lazy_static;
 
 #[cfg(feature = "flexbox")]
-pub extern crate stretch;
+pub extern crate taffy;
 
 #[cfg(feature = "all")]
 #[cfg(test)]

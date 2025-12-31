@@ -94,9 +94,10 @@ mod flexbox_app_ui {
             ));
 
             // Layout
-            use nwg::stretch::{
+            use nwg::taffy::{
                 geometry::Size,
-                style::{Dimension as D, FlexDirection},
+                style::FlexDirection,
+                style_helpers::{auto, length},
             };
 
             nwg::FlexboxLayout::builder()
@@ -104,14 +105,14 @@ mod flexbox_app_ui {
                 .flex_direction(FlexDirection::Column)
                 .child(&ui.button2)
                 .child_size(Size {
-                    width: D::Auto,
-                    height: D::Points(200.0),
+                    width: auto(),
+                    height: length(200.0),
                 })
                 .child(&ui.button3)
                 .child_flex_grow(2.0)
                 .child_size(Size {
-                    width: D::Auto,
-                    height: D::Auto,
+                    width: auto(),
+                    height: auto(),
                 })
                 .build_partial(&ui.layout2)?;
 
@@ -121,13 +122,13 @@ mod flexbox_app_ui {
                 .child(&ui.button1)
                 .child_flex_grow(2.0)
                 .child_size(Size {
-                    width: D::Auto,
-                    height: D::Auto,
+                    width: auto(),
+                    height: auto(),
                 })
                 .child_layout(&ui.layout2)
                 .child_size(Size {
-                    width: D::Points(300.0),
-                    height: D::Auto,
+                    width: length(300.0),
+                    height: auto(),
                 })
                 .build(&ui.layout)?;
 
