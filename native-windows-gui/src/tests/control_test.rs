@@ -159,7 +159,7 @@ pub struct ControlsTest {
 mod partial_controls_test_ui {
 
     use super::*;
-    use crate::{ControlHandle, NwgError, PartialUi, taffy::LengthPercentage::length};
+    use crate::{ControlHandle, NwgError, PartialUi, taffy::style_helpers::length};
 
     impl PartialUi for ControlsTest {
         fn build_partial<W: Into<ControlHandle>>(
