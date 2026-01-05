@@ -254,6 +254,7 @@ struct NwgPartial<'a> {
     id: &'a syn::Ident,
     ty: &'a syn::Ident,
     parent: Option<syn::Ident>,
+    nested: bool,
 }
 
 impl<'a> NwgPartial<'a> {
@@ -527,10 +528,17 @@ impl<'a> ToTokens for NwgUiPartials<'a> {
                 let ty = &i.ty;
                 let id = &i.id;
                 let parent = &i.parent;
+                let nested = &i.nested;
 
                 let partial_tk = if parent.is_none() {
-                    quote! {
-                        #ty::build_partial::<&Window>(&mut data.#id, None)?;
+                    if !nested {
+                        quote! {
+                            #ty::build_partial::<&Window>(&mut data.#id, None)?;
+                        }
+                    } else {
+                        quote! {
+                            #ty::build_partial(&mut data.#id, Some(parent_ref.unwrap()))?;
+                        }
                     }
                 } else {
                     quote! {
@@ -649,6 +657,7 @@ impl<'a> NwgUi<'a> {
                     id: field.ident.as_ref().unwrap(),
                     ty: NwgPartial::parse_type(field),
                     parent: NwgPartial::parse_parent(field),
+                    nested: partial,
                 };
 
                 events.add_partial(&partial.id);

@@ -37,7 +37,7 @@ macro_rules! handles {
 }
 
 /**
-Automatically implements the functionnalities required to process an external struct as a NWG control
+Automatically implements the functionalities required to process an external struct as a NWG control
 
 ```rust
 #[macro_use] extern crate native_windows_gui as nwg;
