@@ -389,7 +389,7 @@ impl<'a> LabeledEditBuilder<'a> {
             .parent(&parent)
             .child(&out.label)
             .child(&out.field)
-            .build(&out.layout)?;
+            .build_partial(&out.layout)?;
 
         Ok(())
     }

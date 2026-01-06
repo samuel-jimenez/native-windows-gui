@@ -376,7 +376,7 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
             .parent(&parent)
             .child(&out.label)
             .child(&out.field)
-            .build(&out.layout)?;
+            .build_partial(&out.layout)?;
 
         if self.collection.is_some() {
             out.field.set_collection(self.collection.unwrap());
