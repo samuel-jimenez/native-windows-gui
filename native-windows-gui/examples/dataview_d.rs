@@ -40,7 +40,7 @@ pub struct DataViewApp {
 
     #[nwg_control(collection: vec!["Simple", "Details", "Icon", "Icon small"], selected_index: Some(1), font: Some(&data.arial))]
     #[nwg_layout_item(layout: layout, col: 4, row: 1)]
-    #[nwg_events( OnComboxBoxSelection: [DataViewApp::update_view] )]
+    #[nwg_events( OnComboBoxSelection: [DataViewApp::update_view] )]
     view_style: nwg::ComboBox<&'static str>,
 }
 

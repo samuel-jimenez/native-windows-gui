@@ -970,7 +970,7 @@ fn combo_commands(m: u16) -> Event {
         CBN_EDITCHANGE => Event::OnComboxBoxInput,
         CBN_CLOSEUP => Event::OnComboBoxClosed,
         CBN_DROPDOWN => Event::OnComboBoxDropdown,
-        CBN_SELCHANGE => Event::OnComboxBoxSelection,
+        CBN_SELCHANGE => Event::OnComboBoxSelection,
         _ => Event::Unknown,
     }
 }

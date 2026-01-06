@@ -18,7 +18,7 @@ bitflags! {
         The listbox flags
 
         * NONE:     No flags. Equivalent to a invisible listbox.
-        * VISIBLE:  The listbox is immediatly visible after creation
+        * VISIBLE:  The listbox is immediately visible after creation
         * DISABLED: The listbox cannot be interacted with by the user. It also has a grayed out look.
         * MULTI_SELECT: It is possible for the user to select more than 1 item at a time
         * NO_SELECT: It is impossible for the user to select the listbox items

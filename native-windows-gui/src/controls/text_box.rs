@@ -18,7 +18,7 @@ bitflags! {
 
         * VSCROLL:      The text box has a vertical scrollbar
         * HSCROLL:      The text box has a horizontal scrollbar
-        * VISIBLE:      The text box is immediatly visible after creation
+        * VISIBLE:      The text box is immediately visible after creation
         * DISABLED:     The text box cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP:     The text box can be selected using tab navigation
         * AUTOVSCROLL:  The text box automatically scrolls vertically when the caret is near the borders

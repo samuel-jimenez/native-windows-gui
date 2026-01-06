@@ -24,7 +24,7 @@ bitflags! {
     /**
         The tree view flags
 
-        * VISIBLE:  The tree view is immediatly visible after creation
+        * VISIBLE:  The tree view is immediately visible after creation
         * DISABLED: The tree view cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The tree view can be selected using tab navigation
     */
@@ -40,7 +40,7 @@ bitflags! {
     /**
         A tree item state
 
-        * SELECTED:  The tree view is immediatly visible after creation
+        * SELECTED:  The tree view is immediately visible after creation
         * DISABLED: The tree view cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The tree view can be selected using tab navigation
     */

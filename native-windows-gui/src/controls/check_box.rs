@@ -16,7 +16,7 @@ bitflags! {
         The CheckBox flags
 
         * NONE:     No flags. Equivalent to a invisible default checkbox.
-        * VISIBLE:  The checkbox is immediatly visible after creation
+        * VISIBLE:  The checkbox is immediately visible after creation
         * DISABLED: The checkbox cannot be interacted with by the user. It also has a grayed out look.
         * TRISTATE: The checkbox will have a 3rd state
         * PUSHLIKE: The checkbox will look like a regular button

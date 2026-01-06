@@ -23,7 +23,7 @@ bitflags! {
         * HSCROLL:  The text box has a horizontal scrollbar
         * AUTOVSCROLL:  The rich text box has a vertical scrollbar
         * AUTOHSCROLL:  The rich text box has a horizontal scrollbar
-        * VISIBLE:  The rich text box is immediatly visible after creation
+        * VISIBLE:  The rich text box is immediately visible after creation
         * DISABLED: The rich text box cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The rich text box can be selected using tab navigation
         * SAVE_SELECTION: Keep the selected text when the control lose focus

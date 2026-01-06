@@ -14,7 +14,7 @@ bitflags! {
     /**
         The rich label flags
 
-        * VISIBLE:        The rich text box is immediatly visible after creation
+        * VISIBLE:        The rich text box is immediately visible after creation
         * MULTI_LINE:     The label can be on multiple lines
         * SAVE_SELECTION: Show the text selection even if the control is not active
         * DISABLED:       Disable all events and prevent text selection

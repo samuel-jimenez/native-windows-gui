@@ -11,6 +11,12 @@ mod window;
 #[cfg(feature = "textbox")]
 mod text_box;
 
+#[cfg(feature = "labeled")]
+mod labeled_edit;
+
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+mod labeled_combo;
+
 #[cfg(feature = "rich-textbox")]
 mod rich_text_box;
 
@@ -94,6 +100,12 @@ pub use label::{Label, LabelBuilder, LabelFlags};
 pub use radio_button::{RadioButton, RadioButtonBuilder, RadioButtonFlags, RadioButtonState};
 pub use text_input::{TextInput, TextInputBuilder, TextInputFlags};
 pub use window::{Window, WindowBuilder, WindowFlags};
+
+#[cfg(feature = "labeled")]
+pub use labeled_edit::{LabeledEdit, LabeledEditBuilder};
+
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+pub use labeled_combo::{LabeledCombo, LabeledComboBuilder};
 
 #[cfg(feature = "textbox")]
 pub use text_box::{TextBox, TextBoxBuilder, TextBoxFlags};

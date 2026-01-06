@@ -13,7 +13,7 @@ bitflags! {
         The DatePickerFlags flags
 
         * NONE:     No flags. Equivalent to a invisible date picker.
-        * VISIBLE:  The date picker is immediatly visible after creation
+        * VISIBLE:  The date picker is immediately visible after creation
         * DISABLED: The date picker cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The control can be selected using tab navigation
     */

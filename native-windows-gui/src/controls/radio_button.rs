@@ -16,7 +16,7 @@ bitflags! {
     /**
         The radio button flags
 
-        * VISIBLE:  The radio button is immediatly visible after creation
+        * VISIBLE:  The radio button is immediately visible after creation
         * DISABLED: The radio button cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The radio button can be selected using tab navigation
         * GROUP:    Creates a new radio button group

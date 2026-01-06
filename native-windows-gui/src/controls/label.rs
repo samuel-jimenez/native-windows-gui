@@ -18,7 +18,7 @@ bitflags! {
         The label flags
 
         * NONE:     No flags. Equivalent to a invisible blank label.
-        * VISIBLE:  The label is immediatly visible after creation
+        * VISIBLE:  The label is immediately visible after creation
         * DISABLED: The label cannot be interacted with by the user. It also has a grayed out look.
     */
     pub struct LabelFlags: u32 {

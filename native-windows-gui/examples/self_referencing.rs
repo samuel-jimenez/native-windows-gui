@@ -55,7 +55,7 @@ impl MyApp {
             &app_rc.window.handle,
             move |evt, _evt_data, handle| {
                 match evt {
-                    nwg::Event::OnComboxBoxSelection => {
+                    nwg::Event::OnComboBoxSelection => {
                         // Fetch the combobox here
                         let boxes = app.combo_boxes.borrow();
                         for (index, combo) in boxes.iter().enumerate() {

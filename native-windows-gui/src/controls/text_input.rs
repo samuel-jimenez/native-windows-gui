@@ -24,7 +24,7 @@ bitflags! {
     /**
         The text input flags
 
-        * VISIBLE:     The text input is immediatly visible after creation
+        * VISIBLE:     The text input is immediately visible after creation
         * DISABLED:    The text input cannot be interacted with by the user. It also has a grayed out look.
         * NUMBER:      The text input only accepts number
         * AUTO_SCROLL: The text input automatically scrolls text to the right by 10 characters when the user types a character
@@ -55,12 +55,12 @@ TextInput is not behind any features.
   * `flags`:            A combination of the TextInputFlags values.
   * `ex_flags`:         A combination of win32 window extended flags. Unlike `flags`, ex_flags must be used straight from winapi
   * `font`:             The font used for the text input text
-  * `limit`:            The maximum number of character that can be inserted in the control
+  * `limit`:            The maximum number of characters that can be inserted in the control
   * `readonly`:         If the text input should allow user input or not
   * `password`:         The password character. If set to None, the textinput is a regular control.
   * `align`:            The alignment of the text in the text input
   * `background_color`: The color of the textinput top and bottom padding. This is not the white background under the text.
-  * `focus`:            The control receive focus after being created
+  * `focus`:            The control receives focus after being created
 
 **Control events:**
   * `OnTextInput`: When a TextInput value is changed

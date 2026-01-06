@@ -1,5 +1,5 @@
 use crate::events::ControlEvents;
-use crate::layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters};
+use crate::layouts::{layout_parameters, FlexboxLayoutChild, GridLayoutChild, LayoutChild};
 use crate::shared::Parameters;
 use itertools::Itertools;
 use quote::ToTokens;
@@ -16,6 +16,8 @@ const AUTO_PARENT: &'static [&'static str] = &[
 
 const AUTO_TAB_PARENT: &'static [&'static str] = &["TabsContainer"];
 
+const SUB_CONTROL: &'static [&'static str] = &["LabeledEdit", "LabeledCombo"];
+
 struct NwgControl<'a> {
     id: &'a syn::Ident,
     parent_id: Option<String>,
@@ -30,6 +32,9 @@ struct NwgControl<'a> {
 
     // First value if the parent order, second value is the insert order
     weight: [u16; 2],
+
+    // Contains sub controls?
+    nested: bool,
 }
 
 impl<'a> NwgControl<'a> {
@@ -424,9 +429,14 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
 
         impl<'b> ToTokens for ControlLayout<'b> {
             fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-                let (id, layout, param_name) = match self {
-                    ControlLayout::Control(c) => (c.id, &c.layout, quote! {child}),
-                    ControlLayout::Layout(c) => (c.id, &c.layout, quote! {child_layout}),
+                let (id, layout, nested, layout_item) = match self {
+                    ControlLayout::Control(c) => (c.id, &c.layout, c.nested, false),
+                    ControlLayout::Layout(c) => (c.id, &c.layout, false, true),
+                };
+                let param_name = if nested || layout_item {
+                    quote! {child_layout}
+                } else {
+                    quote! {child}
                 };
 
                 let item_tk = match layout {
@@ -435,9 +445,20 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                         row,
                         col_span,
                         row_span,
-                    })) => quote! {
-                        child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
-                    },
+                    })) => {
+                        if nested {
+
+                                                        let field_col = col + col_span;
+                            quote! {
+                            child_item(GridLayoutItem::new(&ui.#id.label_handle(), #col, #row, #col_span, #row_span))
+                            .child_item(GridLayoutItem::new(&ui.#id, #field_col, #row, #col_span, #row_span))
+                            }
+                        } else {
+                            quote! {
+                            child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
+                            }
+                        }
+                    }
                     Some(LayoutChild::Flexbox(FlexboxLayoutChild {
                         param_names,
                         param_values,
@@ -592,6 +613,7 @@ impl<'a> NwgUi<'a> {
                 let id = field.ident.as_ref().unwrap();
                 let ty = NwgControl::parse_type(field);
                 let (names, values) = crate::controls::parameters(field, "nwg_control");
+                let nested = SUB_CONTROL.iter().any(|nest| ty == nest);
 
                 let f = NwgControl {
                     id,
@@ -602,6 +624,7 @@ impl<'a> NwgUi<'a> {
                     names,
                     values,
                     weight: [0, field_pos as u16],
+                    nested,
                 };
 
                 events.add_top_level_handle(field);

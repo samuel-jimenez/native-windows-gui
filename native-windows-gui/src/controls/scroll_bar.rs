@@ -13,7 +13,7 @@ bitflags! {
         The scroll bar flags
 
         * NONE:       No flags. Equivalent to a invisible scroll bar.
-        * VISIBLE:    The scroll bar is immediatly visible after creation
+        * VISIBLE:    The scroll bar is immediately visible after creation
         * DISABLED:   The scroll bar cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP:   The control can be selected using tab navigation
         * HORIZONTAL: The scroll bar scrolls from top to bottom

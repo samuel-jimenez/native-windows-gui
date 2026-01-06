@@ -120,7 +120,7 @@ pub enum Event {
     OnComboBoxDropdown,
 
     /// When the current selection of the combobox was changed
-    OnComboxBoxSelection,
+    OnComboBoxSelection,
 
     /// When the control value is changed
     OnComboxBoxInput,

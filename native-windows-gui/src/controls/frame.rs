@@ -14,7 +14,7 @@ bitflags! {
         The frame flags
 
         * NONE:     No flags. Equivalent to a invisible frame without borders.
-        * VISIBLE:  The frame is immediatly visible after creation
+        * VISIBLE:  The frame is immediately visible after creation
         * DISABLED: The frame chidlren cannot be interacted with by the user.
         * BORDER:   The frame has a thin black border
     */

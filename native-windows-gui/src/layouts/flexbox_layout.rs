@@ -1,5 +1,3 @@
-
-
 use crate::NwgError;
 use crate::controls::ControlHandle;
 use crate::win32::window::{
@@ -479,12 +477,12 @@ impl FlexboxLayoutBuilder {
     }
 
     /// Add a new child layout to the layout build.
-    pub fn child_layout(mut self, child: &FlexboxLayout) -> FlexboxLayoutBuilder {
+    pub fn child_layout<W: Into<FlexboxLayout>>(mut self, child: W) -> FlexboxLayoutBuilder {
         self.current_index = Some(self.layout.children.len());
 
         self.layout
             .children
-            .push(FlexboxLayoutChild::Flexbox(child.clone()));
+            .push(FlexboxLayoutChild::Flexbox(child.into()));
 
         self
     }
@@ -793,6 +791,12 @@ impl Default for FlexboxLayout {
         FlexboxLayout {
             inner: Rc::new(RefCell::new(inner)),
         }
+    }
+}
+
+impl From<&FlexboxLayout> for FlexboxLayout {
+    fn from(layout: &FlexboxLayout) -> Self {
+        layout.clone()
     }
 }
 

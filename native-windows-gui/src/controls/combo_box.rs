@@ -17,7 +17,7 @@ bitflags! {
         The ComboBox flags
 
         * NONE:         No flags. Equivalent to a invisible combobox.
-        * VISIBLE:      The combobox is immediatly visible after creation
+        * VISIBLE:      The combobox is immediately visible after creation
         * DISABLED:     The combobox cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP:     The control can be selected using tab navigation
         * DROPDOWNLIST: The combobox can only select options from the dropdown list, with no edit option.
@@ -52,7 +52,7 @@ Requires the `combobox` feature.
 **Control events:**
   * `OnComboBoxClosed`: When the combobox dropdown is closed
   * `OnComboBoxDropdown`: When the combobox dropdown is opened
-  * `OnComboxBoxSelection`: When a new value in a combobox is choosen
+  * `OnComboBoxSelection`: When a new value in a combobox is choosen
   * `MousePress(_)`: Generic mouse press events on the checkbox
   * `OnMouseMove`: Generic mouse mouse event
   * `OnMouseWheel`: Generic mouse wheel event

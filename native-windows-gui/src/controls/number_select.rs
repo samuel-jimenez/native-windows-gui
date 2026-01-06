@@ -17,7 +17,7 @@ bitflags! {
         The NumberSelect flags
 
         * NONE:     No flags. Equivalent to a invisible blank NumberSelect.
-        * VISIBLE:  The NumberSelect is immediatly visible after creation
+        * VISIBLE:  The NumberSelect is immediately visible after creation
         * DISABLED: The NumberSelect cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP: The control can be selected using tab navigation.
     */

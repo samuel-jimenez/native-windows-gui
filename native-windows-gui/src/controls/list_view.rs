@@ -25,7 +25,7 @@ bitflags! {
     /**
         The list view flags:
 
-        * VISIBLE:  The list view is immediatly visible after creation
+        * VISIBLE:  The list view is immediately visible after creation
         * DISABLED: The list view cannot be interacted with by the user. It also has a grayed out look. The user can drag the items to any location in the list-view window.
         * TAB_STOP: The control can be selected using tab navigation
         * NO_HEADER: Remove the headers in Detailed view (ON by default, use `ListView::set_headers_enabled` to enable headers)
