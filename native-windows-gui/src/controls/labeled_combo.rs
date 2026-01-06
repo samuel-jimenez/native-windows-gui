@@ -1,7 +1,6 @@
 use super::ControlHandle;
 use crate::{
     ComboBox, ComboBoxFlags, FlexboxLayout, Font, HTextAlign, Label, NwgError, VTextAlign,
-    subclass_control,
 };
 use std::cell::{Ref, RefMut};
 use std::fmt::Display;
@@ -54,8 +53,6 @@ pub struct LabeledCombo<D: Display + Default> {
     label: Label,
     field: ComboBox<D>,
 }
-subclass_control!(LabeledCombo, ComboBox, field);
-
 
 impl<D: Display + Default> LabeledCombo<D> {
     pub fn builder<'a>() -> LabeledComboBuilder<'a, D> {
@@ -392,6 +389,32 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
         out.set_enabled(self.enabled);
 
         Ok(())
+    }
+}
+impl<D: Display + Default> ::std::ops::Deref for LabeledCombo<D> {
+    type Target = crate::ComboBox<D>;
+    fn deref(&self) -> &crate::ComboBox<D> {
+        &self.field
+    }
+}
+impl<D: Display + Default> ::std::ops::DerefMut for LabeledCombo<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.field
+    }
+}
+impl<D: Display + Default> Into<crate::ControlHandle> for &LabeledCombo<D> {
+    fn into(self) -> crate::ControlHandle {
+        self.field.handle.clone()
+    }
+}
+impl<D: Display + Default> Into<crate::ControlHandle> for &mut LabeledCombo<D> {
+    fn into(self) -> crate::ControlHandle {
+        self.field.handle.clone()
+    }
+}
+impl<D: Display + Default> PartialEq<LabeledCombo<D>> for crate::ControlHandle {
+    fn eq(&self, other: &LabeledCombo<D>) -> bool {
+        *self == other.field.handle
     }
 }
 
