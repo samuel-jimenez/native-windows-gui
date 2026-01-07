@@ -3,7 +3,9 @@ use crate::{
     ComboBox, ComboBoxFlags, FlexboxLayout, Font, HTextAlign, Label, NwgError, VTextAlign,
 };
 use std::cell::{Ref, RefMut};
+use std::cmp::max;
 use std::fmt::Display;
+use taffy::{Dimension, Size};
 
 /**
 A labeled combobox is a combobox control with included label.
@@ -60,6 +62,7 @@ impl<D: Display + Default> LabeledCombo<D> {
             label_text: "",
             label_h_align: HTextAlign::Left,
             label_v_align: VTextAlign::Top,
+            label_width: Dimension::percent(0.45),
             size: (100, 25),
             position: (0, 0),
             enabled: true,
@@ -213,7 +216,9 @@ impl<D: Display + Default> LabeledCombo<D> {
 
     /// Return the size of the button in the parent window
     pub fn size(&self) -> (u32, u32) {
-        self.field.size()
+        let (w_label, h_label) = self.label.size();
+        let (w_field, h_field) = self.field.size();
+        (w_label + w_field, max(h_label, h_field))
     }
 
     /// Set the size of the button in the parent window
@@ -260,6 +265,7 @@ pub struct LabeledComboBuilder<'a, D: Display + Default> {
     label_text: &'a str,
     label_h_align: HTextAlign,
     label_v_align: VTextAlign,
+    label_width: Dimension,
     size: (i32, i32),
     position: (i32, i32),
     enabled: bool,
@@ -273,6 +279,11 @@ pub struct LabeledComboBuilder<'a, D: Display + Default> {
 }
 
 impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
+    const FIELD_SIZE: Size<Dimension> = Size {
+        width: Dimension::percent(1.0),
+        height: Dimension::auto(),
+    };
+
     pub fn flags(mut self, flags: ComboBoxFlags) -> LabeledComboBuilder<'a, D> {
         self.flags = Some(flags);
         self
@@ -287,6 +298,7 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
         self.label_text = label_text;
         self
     }
+
     pub fn label_h_align(mut self, align: HTextAlign) -> LabeledComboBuilder<'a, D> {
         self.label_h_align = align;
         self
@@ -294,6 +306,11 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
 
     pub fn label_v_align(mut self, align: VTextAlign) -> LabeledComboBuilder<'a, D> {
         self.label_v_align = align;
+        self
+    }
+
+    pub fn label_width(mut self, label_width: Dimension) -> LabeledComboBuilder<'a, D> {
+        self.label_width = label_width;
         self
     }
 
@@ -348,6 +365,11 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
             None => Err(NwgError::no_parent("LabeledCombo")),
         }?;
 
+        let label_size = Size {
+            width: self.label_width,
+            height: Dimension::auto(),
+        };
+
         // Drop the old object
         *out = LabeledCombo::default();
 
@@ -375,7 +397,9 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
         FlexboxLayout::builder()
             .parent(&parent)
             .child(&out.label)
+            .child_size(label_size)
             .child(&out.field)
+            .child_size(Self::FIELD_SIZE)
             .build_partial(&out.layout)?;
 
         if self.collection.is_some() {

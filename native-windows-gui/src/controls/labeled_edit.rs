@@ -4,6 +4,7 @@ use crate::{
     subclass_control,
 };
 use std::ops::Range;
+use taffy::{Dimension, Size};
 
 /**
 A labeled input control is an edit control with included label.
@@ -61,6 +62,7 @@ impl LabeledEdit {
             label_text: "",
             label_h_align: HTextAlign::Left,
             label_v_align: VTextAlign::Center,
+            label_width: Dimension::percent(0.45),
             text: "",
             placeholder_text: None,
             size: (100, 25),
@@ -251,6 +253,7 @@ pub struct LabeledEditBuilder<'a> {
     label_text: &'a str,
     label_h_align: HTextAlign,
     label_v_align: VTextAlign,
+    label_width: Dimension,
     text: &'a str,
     placeholder_text: Option<&'a str>,
     size: (i32, i32),
@@ -268,6 +271,11 @@ pub struct LabeledEditBuilder<'a> {
 }
 
 impl<'a> LabeledEditBuilder<'a> {
+    const FIELD_SIZE: Size<Dimension> = Size {
+        width: Dimension::percent(1.0),
+        height: Dimension::auto(),
+    };
+
     pub fn flags(mut self, flags: TextInputFlags) -> LabeledEditBuilder<'a> {
         self.flags = Some(flags);
         self
@@ -295,6 +303,11 @@ impl<'a> LabeledEditBuilder<'a> {
 
     pub fn label_v_align(mut self, align: VTextAlign) -> LabeledEditBuilder<'a> {
         self.label_v_align = align;
+        self
+    }
+
+    pub fn label_width(mut self, label_width: Dimension) -> LabeledEditBuilder<'a> {
+        self.label_width = label_width;
         self
     }
 
@@ -359,6 +372,12 @@ impl<'a> LabeledEditBuilder<'a> {
             None => Err(NwgError::no_parent("LabeledEdit")),
         }?;
 
+        let label_size = Size {
+            width: self.label_width,
+            height: Dimension::auto(),
+        };
+
+        // Drop the old object
         *out = Default::default();
 
         Label::builder()
@@ -388,7 +407,9 @@ impl<'a> LabeledEditBuilder<'a> {
         FlexboxLayout::builder()
             .parent(&parent)
             .child(&out.label)
+            .child_size(label_size)
             .child(&out.field)
+            .child_size(Self::FIELD_SIZE)
             .build_partial(&out.layout)?;
 
         Ok(())
