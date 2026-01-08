@@ -11,9 +11,11 @@ use nwg::NativeUi;
 pub struct FlexBoxApp {
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
+    sub_layout: nwg::FlexboxLayout,
     button1: nwg::Button,
+    groupbox: nwg::GroupBox,
     button2: nwg::Button,
-    button3: nwg::GroupBox,
+    button3: nwg::Button,
 }
 
 impl FlexBoxApp {
@@ -54,14 +56,19 @@ mod flexbox_app_ui {
                 .focus(true)
                 .build(&mut data.button1)?;
 
+            nwg::GroupBox::builder()
+                .text("Group!Box")
+                .parent(&data.window)
+                .build(&mut data.groupbox)?;
+
             nwg::Button::builder()
                 .text("Btn 2")
-                .parent(&data.window)
+                .parent(&data.groupbox)
                 .build(&mut data.button2)?;
 
-            nwg::GroupBox::builder()
-                .text("GroupBox 3")
-                .parent(&data.window)
+            nwg::Button::builder()
+                .text("Btn 3")
+                .parent(&data.groupbox)
                 .build(&mut data.button3)?;
 
             // Wrap-up
@@ -115,6 +122,26 @@ mod flexbox_app_ui {
             };
 
             nwg::FlexboxLayout::builder()
+                .parent(&ui.groupbox)
+                .flex_direction(FlexDirection::Row)
+                .padding(PADDING)
+                .child(&ui.button2)
+                .child_margin(MARGIN)
+                .child_align_self(Some(AlignSelf::FlexEnd))
+                .child_size(Size {
+                    width: percent(0.25),
+                    height: FIFTY_PC,
+                })
+                .child(&ui.button3)
+                .child_margin(MARGIN)
+                .child_align_self(Some(AlignSelf::FlexEnd))
+                .child_size(Size {
+                    width: percent(0.25),
+                    height: FIFTY_PC,
+                })
+                .build(&ui.sub_layout)?;
+
+            nwg::FlexboxLayout::builder()
                 .parent(&ui.window)
                 .flex_direction(FlexDirection::Row)
                 .padding(PADDING)
@@ -128,14 +155,7 @@ mod flexbox_app_ui {
                     width: FIFTY_PC,
                     height: auto(),
                 })
-                .child(&ui.button2)
-                .child_margin(MARGIN)
-                .child_align_self(Some(AlignSelf::FlexEnd))
-                .child_size(Size {
-                    width: percent(0.25),
-                    height: FIFTY_PC,
-                })
-                .child(&ui.button3)
+                .child(&ui.groupbox)
                 .child_margin(MARGIN)
                 .child_flex_grow(2.0)
                 .child_size(Size {

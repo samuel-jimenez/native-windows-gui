@@ -1,8 +1,12 @@
+#![allow(unused)]
 use std::cell::RefCell;
 
 use winapi::{
     shared::windef::HBRUSH,
-    um::winuser::{BS_GROUPBOX, WM_ERASEBKGND, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+    um::winuser::{
+        BS_GROUPBOX, WM_ERASEBKGND, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_DISABLED,
+        WS_EX_CONTROLPARENT, WS_GROUP, WS_TABSTOP, WS_VISIBLE,
+    },
 };
 
 use super::{ControlBase, ControlHandle};
@@ -13,25 +17,6 @@ use crate::{
 
 const NOT_BOUND: &'static str = "GroupBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: GroupBox handle is not HWND!";
-
-bitflags! {
-    /**
-        The group box flags
-
-        * NONE:     No flags. Equivalent to a invisible blank group box.
-        * VISIBLE:  The group box is immediately visible after creation
-        * DISABLED: The group box cannot be interacted with by the user. It also has a grayed out look.
-        * TAB_STOP: The control can be selected using tab navigation
-    */
-    pub struct GroupBoxFlags: u32 {
-        const NONE = 0;
-        const VISIBLE = WS_VISIBLE;
-        const DISABLED = WS_DISABLED;
-        const TAB_STOP = WS_TABSTOP;
-    }
-
-// WS_CLIPSIBLINGS
-}
 
 /**
 A group box is a rectangle containing an application-defined text label.
@@ -57,7 +42,6 @@ use native_windows_gui as nwg;
 fn build_group box(group box: &mut nwg::GroupBox, window: &nwg::Window, font: &nwg::Font) {
     nwg::GroupBox::builder()
         .text("Hello")
-        .flags(nwg::GroupBoxFlags::VISIBLE)
         .font(Some(font))
         .parent(window)
         .build(group box);
@@ -77,8 +61,8 @@ impl GroupBox {
             text: "GroupBox",
             size: (100, 25),
             position: (0, 0),
+            visible: true,
             enabled: true,
-            flags: None,
             ex_flags: 0,
             font: None,
             parent: None,
@@ -175,12 +159,13 @@ impl GroupBox {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        WS_VISIBLE /*| WS_TABSTOP | BS_NOTIFY*/
+        WS_VISIBLE
     }
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        WS_CHILD | BS_GROUPBOX
+        WS_CHILD | BS_GROUPBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
+        // WS_CHILD | BS_GROUPBOX | WS_CLIPSIBLINGS
     }
 
     /// Erase the background. Because apparently that is not the default?
@@ -249,19 +234,14 @@ pub struct GroupBoxBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
     position: (i32, i32),
+    visible: bool,
     enabled: bool,
-    flags: Option<GroupBoxFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
     parent: Option<ControlHandle>,
 }
 
 impl<'a> GroupBoxBuilder<'a> {
-    pub fn flags(mut self, flags: GroupBoxFlags) -> GroupBoxBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
     pub fn ex_flags(mut self, flags: u32) -> GroupBoxBuilder<'a> {
         self.ex_flags = flags;
         self
@@ -282,6 +262,11 @@ impl<'a> GroupBoxBuilder<'a> {
         self
     }
 
+    pub fn visible(mut self, e: bool) -> GroupBoxBuilder<'a> {
+        self.visible = e;
+        self
+    }
+
     pub fn enabled(mut self, e: bool) -> GroupBoxBuilder<'a> {
         self.enabled = e;
         self
@@ -298,12 +283,18 @@ impl<'a> GroupBoxBuilder<'a> {
     }
 
     pub fn build(self, out: &mut GroupBox) -> Result<(), NwgError> {
-        let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
-
         let parent = match self.parent {
             Some(p) => Ok(p),
             None => Err(NwgError::no_parent("GroupBox")),
         }?;
+
+        let mut flags = out.flags();
+        if !self.visible {
+            flags &= !WS_VISIBLE
+        }
+        if !self.enabled {
+            flags |= WS_DISABLED
+        }
 
         // Drop the old object
         *out = GroupBox::default();
@@ -312,7 +303,7 @@ impl<'a> GroupBoxBuilder<'a> {
             .class_name(out.class_name())
             .forced_flags(out.forced_flags())
             .flags(flags)
-            .ex_flags(self.ex_flags)
+            .ex_flags(WS_EX_CONTROLPARENT | self.ex_flags)
             .size(self.size)
             .position(self.position)
             .text(self.text)
@@ -326,8 +317,6 @@ impl<'a> GroupBoxBuilder<'a> {
         } else {
             out.set_font(Font::global_default().as_ref());
         }
-
-        out.set_enabled(self.enabled);
 
         Ok(())
     }
