@@ -1,12 +1,17 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::cell::RefCell;
-use winapi::shared::windef::HBRUSH;
-use winapi::um::{
-    wingdi::DeleteObject,
-    winuser::{WS_DISABLED, WS_GROUP, WS_TABSTOP, WS_VISIBLE},
+
+use winapi::{
+    shared::windef::HBRUSH,
+    um::{
+        wingdi::DeleteObject,
+        winuser::{WS_DISABLED, WS_GROUP, WS_TABSTOP, WS_VISIBLE},
+    },
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Font, NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "RadioButton is not yet bound to a winapi object";
@@ -146,8 +151,10 @@ impl RadioButton {
 
     /// Sets the check state of the check box
     pub fn set_check_state(&self, state: RadioButtonState) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::winuser::{BM_SETCHECK, BST_CHECKED, BST_UNCHECKED};
+        use winapi::{
+            shared::minwindef::WPARAM,
+            um::winuser::{BM_SETCHECK, BST_CHECKED, BST_UNCHECKED},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -275,10 +282,15 @@ impl RadioButton {
 
     /// Change the radio button background color.
     fn hook_background_color(&mut self, c: [u8; 3]) {
+        use winapi::{
+            shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND},
+            um::{
+                wingdi::{CreateSolidBrush, RGB},
+                winuser::WM_CTLCOLORSTATIC,
+            },
+        };
+
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB};
-        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

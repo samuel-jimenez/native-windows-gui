@@ -26,11 +26,11 @@ impl FlexBoxApp {
 // ALL of this stuff is handled by native-windows-derive
 //
 mod flexbox_app_ui {
-    use super::*;
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
+
     use native_windows_gui as nwg;
-    use std::cell::RefCell;
-    use std::ops::Deref;
-    use std::rc::Rc;
+
+    use super::*;
 
     pub struct FlexBoxAppUi {
         inner: Rc<FlexBoxApp>,
@@ -91,8 +91,8 @@ mod flexbox_app_ui {
             ));
 
             // Layout
-            use nwg::taffy::{Dimension, LengthPercentage, LengthPercentageAuto};
             use nwg::taffy::{
+                Dimension, LengthPercentage, LengthPercentageAuto,
                 geometry::{Rect, Size},
                 style::{AlignSelf, FlexDirection},
                 style_helpers::{auto, length, percent},

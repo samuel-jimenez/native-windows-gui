@@ -22,13 +22,11 @@ mod shared_memory;
 use shared_memory::SharedMemory;
 
 mod data;
-use data::{AppData, AppMode};
+use std::{cell::RefCell, time::Duration};
 
+use data::{AppData, AppMode};
 use nwd::NwgUi;
 use nwg::NativeUi;
-
-use std::cell::RefCell;
-use std::time::Duration;
 
 /**
     Base of the main application. Regroups the UI definition and the application data.
@@ -138,8 +136,7 @@ impl SyncDraw {
 
     /// Update the drawing state of syncdraw
     fn update_draw(&self, evt: nwg::Event) {
-        use nwg::Event as E;
-        use nwg::MousePressEvent::*;
+        use nwg::{Event as E, MousePressEvent::*};
 
         let mut data = self.data.borrow_mut();
 

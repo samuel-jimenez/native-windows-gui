@@ -1,16 +1,23 @@
-use crate::{Bitmap, ImageData, NwgError};
 use std::ptr;
-use winapi::Interface;
-use winapi::ctypes::{c_uint, c_void};
-use winapi::shared::winerror::S_OK;
-use winapi::um::objidlbase::IStream;
-use winapi::um::wincodec::{IWICBitmapDecoder, IWICImagingFactory};
+
+use winapi::{
+    Interface,
+    ctypes::{c_uint, c_void},
+    shared::winerror::S_OK,
+    um::{
+        objidlbase::IStream,
+        wincodec::{IWICBitmapDecoder, IWICImagingFactory},
+    },
+};
+
+use crate::{Bitmap, ImageData, NwgError};
 
 pub unsafe fn create_image_factory() -> Result<*mut IWICImagingFactory, NwgError> {
     unsafe {
-        use winapi::shared::wtypesbase::CLSCTX_INPROC_SERVER;
-        use winapi::um::combaseapi::CoCreateInstance;
-        use winapi::um::wincodec::CLSID_WICImagingFactory;
+        use winapi::{
+            shared::wtypesbase::CLSCTX_INPROC_SERVER,
+            um::{combaseapi::CoCreateInstance, wincodec::CLSID_WICImagingFactory},
+        };
 
         let mut image_factory: *mut IWICImagingFactory = ptr::null_mut();
         let result = CoCreateInstance(
@@ -36,9 +43,9 @@ pub unsafe fn create_decoder_from_file<'a>(
     path: &'a str,
 ) -> Result<*mut IWICBitmapDecoder, NwgError> {
     unsafe {
+        use winapi::um::{wincodec::WICDecodeMetadataCacheOnDemand, winnt::GENERIC_READ};
+
         use crate::win32::base_helper::to_utf16;
-        use winapi::um::wincodec::WICDecodeMetadataCacheOnDemand;
-        use winapi::um::winnt::GENERIC_READ;
 
         let path = to_utf16(path);
 
@@ -74,6 +81,7 @@ pub unsafe fn create_decoder_from_stream(
 ) -> Result<*mut IWICBitmapDecoder, NwgError> {
     unsafe {
         use std::convert::TryInto;
+
         use winapi::um::wincodec::WICDecodeMetadataCacheOnDemand;
 
         let stream = SHCreateMemStream(
@@ -111,15 +119,20 @@ pub unsafe fn create_decoder_from_stream(
 pub unsafe fn create_bitmap_from_wic(image: &ImageData) -> Result<Bitmap, NwgError> {
     unsafe {
         use std::mem;
-        use winapi::shared::{minwindef::DWORD, ntdef::LONG, windef::HBITMAP};
-        use winapi::um::wincodec::{
-            GUID_WICPixelFormat32bppPBGRA, IWICBitmapSource, WICConvertBitmapSource,
+
+        use winapi::{
+            shared::{minwindef::DWORD, ntdef::LONG, windef::HBITMAP},
+            um::{
+                wincodec::{
+                    GUID_WICPixelFormat32bppPBGRA, IWICBitmapSource, WICConvertBitmapSource,
+                },
+                wingdi::{
+                    BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDIBSection, DIB_RGB_COLORS,
+                    DeleteObject, RGBQUAD,
+                },
+                winuser::{GetDC, ReleaseDC},
+            },
         };
-        use winapi::um::wingdi::{
-            BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDIBSection, DIB_RGB_COLORS, DeleteObject,
-            RGBQUAD,
-        };
-        use winapi::um::winuser::{GetDC, ReleaseDC};
 
         // First convert the image into a bitmap compatible format
         let frame_ptr = (&*image.frame) as &IWICBitmapSource as *const IWICBitmapSource;

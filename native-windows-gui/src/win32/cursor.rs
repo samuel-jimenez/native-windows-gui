@@ -1,6 +1,4 @@
-use crate::Cursor;
-use crate::controls::ControlHandle;
-use crate::win32::high_dpi;
+use crate::{Cursor, controls::ControlHandle, win32::high_dpi};
 
 /**
     A global object that wraps the system cursor.
@@ -21,8 +19,7 @@ impl GlobalCursor {
         Return the cursor position in the screen.
     */
     pub fn position() -> (i32, i32) {
-        use winapi::shared::windef::POINT;
-        use winapi::um::winuser::GetCursorPos;
+        use winapi::{shared::windef::POINT, um::winuser::GetCursorPos};
 
         let mut p = POINT { x: 0, y: 0 };
         unsafe {
@@ -40,9 +37,10 @@ impl GlobalCursor {
         control: C,
         point: Option<(i32, i32)>,
     ) -> (i32, i32) {
-        use winapi::shared::ntdef::LONG;
-        use winapi::shared::windef::POINT;
-        use winapi::um::winuser::ScreenToClient;
+        use winapi::{
+            shared::{ntdef::LONG, windef::POINT},
+            um::winuser::ScreenToClient,
+        };
 
         const MSG: &'static str = "local_position can only be used for window control";
 
@@ -73,9 +71,10 @@ impl GlobalCursor {
         control: C,
         point: Option<(i32, i32)>,
     ) -> (i32, i32) {
-        use winapi::shared::ntdef::LONG;
-        use winapi::shared::windef::POINT;
-        use winapi::um::winuser::ScreenToClient;
+        use winapi::{
+            shared::{ntdef::LONG, windef::POINT},
+            um::winuser::ScreenToClient,
+        };
 
         const MSG: &'static str = "local_position can only be used for window control";
 
@@ -106,8 +105,7 @@ impl GlobalCursor {
         • `y`: The new y coordinaets of the cursor
     */
     pub fn set_position(x: i32, y: i32) {
-        use winapi::ctypes::c_int;
-        use winapi::um::winuser::SetCursorPos;
+        use winapi::{ctypes::c_int, um::winuser::SetCursorPos};
 
         unsafe {
             SetCursorPos(x as c_int, y as c_int);
@@ -124,8 +122,7 @@ impl GlobalCursor {
         • `cursor`: The id identifying the cursor resource
     */
     pub fn set(cursor: &Cursor) {
-        use winapi::shared::windef::HCURSOR;
-        use winapi::um::winuser::SetCursor;
+        use winapi::{shared::windef::HCURSOR, um::winuser::SetCursor};
 
         unsafe {
             SetCursor(cursor.handle as HCURSOR);
@@ -138,8 +135,7 @@ impl GlobalCursor {
         Returns `None` if there is no cursor.
     */
     pub fn get() -> Option<Cursor> {
-        use winapi::um::winnt::HANDLE;
-        use winapi::um::winuser::GetCursor;
+        use winapi::um::{winnt::HANDLE, winuser::GetCursor};
 
         let cursor = unsafe { GetCursor() };
 
@@ -224,9 +220,10 @@ impl GlobalCursor {
     ```
     */
     pub fn dragging(control: &ControlHandle, point: Option<(i32, i32)>) -> bool {
-        use winapi::shared::ntdef::LONG;
-        use winapi::shared::windef::POINT;
-        use winapi::um::winuser::DragDetect;
+        use winapi::{
+            shared::{ntdef::LONG, windef::POINT},
+            um::winuser::DragDetect,
+        };
 
         const MSG: &'static str = "Dragging can only be set for window control";
 

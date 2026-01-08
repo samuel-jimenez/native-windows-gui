@@ -3,10 +3,13 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use core::num::NonZeroU64;
-use nwd::NwgUi;
-use nwg::NativeUi;
-use nwg::taffy::{geometry::*, style::*,style_helpers::*};
 use std::{borrow::Cow, cell::RefCell, mem, ops::Range, slice, time::Duration};
+
+use nwd::NwgUi;
+use nwg::{
+    NativeUi,
+    taffy::{geometry::*, style::*, style_helpers::*},
+};
 
 mod glb;
 

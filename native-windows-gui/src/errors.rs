@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::fmt;
+use std::{error::Error, fmt};
 
 #[cfg(feature = "plotting")]
 use crate::win32::plotters_d2d::PlottersError;

@@ -1,13 +1,14 @@
-use super::{ControlBase, ControlHandle};
-use crate::NwgError;
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
+use std::ops::Deref;
+
+use plotters::{coord::Shift, prelude::DrawingArea};
 use winapi::um::winuser::{WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE};
 
+use super::{ControlBase, ControlHandle};
 pub use crate::win32::plotters_d2d::{PlottersBackend, PlottersError};
-use plotters::coord::Shift;
-use plotters::prelude::DrawingArea;
-use std::ops::Deref;
+use crate::{
+    NwgError,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Plotters control is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Plotters control handle is not HWND!";

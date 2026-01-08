@@ -1,9 +1,12 @@
 #![allow(deprecated)]
 
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use crate::win32::{window::build_timer, window_helper as wh};
 use std::cell::RefCell;
+
+use crate::{
+    NwgError,
+    controls::ControlHandle,
+    win32::{window::build_timer, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Timer is not yet bound to a winapi object";
 const UNUSABLE_TIMER: &'static str = "Timer parent window was freed";

@@ -1,11 +1,12 @@
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use crate::win32::window::bind_raw_event_handler_inner;
-use crate::win32::window_helper as wh;
-use std::cell::RefCell;
-use std::ptr;
-use std::rc::Rc;
+use std::{cell::RefCell, ptr, rc::Rc};
+
 use winapi::shared::windef::HWND;
+
+use crate::{
+    NwgError,
+    controls::ControlHandle,
+    win32::{window::bind_raw_event_handler_inner, window_helper as wh},
+};
 
 /// A control item in a GridLayout
 #[derive(Debug)]
@@ -624,8 +625,10 @@ impl GridLayoutBuilder {
     /// Build the layout object and bind the callback.
     /// Children must only contains window object otherwise this method will panic.
     pub fn build(self, layout: &GridLayout) -> Result<(), NwgError> {
-        use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::winuser::WM_SIZE;
+        use winapi::{
+            shared::minwindef::{HIWORD, LOWORD},
+            um::winuser::WM_SIZE,
+        };
 
         if self.layout.base.is_null() {
             return Err(NwgError::layout_create(

@@ -91,108 +91,80 @@ mod plotters;
 
 mod handle_from_control;
 
-pub use button::{Button, ButtonBuilder, ButtonFlags};
-pub use check_box::{CheckBox, CheckBoxBuilder, CheckBoxFlags, CheckBoxState};
-pub use control_base::{ControlBase, HwndBuilder, OtherBuilder, TimerBuilder as BaseTimerBuilder};
-pub use control_handle::ControlHandle;
-pub use image_frame::{ImageFrame, ImageFrameBuilder, ImageFrameFlags};
-pub use label::{Label, LabelBuilder, LabelFlags};
-pub use radio_button::{RadioButton, RadioButtonBuilder, RadioButtonFlags, RadioButtonState};
-pub use text_input::{TextInput, TextInputBuilder, TextInputFlags};
-pub use window::{Window, WindowBuilder, WindowFlags};
-
-#[cfg(feature = "labeled")]
-pub use labeled_edit::{LabeledEdit, LabeledEditBuilder};
-
-#[cfg(all(feature = "combobox", feature = "labeled"))]
-pub use labeled_combo::{LabeledCombo, LabeledComboBuilder};
-
-#[cfg(feature = "textbox")]
-pub use text_box::{TextBox, TextBoxBuilder, TextBoxFlags};
-
-#[cfg(feature = "rich-textbox")]
-pub use rich_text_box::*;
-
-#[cfg(feature = "rich-textbox")]
-pub use rich_label::*;
-
-#[cfg(feature = "status-bar")]
-pub use status_bar::{StatusBar, StatusBarBuilder};
-
-#[cfg(feature = "tooltip")]
-pub use tooltip::{Tooltip, TooltipBuilder, TooltipIcon};
-
-#[cfg(feature = "trackbar")]
-pub use track_bar::{TrackBar, TrackBarBuilder, TrackBarFlags};
-
-#[cfg(feature = "menu")]
-pub use menu::{Menu, MenuBuilder, MenuItem, MenuItemBuilder, MenuSeparator, PopupMenuFlags};
-
-#[cfg(feature = "menu")]
-pub use control_base::HmenuBuilder;
-
-#[cfg(feature = "timer")]
-#[allow(deprecated)]
-pub use timer::{Timer, TimerBuilder};
-
 #[cfg(feature = "animation-timer")]
 #[allow(deprecated)]
 pub use animation_timer::{AnimationTimer, AnimationTimerBuilder};
-
-#[cfg(feature = "notice")]
-pub use notice::{Notice, NoticeBuilder, NoticeSender};
-
+pub use button::{Button, ButtonBuilder, ButtonFlags};
+pub use check_box::{CheckBox, CheckBoxBuilder, CheckBoxFlags, CheckBoxState};
 #[cfg(feature = "combobox")]
 pub use combo_box::{ComboBox, ComboBoxBuilder, ComboBoxFlags};
-
-#[cfg(feature = "listbox")]
-pub use list_box::{ListBox, ListBoxBuilder, ListBoxFlags};
-
+#[cfg(feature = "menu")]
+pub use control_base::HmenuBuilder;
+pub use control_base::{ControlBase, HwndBuilder, OtherBuilder, TimerBuilder as BaseTimerBuilder};
+pub use control_handle::ControlHandle;
 #[cfg(feature = "datetime-picker")]
 pub use date_picker::{DatePicker, DatePickerBuilder, DatePickerFlags, DatePickerValue};
-
-#[cfg(feature = "progress-bar")]
-pub use progress_bar::{ProgressBar, ProgressBarBuilder, ProgressBarFlags, ProgressBarState};
-
-#[cfg(feature = "tabs")]
-pub use tabs::{Tab, TabBuilder, TabsContainer, TabsContainerBuilder, TabsContainerFlags};
-
-#[cfg(feature = "tree-view")]
-pub use treeview::{
-    ExpandState, TreeInsert, TreeItem, TreeItemAction, TreeItemState, TreeView, TreeViewBuilder,
-    TreeViewFlags,
-};
-
-#[cfg(all(feature = "tree-view-iterator", feature = "tree-view"))]
-pub use treeview_iterator::TreeViewIterator;
-
-#[cfg(feature = "tray-notification")]
-pub use tray_notification::{TrayNotification, TrayNotificationBuilder, TrayNotificationFlags};
-
-#[cfg(feature = "message-window")]
-pub use message_window::{MessageWindow, MessageWindowBuilder};
-
+#[cfg(feature = "extern-canvas")]
+pub use extern_canvas::{ExternCanvas, ExternCanvasBuilder, ExternCanvasFlags};
+#[cfg(feature = "frame")]
+pub use frame::{Frame, FrameBuilder, FrameFlags};
+pub use image_frame::{ImageFrame, ImageFrameBuilder, ImageFrameFlags};
+pub use label::{Label, LabelBuilder, LabelFlags};
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+pub use labeled_combo::{LabeledCombo, LabeledComboBuilder};
+#[cfg(feature = "labeled")]
+pub use labeled_edit::{LabeledEdit, LabeledEditBuilder};
+#[cfg(feature = "listbox")]
+pub use list_box::{ListBox, ListBoxBuilder, ListBoxFlags};
+#[cfg(all(feature = "list-view", feature = "image-list"))]
+pub use list_view::ListViewImageListType;
 #[cfg(feature = "list-view")]
 pub use list_view::{
     InsertListViewColumn, InsertListViewItem, ListView, ListViewBuilder, ListViewColumn,
     ListViewColumnFlags, ListViewColumnSortArrow, ListViewExFlags, ListViewFlags, ListViewItem,
     ListViewStyle,
 };
-
-#[cfg(all(feature = "list-view", feature = "image-list"))]
-pub use list_view::ListViewImageListType;
-
+#[cfg(feature = "menu")]
+pub use menu::{Menu, MenuBuilder, MenuItem, MenuItemBuilder, MenuSeparator, PopupMenuFlags};
+#[cfg(feature = "message-window")]
+pub use message_window::{MessageWindow, MessageWindowBuilder};
+#[cfg(feature = "notice")]
+pub use notice::{Notice, NoticeBuilder, NoticeSender};
 #[cfg(feature = "number-select")]
 pub use number_select::{NumberSelect, NumberSelectBuilder, NumberSelectData, NumberSelectFlags};
-
-#[cfg(feature = "extern-canvas")]
-pub use extern_canvas::{ExternCanvas, ExternCanvasBuilder, ExternCanvasFlags};
-
-#[cfg(feature = "frame")]
-pub use frame::{Frame, FrameBuilder, FrameFlags};
-
+#[cfg(feature = "progress-bar")]
+pub use progress_bar::{ProgressBar, ProgressBarBuilder, ProgressBarFlags, ProgressBarState};
+pub use radio_button::{RadioButton, RadioButtonBuilder, RadioButtonFlags, RadioButtonState};
+#[cfg(feature = "rich-textbox")]
+pub use rich_label::*;
+#[cfg(feature = "rich-textbox")]
+pub use rich_text_box::*;
 #[cfg(feature = "scroll-bar")]
 pub use scroll_bar::{ScrollBar, ScrollBarBuilder, ScrollBarFlags};
+#[cfg(feature = "status-bar")]
+pub use status_bar::{StatusBar, StatusBarBuilder};
+#[cfg(feature = "tabs")]
+pub use tabs::{Tab, TabBuilder, TabsContainer, TabsContainerBuilder, TabsContainerFlags};
+#[cfg(feature = "textbox")]
+pub use text_box::{TextBox, TextBoxBuilder, TextBoxFlags};
+pub use text_input::{TextInput, TextInputBuilder, TextInputFlags};
+#[cfg(feature = "timer")]
+#[allow(deprecated)]
+pub use timer::{Timer, TimerBuilder};
+#[cfg(feature = "tooltip")]
+pub use tooltip::{Tooltip, TooltipBuilder, TooltipIcon};
+#[cfg(feature = "trackbar")]
+pub use track_bar::{TrackBar, TrackBarBuilder, TrackBarFlags};
+#[cfg(feature = "tray-notification")]
+pub use tray_notification::{TrayNotification, TrayNotificationBuilder, TrayNotificationFlags};
+#[cfg(feature = "tree-view")]
+pub use treeview::{
+    ExpandState, TreeInsert, TreeItem, TreeItemAction, TreeItemState, TreeView, TreeViewBuilder,
+    TreeViewFlags,
+};
+#[cfg(all(feature = "tree-view-iterator", feature = "tree-view"))]
+pub use treeview_iterator::TreeViewIterator;
+pub use window::{Window, WindowBuilder, WindowFlags};
 
 #[cfg(feature = "plotting")]
 pub use self::plotters::{

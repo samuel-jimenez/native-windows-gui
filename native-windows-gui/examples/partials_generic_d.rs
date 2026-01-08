@@ -8,8 +8,7 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
-use std::cell::RefCell;
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display};
 
 use nwd::{NwgPartial, NwgUi};
 use nwg::NativeUi;

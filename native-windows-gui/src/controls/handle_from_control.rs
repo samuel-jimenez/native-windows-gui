@@ -1,8 +1,8 @@
-use super::{Button, CheckBox, ControlHandle, ImageFrame, Label, RadioButton, TextInput, Window};
 use std::convert::From;
-
 #[allow(unused)]
 use std::fmt::Display;
+
+use super::{Button, CheckBox, ControlHandle, ImageFrame, Label, RadioButton, TextInput, Window};
 
 macro_rules! handles {
     ($control:ty) => {

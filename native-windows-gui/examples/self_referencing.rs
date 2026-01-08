@@ -1,17 +1,17 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use nwd::NwgUi;
-use nwg::NativeUi;
-
-use nwg::taffy::LengthPercentage;
-use nwg::taffy::{
-    style_helpers::{length, percent},
-    geometry::{Rect, Size},
-    style::{FlexDirection, JustifyContent, Style},
+use nwg::{
+    NativeUi,
+    taffy::{
+        LengthPercentage,
+        geometry::{Rect, Size},
+        style::{FlexDirection, JustifyContent, Style},
+        style_helpers::{length, percent},
+    },
 };
 const PT_10: LengthPercentage = LengthPercentage::length(10.0);
 const PAD: Rect<LengthPercentage> = Rect {

@@ -3,21 +3,33 @@ Native Windows GUI windowing base. Includes events dispatching and window creati
 
 Warning. Not for the faint of heart.
 */
-use super::base_helper::{CUSTOM_ID_BEGIN, to_utf16};
-use super::high_dpi;
-use super::window_helper::{NOTICE_MESSAGE, NWG_INIT, NWG_TIMER_STOP, NWG_TIMER_TICK, NWG_TRAY};
-use crate::controls::ControlHandle;
-use crate::{Event, EventData, NwgError};
-use std::ffi::OsString;
-use std::os::windows::prelude::OsStringExt;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
-use std::{mem, ptr};
-use winapi::shared::basetsd::{DWORD_PTR, UINT_PTR};
-use winapi::shared::minwindef::{BOOL, DWORD, HMODULE, LPARAM, LRESULT, UINT, WPARAM};
-use winapi::shared::windef::{HBRUSH, HMENU, HWND};
-use winapi::um::commctrl::{NMTTDISPINFOW, SUBCLASSPROC};
-use winapi::um::winuser::{IDCANCEL, IDOK, NMHDR, WNDPROC};
+use std::{
+    ffi::OsString,
+    mem,
+    os::windows::prelude::OsStringExt,
+    ptr,
+    rc::Rc,
+    sync::atomic::{AtomicU32, AtomicUsize, Ordering},
+};
+
+use winapi::{
+    shared::{
+        basetsd::{DWORD_PTR, UINT_PTR},
+        minwindef::{BOOL, DWORD, HMODULE, LPARAM, LRESULT, UINT, WPARAM},
+        windef::{HBRUSH, HMENU, HWND},
+    },
+    um::{
+        commctrl::{NMTTDISPINFOW, SUBCLASSPROC},
+        winuser::{IDCANCEL, IDOK, NMHDR, WNDPROC},
+    },
+};
+
+use super::{
+    base_helper::{CUSTOM_ID_BEGIN, to_utf16},
+    high_dpi,
+    window_helper::{NOTICE_MESSAGE, NWG_INIT, NWG_TIMER_STOP, NWG_TIMER_TICK, NWG_TRAY},
+};
+use crate::{Event, EventData, NwgError, controls::ControlHandle};
 
 static TIMER_ID: AtomicU32 = AtomicU32::new(1);
 static NOTICE_ID: AtomicU32 = AtomicU32::new(1);
@@ -412,12 +424,16 @@ pub(crate) unsafe fn build_hwnd_control<'a>(
     parent: Option<HWND>,
 ) -> Result<ControlHandle, NwgError> {
     unsafe {
-        use winapi::shared::windef::RECT;
-        use winapi::um::libloaderapi::GetModuleHandleW;
-        use winapi::um::winuser::{AdjustWindowRectEx, CreateWindowExW};
         use winapi::um::winuser::{
             WS_CLIPCHILDREN, /*WS_EX_LAYERED*/
             WS_OVERLAPPEDWINDOW, WS_VISIBLE,
+        };
+        use winapi::{
+            shared::windef::RECT,
+            um::{
+                libloaderapi::GetModuleHandleW,
+                winuser::{AdjustWindowRectEx, CreateWindowExW},
+            },
         };
 
         let hmod = GetModuleHandleW(ptr::null_mut());
@@ -483,10 +499,16 @@ pub(crate) unsafe fn build_sysclass<'a>(
     style: Option<UINT>,
 ) -> Result<(), NwgError> {
     unsafe {
-        use winapi::shared::winerror::ERROR_CLASS_ALREADY_EXISTS;
-        use winapi::um::errhandlingapi::GetLastError;
-        use winapi::um::winuser::{COLOR_WINDOW, CS_HREDRAW, CS_VREDRAW, IDC_ARROW, WNDCLASSEXW};
-        use winapi::um::winuser::{LoadCursorW, RegisterClassExW};
+        use winapi::{
+            shared::winerror::ERROR_CLASS_ALREADY_EXISTS,
+            um::{
+                errhandlingapi::GetLastError,
+                winuser::{
+                    COLOR_WINDOW, CS_HREDRAW, CS_VREDRAW, IDC_ARROW, LoadCursorW, RegisterClassExW,
+                    WNDCLASSEXW,
+                },
+            },
+        };
 
         let class_name = to_utf16(class_name);
         let background: HBRUSH = background.unwrap_or(COLOR_WINDOW as usize as HBRUSH);
@@ -558,9 +580,10 @@ pub(crate) fn create_frame_classes() -> Result<(), NwgError> {
 #[cfg(feature = "message-window")]
 /// Create a message only window. Used with the `MessageWindow` control
 pub(crate) fn create_message_window() -> Result<ControlHandle, NwgError> {
-    use winapi::um::libloaderapi::GetModuleHandleW;
-    use winapi::um::winuser::CreateWindowExW;
-    use winapi::um::winuser::HWND_MESSAGE;
+    use winapi::um::{
+        libloaderapi::GetModuleHandleW,
+        winuser::{CreateWindowExW, HWND_MESSAGE},
+    };
 
     let class_name = to_utf16("NativeWindowsGuiWindow");
     let window_title = vec![0];
@@ -606,8 +629,9 @@ unsafe extern "system" fn blank_window_proc(
     l: LPARAM,
 ) -> LRESULT {
     unsafe {
-        use winapi::um::winuser::{DefWindowProcW, PostMessageW, ShowWindow};
-        use winapi::um::winuser::{SW_HIDE, WM_CLOSE, WM_CREATE};
+        use winapi::um::winuser::{
+            DefWindowProcW, PostMessageW, SW_HIDE, ShowWindow, WM_CLOSE, WM_CREATE,
+        };
 
         let handled = match msg {
             WM_CREATE => {
@@ -642,24 +666,29 @@ unsafe extern "system" fn process_events(
     data: DWORD_PTR,
 ) -> LRESULT {
     unsafe {
-        use crate::events::*;
         use std::char;
 
-        use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::commctrl::{DefSubclassProc, TTN_GETDISPINFOW};
-        use winapi::um::shellapi::{
-            NIN_BALLOONHIDE, NIN_BALLOONSHOW, NIN_BALLOONTIMEOUT, NIN_BALLOONUSERCLICK,
+        use winapi::{
+            shared::minwindef::{HIWORD, LOWORD},
+            um::{
+                commctrl::{DefSubclassProc, TTN_GETDISPINFOW},
+                shellapi::{
+                    NIN_BALLOONHIDE, NIN_BALLOONSHOW, NIN_BALLOONTIMEOUT, NIN_BALLOONUSERCLICK,
+                },
+                winnt::WCHAR,
+                winuser::{
+                    GET_WHEEL_DELTA_WPARAM, GetClassNameW, GetMenuItemID, GetSubMenu,
+                    SIZE_MAXIMIZED, SIZE_MINIMIZED, WM_CHAR, WM_CLOSE, WM_COMMAND, WM_CONTEXTMENU,
+                    WM_DROPFILES, WM_ENTERMENULOOP, WM_ENTERSIZEMOVE, WM_EXITMENULOOP,
+                    WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_HSCROLL, WM_INITMENUPOPUP, WM_KEYDOWN,
+                    WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MENUCOMMAND, WM_MENUSELECT,
+                    WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_MOVE, WM_NOTIFY, WM_PAINT, WM_RBUTTONDOWN,
+                    WM_RBUTTONUP, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TIMER, WM_VSCROLL,
+                },
+            },
         };
-        use winapi::um::winnt::WCHAR;
-        use winapi::um::winuser::{
-            GET_WHEEL_DELTA_WPARAM, SIZE_MAXIMIZED, SIZE_MINIMIZED, WM_CHAR, WM_CLOSE, WM_COMMAND,
-            WM_CONTEXTMENU, WM_DROPFILES, WM_ENTERMENULOOP, WM_ENTERSIZEMOVE, WM_EXITMENULOOP,
-            WM_EXITSIZEMOVE, WM_GETMINMAXINFO, WM_HSCROLL, WM_INITMENUPOPUP, WM_KEYDOWN, WM_KEYUP,
-            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MENUCOMMAND, WM_MENUSELECT, WM_MOUSEMOVE,
-            WM_MOUSEWHEEL, WM_MOVE, WM_NOTIFY, WM_PAINT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SIZE,
-            WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TIMER, WM_VSCROLL,
-        };
-        use winapi::um::winuser::{GetClassNameW, GetMenuItemID, GetSubMenu};
+
+        use crate::events::*;
 
         let callback_ptr = data as *mut *const Callback;
         Rc::increment_strong_count(*callback_ptr);
@@ -1057,11 +1086,12 @@ fn no_class_name_commands(m: usize) -> Event {
 
 #[cfg(feature = "tree-view")]
 fn tree_data(m: u32, notif_raw: *const NMHDR) -> EventData {
-    use crate::{ExpandState, TreeItem, TreeItemAction, TreeItemState};
     use winapi::um::commctrl::{
         NMTREEVIEWW, NMTVDISPINFOW, NMTVITEMCHANGE, TVE_COLLAPSE, TVE_EXPAND, TVN_DELETEITEMW,
         TVN_ENDLABELEDITW, TVN_ITEMCHANGEDW, TVN_ITEMEXPANDEDW, TVN_SELCHANGEDW,
     };
+
+    use crate::{ExpandState, TreeItem, TreeItemAction, TreeItemState};
 
     match m {
         TVN_DELETEITEMW => {
@@ -1188,9 +1218,9 @@ fn list_view_data(_m: u32, _notif_raw: *const NMHDR) -> EventData {
 
 unsafe fn static_commands(handle: HWND, m: u16) -> Event {
     unsafe {
-        use winapi::um::winuser::SendMessageW;
         use winapi::um::winuser::{
             IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, STM_GETIMAGE, STN_CLICKED, STN_DBLCLK,
+            SendMessageW,
         };
 
         let has_image = SendMessageW(handle, STM_GETIMAGE, IMAGE_BITMAP as usize, 0) != 0;
@@ -1236,8 +1266,7 @@ unsafe fn handle_tooltip_callback<'a>(notif: *mut NMTTDISPINFOW, callback: &Call
 
 unsafe fn handle_default_notify_callback<'a>(notif_raw: *const NMHDR, callback: &Callback) {
     unsafe {
-        use winapi::um::winnt::WCHAR;
-        use winapi::um::winuser::GetClassNameW;
+        use winapi::um::{winnt::WCHAR, winuser::GetClassNameW};
 
         let notif = &*notif_raw;
         let handle = ControlHandle::Hwnd(notif.hwndFrom);
@@ -1268,8 +1297,7 @@ unsafe fn handle_default_notify_callback<'a>(notif_raw: *const NMHDR, callback: 
 
 unsafe fn is_textbox_control(hwnd: HWND) -> bool {
     unsafe {
-        use winapi::um::winnt::WCHAR;
-        use winapi::um::winuser::GetClassNameW;
+        use winapi::um::{winnt::WCHAR, winuser::GetClassNameW};
 
         let mut class_name_raw: [WCHAR; 100] = [0; 100];
         let count = GetClassNameW(hwnd, class_name_raw.as_mut_ptr(), 100) as usize;

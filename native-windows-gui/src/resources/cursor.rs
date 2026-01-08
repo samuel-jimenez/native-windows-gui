@@ -1,11 +1,10 @@
-use crate::win32::resources_helper as rh;
-use crate::{NwgError, OemCursor, OemImage};
 use std::ptr;
-use winapi::um::winnt::HANDLE;
-use winapi::um::winuser::IMAGE_CURSOR;
+
+use winapi::um::{winnt::HANDLE, winuser::IMAGE_CURSOR};
 
 #[cfg(feature = "embed-resource")]
 use super::EmbedResource;
+use crate::{NwgError, OemCursor, OemImage, win32::resources_helper as rh};
 
 /**
 A wrapper over a cursor file (*.cur)

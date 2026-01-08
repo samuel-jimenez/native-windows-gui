@@ -1,19 +1,24 @@
 /*!
     Low level tabs utility
 */
+use std::ptr;
+
+use winapi::shared::{
+    minwindef::{LPARAM, LRESULT, UINT, WPARAM},
+    windef::HWND,
+};
+
 use super::window::build_sysclass;
 use crate::NwgError;
-use std::ptr;
-use winapi::shared::minwindef::{LPARAM, LRESULT, UINT, WPARAM};
-use winapi::shared::windef::HWND;
 
 pub const TAB_CLASS_ID: &'static str = "NWG_TAB";
 
 /// Create the NWG tab classes
 pub fn create_tab_classes() -> Result<(), NwgError> {
-    use winapi::shared::windef::HBRUSH;
-    use winapi::um::libloaderapi::GetModuleHandleW;
-    use winapi::um::winuser::COLOR_BTNFACE;
+    use winapi::{
+        shared::windef::HBRUSH,
+        um::{libloaderapi::GetModuleHandleW, winuser::COLOR_BTNFACE},
+    };
 
     let hmod = unsafe { GetModuleHandleW(ptr::null_mut()) };
     if hmod.is_null() {
@@ -35,8 +40,7 @@ pub fn create_tab_classes() -> Result<(), NwgError> {
 
 unsafe extern "system" fn tab_proc(hwnd: HWND, msg: UINT, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
-        use winapi::um::winuser::DefWindowProcW;
-        use winapi::um::winuser::WM_CREATE;
+        use winapi::um::winuser::{DefWindowProcW, WM_CREATE};
 
         let handled = match msg {
             WM_CREATE => Some(0),

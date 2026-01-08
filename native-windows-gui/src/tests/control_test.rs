@@ -1,5 +1,6 @@
-use crate::*;
 use std::cell::RefCell;
+
+use crate::*;
 
 static BALL_DATA: &'static [u8] = include_bytes!("../../test_rc/ball.bmp");
 

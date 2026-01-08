@@ -1,9 +1,11 @@
-use super::{ControlBase, ControlHandle};
-use crate::NwgError;
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
 use winapi::um::winuser::{
     WS_BORDER, WS_CHILD, WS_CLIPCHILDREN, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE,
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    NwgError,
+    win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "Frame is not yet bound to a winapi object";

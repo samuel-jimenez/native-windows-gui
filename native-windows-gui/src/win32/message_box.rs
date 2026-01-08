@@ -1,7 +1,9 @@
+use std::ptr;
+
+use winapi::shared::windef::HWND;
+
 use super::base_helper::to_utf16;
 use crate::controls::ControlHandle;
-use std::ptr;
-use winapi::shared::windef::HWND;
 
 /**
     Enum of message box buttons (to use with `MessageParams` )
@@ -66,13 +68,10 @@ pub struct MessageParams<'a> {
 /// Inner function used by the message box function
 fn inner_message(parent: HWND, params: &MessageParams) -> MessageChoice {
     use winapi::um::winuser::{
+        IDABORT, IDCANCEL, IDCONTINUE, IDIGNORE, IDNO, IDOK, IDRETRY, IDTRYAGAIN, IDYES,
         MB_ABORTRETRYIGNORE, MB_CANCELTRYCONTINUE, MB_ICONEXCLAMATION, MB_ICONINFORMATION,
         MB_ICONQUESTION, MB_ICONSTOP, MB_OK, MB_OKCANCEL, MB_RETRYCANCEL, MB_YESNO, MB_YESNOCANCEL,
-    };
-
-    use winapi::um::winuser::MessageBoxW;
-    use winapi::um::winuser::{
-        IDABORT, IDCANCEL, IDCONTINUE, IDIGNORE, IDNO, IDOK, IDRETRY, IDTRYAGAIN, IDYES,
+        MessageBoxW,
     };
 
     let text = to_utf16(params.content);

@@ -1,15 +1,6 @@
 /*!
     Direct2D backend for the plotters control
 */
-use winapi::shared::windef::HWND;
-use winapi::shared::winerror::{D2DERR_RECREATE_TARGET, S_OK};
-use winapi::um::d2d1::*;
-use winapi::um::dwrite::{
-    DWRITE_FACTORY_TYPE_SHARED, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat,
-};
-
-use super::base_helper::to_utf16;
-use super::{high_dpi, window_helper};
 use std::{
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
@@ -20,6 +11,20 @@ use plotters::prelude::DrawingBackend;
 use plotters_backend::{
     BackendColor, BackendCoord, BackendStyle, BackendTextStyle, DrawingErrorKind,
 };
+use winapi::{
+    shared::{
+        windef::HWND,
+        winerror::{D2DERR_RECREATE_TARGET, S_OK},
+    },
+    um::{
+        d2d1::*,
+        dwrite::{
+            DWRITE_FACTORY_TYPE_SHARED, DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat,
+        },
+    },
+};
+
+use super::{base_helper::to_utf16, high_dpi, window_helper};
 
 #[derive(Hash, Eq, PartialEq, Copy, Clone)]
 struct Color {
@@ -156,8 +161,10 @@ impl Target {
     }
 
     pub(crate) fn allocate_pixel_bitmap(&mut self, renderer: *mut ID2D1Factory) {
-        use winapi::shared::dxgiformat::DXGI_FORMAT_R8G8B8A8_UNORM;
-        use winapi::um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT};
+        use winapi::{
+            shared::dxgiformat::DXGI_FORMAT_R8G8B8A8_UNORM,
+            um::dcommon::{D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT},
+        };
 
         if let Some(bitmap) = self.pixel_bitmap.as_ref() {
             let old_size = bitmap.size;
@@ -739,8 +746,10 @@ unsafe fn build_render_target(
     factory: &mut ID2D1Factory,
 ) -> Result<Target, PlottersError> {
     unsafe {
-        use winapi::shared::dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM;
-        use winapi::um::dcommon::{D2D_SIZE_U, D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT};
+        use winapi::{
+            shared::dxgiformat::DXGI_FORMAT_B8G8R8A8_UNORM,
+            um::dcommon::{D2D_SIZE_U, D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_PIXEL_FORMAT},
+        };
 
         let (width, height) = client_size(hwnd);
         let size = D2D_SIZE_U { width, height };
@@ -812,8 +821,7 @@ unsafe fn client_size(hwnd: HWND) -> (u32, u32) {
 
 unsafe fn locale_name() -> Vec<u16> {
     unsafe {
-        use winapi::um::winnls::GetUserDefaultLocaleName;
-        use winapi::um::winnt::LOCALE_NAME_MAX_LENGTH;
+        use winapi::um::{winnls::GetUserDefaultLocaleName, winnt::LOCALE_NAME_MAX_LENGTH};
 
         let mut name_buffer: Vec<u16> = vec![0; LOCALE_NAME_MAX_LENGTH];
         GetUserDefaultLocaleName(name_buffer.as_mut_ptr(), LOCALE_NAME_MAX_LENGTH as i32);
@@ -824,8 +832,7 @@ unsafe fn locale_name() -> Vec<u16> {
 
 unsafe fn build_renderer(handle: HWND) -> Result<PlottersBackend, PlottersError> {
     unsafe {
-        use winapi::Interface;
-        use winapi::ctypes::c_void;
+        use winapi::{Interface, ctypes::c_void};
 
         // Build the write factory
         let mut write_factory: *mut IDWriteFactory = ptr::null_mut();

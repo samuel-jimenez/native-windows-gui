@@ -1,14 +1,18 @@
-use winapi::um::{
-    wingdi::DeleteObject,
-    winuser::{SS_WORDELLIPSIS, WS_DISABLED, WS_VISIBLE},
+use std::cell::RefCell;
+
+use winapi::{
+    shared::windef::HBRUSH,
+    um::{
+        wingdi::DeleteObject,
+        winuser::{SS_WORDELLIPSIS, WS_DISABLED, WS_VISIBLE},
+    },
 };
 
 use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{Font, HTextAlign, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler};
-use std::cell::RefCell;
-use winapi::shared::windef::HBRUSH;
+use crate::{
+    Font, HTextAlign, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Label is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Label handle is not HWND!";
@@ -212,20 +216,27 @@ impl Label {
 
     /// Center the text vertically.
     fn hook_non_client_size(&mut self, bg: Option<[u8; 3]>, v_align: VTextAlign) {
-        use crate::bind_raw_event_handler_inner;
         use std::{mem, ptr};
-        use winapi::shared::windef::{HGDIOBJ, HWND, POINT, RECT};
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
-        use winapi::um::winuser::{
-            COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_CTLCOLORSTATIC,
-            WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE,
+
+        use winapi::{
+            shared::{
+                basetsd::UINT_PTR,
+                minwindef::LRESULT,
+                windef::{HGDIOBJ, HWND, POINT, RECT},
+            },
+            um::{
+                wingdi::{CreateSolidBrush, RGB, SelectObject},
+                winuser::{
+                    COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, GetClientRect, GetDC,
+                    GetWindowRect, GetWindowTextLengthW, GetWindowTextW, NCCALCSIZE_PARAMS,
+                    ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+                    ScreenToClient, SetWindowPos, WM_CTLCOLORSTATIC, WM_NCCALCSIZE, WM_NCPAINT,
+                    WM_SIZE,
+                },
+            },
         };
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, GetWindowTextLengthW,
-            GetWindowTextW, ReleaseDC, ScreenToClient, SetWindowPos,
-        };
-        use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
+
+        use crate::bind_raw_event_handler_inner;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

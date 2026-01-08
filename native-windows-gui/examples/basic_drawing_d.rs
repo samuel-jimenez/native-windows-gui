@@ -7,13 +7,16 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::{
+    cell::{Cell, RefCell},
+    mem,
+};
+
 use nwd::NwgUi;
 use nwg::NativeUi;
-use std::cell::{Cell, RefCell};
-use std::mem;
-use winapi::shared::windef::{HBRUSH, HPEN};
-use winapi::um::wingdi::{
-    CreatePen, CreateSolidBrush, Ellipse, PS_SOLID, Polygon, RGB, SelectObject,
+use winapi::{
+    shared::windef::{HBRUSH, HPEN},
+    um::wingdi::{CreatePen, CreateSolidBrush, Ellipse, PS_SOLID, Polygon, RGB, SelectObject},
 };
 
 pub struct PaintData {
@@ -65,8 +68,7 @@ impl DrawingApp {
     }
 
     fn events(&self, evt: nwg::Event) {
-        use nwg::Event as E;
-        use nwg::MousePressEvent as M;
+        use nwg::{Event as E, MousePressEvent as M};
 
         match evt {
             E::OnMousePress(M::MousePressLeftUp) => {
@@ -82,8 +84,10 @@ impl DrawingApp {
     }
 
     fn paint(&self, data: &nwg::EventData) {
-        use winapi::shared::windef::POINT as P;
-        use winapi::um::winuser::{FillRect, FrameRect};
+        use winapi::{
+            shared::windef::POINT as P,
+            um::winuser::{FillRect, FrameRect},
+        };
 
         let paint = data.on_paint();
         let ps = paint.begin_paint();

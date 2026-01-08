@@ -1,11 +1,19 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::{base_helper::check_hwnd, window_helper as wh};
-use crate::{Font, NwgError, RawEventHandler};
 use std::cell::RefCell;
-use winapi::shared::windef::HBRUSH;
-use winapi::um::{
-    wingdi::DeleteObject,
-    winuser::{BS_AUTO3STATE, BS_AUTOCHECKBOX, BS_PUSHLIKE, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+
+use winapi::{
+    shared::windef::HBRUSH,
+    um::{
+        wingdi::DeleteObject,
+        winuser::{
+            BS_AUTO3STATE, BS_AUTOCHECKBOX, BS_PUSHLIKE, WS_DISABLED, WS_TABSTOP, WS_VISIBLE,
+        },
+    },
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Font, NwgError, RawEventHandler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "CheckBox is not yet bound to a winapi object";
@@ -114,8 +122,7 @@ impl CheckBox {
 
     /// Sets or unsets the checkbox as tristate
     pub fn set_tristate(&self, tri: bool) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::winuser::BM_SETSTYLE;
+        use winapi::{shared::minwindef::WPARAM, um::winuser::BM_SETSTYLE};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -143,8 +150,10 @@ impl CheckBox {
 
     /// Sets the check state of the check box
     pub fn set_check_state(&self, state: CheckBoxState) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::winuser::{BM_SETCHECK, BST_CHECKED, BST_INDETERMINATE, BST_UNCHECKED};
+        use winapi::{
+            shared::minwindef::WPARAM,
+            um::winuser::{BM_SETCHECK, BST_CHECKED, BST_INDETERMINATE, BST_UNCHECKED},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -273,10 +282,15 @@ impl CheckBox {
 
     /// Change the checkbox background color.
     fn hook_background_color(&mut self, c: [u8; 3]) {
+        use winapi::{
+            shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND},
+            um::{
+                wingdi::{CreateSolidBrush, RGB},
+                winuser::WM_CTLCOLORSTATIC,
+            },
+        };
+
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB};
-        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

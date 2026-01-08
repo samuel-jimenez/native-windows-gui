@@ -1,10 +1,12 @@
+use std::ops::Range;
+
+use taffy::{Dimension, Size};
+
 use super::ControlHandle;
 use crate::{
     FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, TextInputFlags, VTextAlign,
     subclass_control,
 };
-use std::ops::Range;
-use taffy::{Dimension, Size};
 
 /**
 A labeled input control is an edit control with included label.

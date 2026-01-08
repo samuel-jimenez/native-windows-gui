@@ -1,14 +1,26 @@
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    fmt::Display,
+    mem,
+    ops::Range,
+};
+
+use winapi::{
+    shared::{
+        minwindef::{LPARAM, WPARAM},
+        windef::HWND,
+    },
+    um::winuser::{LBS_MULTIPLESEL, LBS_NOSEL, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+};
+
 use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError};
-use std::cell::{Ref, RefCell, RefMut};
-use std::fmt::Display;
-use std::mem;
-use std::ops::Range;
-use winapi::shared::minwindef::{LPARAM, WPARAM};
-use winapi::shared::windef::HWND;
-use winapi::um::winuser::{LBS_MULTIPLESEL, LBS_NOSEL, WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
+use crate::{
+    Font, NwgError,
+    win32::{
+        base_helper::{check_hwnd, from_utf16, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "ListBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ListBox handle is not HWND!";
@@ -205,8 +217,10 @@ impl<D: Display + Default> ListBox<D> {
     /// Return the display value of the currenctly selected item for single value
     /// Return `None` if no item is selected. This reads the visual value.
     pub fn selection_string(&self) -> Option<String> {
-        use winapi::shared::ntdef::WCHAR;
-        use winapi::um::winuser::{LB_ERR, LB_GETCURSEL, LB_GETTEXT, LB_GETTEXTLEN};
+        use winapi::{
+            shared::ntdef::WCHAR,
+            um::winuser::{LB_ERR, LB_GETCURSEL, LB_GETTEXT, LB_GETTEXTLEN},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let index = wh::send_message(handle, LB_GETCURSEL, 0, 0);

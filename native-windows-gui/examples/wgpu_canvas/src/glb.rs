@@ -3,8 +3,9 @@
 /*!
     GLB file loader
 */
-use serde_json::{Map, Value};
 use std::{fs, path::Path, ptr, str};
+
+use serde_json::{Map, Value};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ComponentType {

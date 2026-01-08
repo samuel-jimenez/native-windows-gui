@@ -1,8 +1,11 @@
-use crate::events::ControlEvents;
-use crate::layouts::{layout_parameters, FlexboxLayoutChild, GridLayoutChild, LayoutChild};
-use crate::shared::Parameters;
 use itertools::Itertools;
 use quote::ToTokens;
+
+use crate::{
+    events::ControlEvents,
+    layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters},
+    shared::Parameters,
+};
 
 const TOP_LEVEL: &'static [&'static str] = &["Window", "MessageWindow", "ExternCanvas"];
 
@@ -447,8 +450,7 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                         row_span,
                     })) => {
                         if nested {
-
-                                                        let field_col = col + col_span;
+                            let field_col = col + col_span;
                             quote! {
                             child_item(GridLayoutItem::new(&ui.#id.label_handle(), #col, #row, #col_span, #row_span))
                             .child_item(GridLayoutItem::new(&ui.#id, #field_col, #row, #col_span, #row_span))

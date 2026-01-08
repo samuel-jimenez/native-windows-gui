@@ -1,10 +1,11 @@
-use crate::win32::image_decoder as img;
-use crate::{Bitmap, NwgError};
 use std::{mem, ptr};
-use winapi::shared::winerror::S_OK;
-use winapi::um::wincodec::{
-    IWICBitmapDecoder, IWICBitmapSource, IWICImagingFactory, WICPixelFormatGUID,
+
+use winapi::{
+    shared::winerror::S_OK,
+    um::wincodec::{IWICBitmapDecoder, IWICBitmapSource, IWICImagingFactory, WICPixelFormatGUID},
 };
+
+use crate::{Bitmap, NwgError, win32::image_decoder as img};
 
 /**
     A image decoder. Can load an extended number of image file format from a filename, from a file handle, or from a stream.

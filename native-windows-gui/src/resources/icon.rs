@@ -1,11 +1,10 @@
-use crate::win32::resources_helper as rh;
-use crate::{NwgError, OemIcon, OemImage};
 use std::ptr;
-use winapi::um::winnt::HANDLE;
-use winapi::um::winuser::IMAGE_ICON;
+
+use winapi::um::{winnt::HANDLE, winuser::IMAGE_ICON};
 
 #[cfg(feature = "embed-resource")]
 use super::EmbedResource;
+use crate::{NwgError, OemIcon, OemImage, win32::resources_helper as rh};
 
 /**
 A wrapper over a icon file (*.ico)

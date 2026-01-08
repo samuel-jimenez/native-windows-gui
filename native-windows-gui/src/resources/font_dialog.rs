@@ -1,12 +1,15 @@
+use std::{cell::RefCell, mem, pin::Pin, ptr};
+
+use winapi::{
+    shared::minwindef::DWORD,
+    um::{
+        commdlg::{CHOOSEFONTW, ChooseFontW},
+        wingdi::LOGFONTW,
+    },
+};
+
 use super::FontInfo;
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::{mem, ptr};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::commdlg::{CHOOSEFONTW, ChooseFontW};
-use winapi::um::wingdi::LOGFONTW;
+use crate::{NwgError, controls::ControlHandle};
 
 struct InnerFontDialog {
     font: Pin<Box<LOGFONTW>>,

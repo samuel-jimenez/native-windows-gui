@@ -7,10 +7,10 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::fs;
+
 use nwd::NwgUi;
 use nwg::NativeUi;
-
-use std::fs;
 
 #[derive(Default, NwgUi)]
 pub struct DropApp {

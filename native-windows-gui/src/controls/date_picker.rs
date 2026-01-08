@@ -1,8 +1,13 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError};
 use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Font, NwgError,
+    win32::{
+        base_helper::{check_hwnd, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "DatePicker is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: DatePicker handle is not HWND!";
@@ -131,8 +136,7 @@ impl DatePicker {
         If `format` is set to `None`, use the default system format.
     */
     pub fn set_format<'a>(&self, format: Option<&'a str>) {
-        use winapi::shared::minwindef::LPARAM;
-        use winapi::um::commctrl::DTM_SETFORMATW;
+        use winapi::{shared::minwindef::LPARAM, um::commctrl::DTM_SETFORMATW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -180,9 +184,14 @@ impl DatePicker {
     */
     pub fn value(&self) -> Option<DatePickerValue> {
         use std::mem;
-        use winapi::shared::minwindef::LPARAM;
-        use winapi::um::commctrl::{DTM_GETSYSTEMTIME, GDT_VALID};
-        use winapi::um::minwinbase::SYSTEMTIME;
+
+        use winapi::{
+            shared::minwindef::LPARAM,
+            um::{
+                commctrl::{DTM_GETSYSTEMTIME, GDT_VALID},
+                minwinbase::SYSTEMTIME,
+            },
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -205,9 +214,13 @@ impl DatePicker {
         If `None` is passed, this clears the checkbox.
     */
     pub fn set_value(&self, date: Option<DatePickerValue>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::commctrl::{DTM_SETSYSTEMTIME, GDT_NONE, GDT_VALID};
-        use winapi::um::minwinbase::SYSTEMTIME;
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::{
+                commctrl::{DTM_SETSYSTEMTIME, GDT_NONE, GDT_VALID},
+                minwinbase::SYSTEMTIME,
+            },
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -240,9 +253,11 @@ impl DatePicker {
     /// Gets the current minimum and maximum allowable system times for a date and time picker control.
     pub fn range(&self) -> [DatePickerValue; 2] {
         use std::mem;
-        use winapi::shared::minwindef::LPARAM;
-        use winapi::um::commctrl::DTM_GETRANGE;
-        use winapi::um::minwinbase::SYSTEMTIME;
+
+        use winapi::{
+            shared::minwindef::LPARAM,
+            um::{commctrl::DTM_GETRANGE, minwinbase::SYSTEMTIME},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -271,10 +286,13 @@ impl DatePicker {
 
     /// Sets the minimum and maximum allowable system times for a date and time picker control.
     pub fn set_range(&self, r: &[DatePickerValue; 2]) {
-        use winapi::shared::minwindef::LPARAM;
-        use winapi::um::commctrl::DTM_SETRANGE;
-        use winapi::um::commctrl::{GDTR_MAX, GDTR_MIN};
-        use winapi::um::minwinbase::SYSTEMTIME;
+        use winapi::{
+            shared::minwindef::LPARAM,
+            um::{
+                commctrl::{DTM_SETRANGE, GDTR_MAX, GDTR_MIN},
+                minwinbase::SYSTEMTIME,
+            },
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -405,8 +423,7 @@ impl DatePicker {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::commctrl::DTS_SHOWNONE;
-        use winapi::um::winuser::WS_CHILD;
+        use winapi::um::{commctrl::DTS_SHOWNONE, winuser::WS_CHILD};
 
         WS_CHILD | DTS_SHOWNONE
     }
@@ -528,13 +545,15 @@ impl<'a> DatePickerBuilder<'a> {
     }
 }
 
-use winapi::shared::windef::HWND;
-use winapi::um::commctrl::DATETIMEPICKERINFO;
+use winapi::{shared::windef::HWND, um::commctrl::DATETIMEPICKERINFO};
 
 fn get_dtp_info(handle: HWND) -> DATETIMEPICKERINFO {
     use std::mem;
-    use winapi::shared::minwindef::{DWORD, LPARAM};
-    use winapi::um::commctrl::DTM_GETDATETIMEPICKERINFO;
+
+    use winapi::{
+        shared::minwindef::{DWORD, LPARAM},
+        um::commctrl::DTM_GETDATETIMEPICKERINFO,
+    };
 
     let mut dtp_info: DATETIMEPICKERINFO = unsafe { mem::zeroed() };
     dtp_info.cbSize = mem::size_of::<DATETIMEPICKERINFO>() as DWORD;

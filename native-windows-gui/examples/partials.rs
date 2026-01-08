@@ -126,12 +126,12 @@ pub struct FoodUi {
 // ALL of this stuff is handled by native-windows-derive
 //
 mod partial_demo_ui {
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
+
+    use native_windows_gui as nwg;
+
     use self::nwg::PartialUi;
     use super::*;
-    use native_windows_gui as nwg;
-    use std::cell::RefCell;
-    use std::ops::Deref;
-    use std::rc::Rc;
 
     pub struct PartialDemoUi {
         inner: PartialDemo,
@@ -265,9 +265,10 @@ mod partial_demo_ui {
 }
 
 mod partial_people_ui {
+    use native_windows_gui as nwg;
+
     use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
-    use native_windows_gui as nwg;
 
     impl PartialUi for PeopleUi {
         fn build_partial<W: Into<ControlHandle>>(
@@ -353,9 +354,10 @@ mod partial_people_ui {
 }
 
 mod partial_animal_ui {
+    use native_windows_gui as nwg;
+
     use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
-    use native_windows_gui as nwg;
 
     impl PartialUi for AnimalUi {
         fn build_partial<W: Into<ControlHandle>>(
@@ -442,9 +444,10 @@ mod partial_animal_ui {
 }
 
 mod partial_food_ui {
+    use native_windows_gui as nwg;
+
     use self::nwg::{ControlHandle, NwgError, PartialUi};
     use super::*;
-    use native_windows_gui as nwg;
 
     impl PartialUi for FoodUi {
         fn build_partial<W: Into<ControlHandle>>(

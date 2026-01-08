@@ -1,8 +1,8 @@
+use std::{ffi::OsString, ptr};
+
+use winapi::shared::{minwindef::DWORD, windef::HWND};
+
 use crate::ControlHandle;
-use std::ffi::OsString;
-use std::ptr;
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::windef::HWND;
 
 pub const CUSTOM_ID_BEGIN: u32 = 10000;
 
@@ -28,8 +28,7 @@ pub fn check_hwnd(handle: &ControlHandle, not_bound: &str, bad_handle: &str) -> 
 }
 
 pub fn to_utf16<'a>(s: &'a str) -> Vec<u16> {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
+    use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
 
     OsStr::new(s)
         .encode_wide()
@@ -79,8 +78,7 @@ pub unsafe fn from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> String {
 #[cfg(any(feature = "file-dialog", feature = "winnls"))]
 pub unsafe fn os_string_from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> OsString {
     unsafe {
-        use std::os::windows::ffi::OsStringExt;
-        use std::slice::from_raw_parts;
+        use std::{os::windows::ffi::OsStringExt, slice::from_raw_parts};
 
         let length = match length {
             Some(v) => v,
@@ -107,11 +105,13 @@ pub unsafe fn os_string_from_wide_ptr(ptr: *mut u16, length: Option<usize>) -> O
 #[allow(unused)]
 pub unsafe fn get_system_error() -> (DWORD, String) {
     unsafe {
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-        use winapi::um::errhandlingapi::GetLastError;
-        use winapi::um::winbase::{FORMAT_MESSAGE_FROM_SYSTEM, FormatMessageW};
-        use winapi::um::winnt::{LANG_NEUTRAL, MAKELANGID, SUBLANG_DEFAULT};
+        use std::{ffi::OsString, os::windows::ffi::OsStringExt};
+
+        use winapi::um::{
+            errhandlingapi::GetLastError,
+            winbase::{FORMAT_MESSAGE_FROM_SYSTEM, FormatMessageW},
+            winnt::{LANG_NEUTRAL, MAKELANGID, SUBLANG_DEFAULT},
+        };
 
         let code = GetLastError();
         let lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT) as DWORD;

@@ -30,19 +30,19 @@ pub(crate) mod richedit;
 #[cfg(feature = "plotting")]
 pub(crate) mod plotters_d2d;
 
-use crate::errors::NwgError;
 use std::{fs, mem, ptr};
 
 use winapi::um::winuser::{
     DispatchMessageW, GA_ROOT, GetAncestor, IsDialogMessageW, TranslateMessage,
 };
 
+use crate::errors::NwgError;
+
 /**
     Dispatch system events in the current thread. This method will pause the thread until there are events to process.
 */
 pub fn dispatch_thread_events() {
-    use winapi::um::winuser::GetMessageW;
-    use winapi::um::winuser::MSG;
+    use winapi::um::winuser::{GetMessageW, MSG};
 
     unsafe {
         let mut msg: MSG = mem::zeroed();
@@ -63,8 +63,7 @@ pub fn dispatch_thread_events_with_callback<F>(mut cb: F)
 where
     F: FnMut() -> () + 'static,
 {
-    use winapi::um::winuser::MSG;
-    use winapi::um::winuser::{PM_REMOVE, PeekMessageW, WM_QUIT};
+    use winapi::um::winuser::{MSG, PM_REMOVE, PeekMessageW, WM_QUIT};
 
     unsafe {
         let mut msg: MSG = mem::zeroed();
@@ -86,8 +85,7 @@ where
     Break the events loop running on the current thread
 */
 pub fn stop_thread_dispatch() {
-    use winapi::um::winuser::PostMessageW;
-    use winapi::um::winuser::WM_QUIT;
+    use winapi::um::winuser::{PostMessageW, WM_QUIT};
 
     unsafe { PostMessageW(ptr::null_mut(), WM_QUIT, 0, 0) };
 }
@@ -96,10 +94,16 @@ pub fn stop_thread_dispatch() {
   Enable the Windows visual style in the application without having to use a manifest
 */
 pub fn enable_visual_styles() {
-    use winapi::shared::basetsd::ULONG_PTR;
-    use winapi::shared::minwindef::{DWORD, MAX_PATH, ULONG};
-    use winapi::um::fileapi::{GetTempFileNameW, GetTempPathW};
-    use winapi::um::winbase::{ACTCTXW, ActivateActCtx, CreateActCtxW};
+    use winapi::{
+        shared::{
+            basetsd::ULONG_PTR,
+            minwindef::{DWORD, MAX_PATH, ULONG},
+        },
+        um::{
+            fileapi::{GetTempFileNameW, GetTempPathW},
+            winbase::{ACTCTXW, ActivateActCtx, CreateActCtxW},
+        },
+    };
 
     const MANIFEST_CONTENT: &str = r#"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -155,14 +159,18 @@ pub fn enable_visual_styles() {
     Also register the custom classes used by NWG
 */
 pub fn init_common_controls() -> Result<(), NwgError> {
-    use winapi::shared::winerror::{S_FALSE, S_OK};
-    use winapi::um::commctrl::{
-        ICC_BAR_CLASSES, ICC_DATE_CLASSES, ICC_LISTVIEW_CLASSES, ICC_PROGRESS_CLASS,
-        ICC_STANDARD_CLASSES, ICC_TAB_CLASSES, ICC_TREEVIEW_CLASSES,
+    use winapi::{
+        shared::winerror::{S_FALSE, S_OK},
+        um::{
+            commctrl::{
+                ICC_BAR_CLASSES, ICC_DATE_CLASSES, ICC_LISTVIEW_CLASSES, ICC_PROGRESS_CLASS,
+                ICC_STANDARD_CLASSES, ICC_TAB_CLASSES, ICC_TREEVIEW_CLASSES, INITCOMMONCONTROLSEX,
+                InitCommonControlsEx,
+            },
+            libloaderapi::LoadLibraryW,
+            objbase::CoInitialize,
+        },
     };
-    use winapi::um::commctrl::{INITCOMMONCONTROLSEX, InitCommonControlsEx};
-    use winapi::um::libloaderapi::LoadLibraryW;
-    use winapi::um::objbase::CoInitialize;
 
     unsafe {
         let mut classes = ICC_BAR_CLASSES | ICC_STANDARD_CLASSES;

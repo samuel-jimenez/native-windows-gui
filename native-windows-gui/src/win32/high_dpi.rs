@@ -63,9 +63,10 @@ pub unsafe fn physical_to_logical(x: i32, y: i32) -> (i32, i32) {
 
 pub unsafe fn dpi() -> i32 {
     unsafe {
-        use winapi::um::wingdi::GetDeviceCaps;
-        use winapi::um::wingdi::LOGPIXELSX;
-        use winapi::um::winuser::GetDC;
+        use winapi::um::{
+            wingdi::{GetDeviceCaps, LOGPIXELSX},
+            winuser::GetDC,
+        };
         let screen = GetDC(std::ptr::null_mut());
         let dpi = GetDeviceCaps(screen, LOGPIXELSX);
         dpi

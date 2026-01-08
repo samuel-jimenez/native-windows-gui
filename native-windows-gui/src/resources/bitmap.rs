@@ -1,11 +1,10 @@
-use crate::win32::resources_helper as rh;
-use crate::{NwgError, OemBitmap, OemImage};
 use std::ptr;
-use winapi::um::winnt::HANDLE;
-use winapi::um::winuser::IMAGE_BITMAP;
+
+use winapi::um::{winnt::HANDLE, winuser::IMAGE_BITMAP};
 
 #[cfg(feature = "embed-resource")]
 use super::EmbedResource;
+use crate::{NwgError, OemBitmap, OemImage, win32::resources_helper as rh};
 
 /**
 A wrapper over a bitmap file (*.bmp)
@@ -158,8 +157,7 @@ impl Bitmap {
         Panics if the bitmap is not initialized
     */
     pub fn copy_as_icon(&self) -> crate::Icon {
-        use winapi::um::winuser::CreateIconIndirect;
-        use winapi::um::winuser::ICONINFO;
+        use winapi::um::winuser::{CreateIconIndirect, ICONINFO};
 
         if self.handle.is_null() {
             panic!("Bitmap was not initialized");

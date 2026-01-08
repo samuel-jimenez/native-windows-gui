@@ -1,11 +1,14 @@
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::{mem, ptr};
-use winapi::shared::{minwindef::DWORD, windef::COLORREF};
-use winapi::um::commdlg::{CC_RGBINIT, CHOOSECOLORW, ChooseColorW};
-use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue, RGB};
+use std::{cell::RefCell, mem, pin::Pin, ptr};
+
+use winapi::{
+    shared::{minwindef::DWORD, windef::COLORREF},
+    um::{
+        commdlg::{CC_RGBINIT, CHOOSECOLORW, ChooseColorW},
+        wingdi::{GetBValue, GetGValue, GetRValue, RGB},
+    },
+};
+
+use crate::{NwgError, controls::ControlHandle};
 
 struct InnerColorDialog {
     custom_colors: Pin<Box<[COLORREF; 16]>>,

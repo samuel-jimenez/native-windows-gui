@@ -1,7 +1,6 @@
+use std::{cell::RefCell, thread, time::Duration};
+
 use crate::*;
-use std::cell::RefCell;
-use std::thread;
-use std::time::Duration;
 
 #[derive(Default)]
 pub struct ThreadResources {
@@ -61,9 +60,10 @@ fn notice_me(app: &ThreadTest) {
 }
 
 mod partial_canvas_test_ui {
+    use taffy::style::*;
+
     use super::*;
     use crate::{ControlHandle, NwgError, PartialUi};
-    use taffy::style::*;
 
     impl PartialUi for ThreadTest {
         fn build_partial<W: Into<ControlHandle>>(

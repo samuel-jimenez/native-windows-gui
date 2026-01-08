@@ -4,9 +4,10 @@ use winapi::um::winuser::{
 };
 
 use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{Icon, NwgError};
+use crate::{
+    Icon, NwgError,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "ExternCanvas is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ExternCanvas handle is not HWND!";
@@ -105,6 +106,7 @@ impl ExternCanvas {
     /// Invalidate the whole drawing region. For canvas that are children control, this should be called in the paint event.
     pub fn invalidate(&self) {
         use std::ptr;
+
         use winapi::um::winuser::InvalidateRect;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -115,8 +117,7 @@ impl ExternCanvas {
 
     /// Return the icon of the window
     pub fn icon(&self) -> Option<Icon> {
-        use winapi::um::winnt::HANDLE;
-        use winapi::um::winuser::WM_GETICON;
+        use winapi::um::{winnt::HANDLE, winuser::WM_GETICON};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -135,8 +136,8 @@ impl ExternCanvas {
     /// - icon: The new icon. If None, the icon is removed
     pub fn set_icon(&self, icon: Option<&Icon>) {
         use std::ptr;
-        use winapi::shared::minwindef::LPARAM;
-        use winapi::um::winuser::WM_SETICON;
+
+        use winapi::{shared::minwindef::LPARAM, um::winuser::WM_SETICON};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 

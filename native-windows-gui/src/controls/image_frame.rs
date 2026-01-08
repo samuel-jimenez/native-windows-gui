@@ -1,10 +1,18 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh};
-use crate::{Bitmap, Icon, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::cell::RefCell;
-use winapi::shared::windef::HBRUSH;
-use winapi::um::wingdi::DeleteObject;
-use winapi::um::winuser::{WS_DISABLED, WS_VISIBLE};
+
+use winapi::{
+    shared::windef::HBRUSH,
+    um::{
+        wingdi::DeleteObject,
+        winuser::{WS_DISABLED, WS_VISIBLE},
+    },
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Bitmap, Icon, NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "ImageFrame is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ImageFrame handle is not HWND!";
@@ -71,8 +79,10 @@ impl ImageFrame {
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_bitmap<'a>(&self, image: Option<&'a Bitmap>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::winuser::{IMAGE_BITMAP, STM_SETIMAGE};
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::winuser::{IMAGE_BITMAP, STM_SETIMAGE},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -88,8 +98,10 @@ impl ImageFrame {
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_icon<'a>(&self, image: Option<&'a Icon>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::winuser::{IMAGE_ICON, STM_SETIMAGE};
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::winuser::{IMAGE_ICON, STM_SETIMAGE},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -106,10 +118,13 @@ impl ImageFrame {
     /// If the image frame has a bitmap, the value will be returned in `bitmap`
     /// If the image frame has a icon, the value will be returned in `icon`
     pub fn image<'a>(&self, bitmap: &mut Option<Bitmap>, icon: &mut Option<Icon>) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::shared::windef::HBITMAP;
-        use winapi::um::winnt::HANDLE;
-        use winapi::um::winuser::{IMAGE_BITMAP, IMAGE_ICON, STM_GETIMAGE};
+        use winapi::{
+            shared::{minwindef::WPARAM, windef::HBITMAP},
+            um::{
+                winnt::HANDLE,
+                winuser::{IMAGE_BITMAP, IMAGE_ICON, STM_GETIMAGE},
+            },
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let bitmap_handle = wh::send_message(handle, STM_GETIMAGE, IMAGE_BITMAP as WPARAM, 0);
@@ -200,10 +215,15 @@ impl ImageFrame {
     /// Change the label background color to transparent.
     /// Change the checkbox background color.
     fn hook_background_color(&mut self, c: [u8; 3]) {
+        use winapi::{
+            shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND},
+            um::{
+                wingdi::{CreateSolidBrush, RGB},
+                winuser::WM_CTLCOLORSTATIC,
+            },
+        };
+
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB};
-        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

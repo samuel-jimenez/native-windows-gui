@@ -1,11 +1,12 @@
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use crate::win32::window::bind_raw_event_handler_inner;
-use crate::win32::window_helper as wh;
-use std::cell::RefCell;
-use std::ptr;
-use std::rc::Rc;
+use std::{cell::RefCell, ptr, rc::Rc};
+
 use winapi::shared::windef::HWND;
+
+use crate::{
+    NwgError,
+    controls::ControlHandle,
+    win32::{window::bind_raw_event_handler_inner, window_helper as wh},
+};
 
 /// A control item in a DynLayout
 #[derive(Debug)]
@@ -236,10 +237,12 @@ impl DynLayout {
     }
 
     fn update_layout(&self, width: u32, height: u32) -> () {
-        use winapi::ctypes::c_int;
-        use winapi::um::winuser::{BeginDeferWindowPos, DeferWindowPos, EndDeferWindowPos};
-        use winapi::um::winuser::{
-            HWND_TOP, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOREPOSITION, SWP_NOZORDER,
+        use winapi::{
+            ctypes::c_int,
+            um::winuser::{
+                BeginDeferWindowPos, DeferWindowPos, EndDeferWindowPos, HWND_TOP, SWP_NOACTIVATE,
+                SWP_NOCOPYBITS, SWP_NOREPOSITION, SWP_NOZORDER,
+            },
         };
 
         let inner = self.inner.borrow();
@@ -354,8 +357,10 @@ impl DynLayoutBuilder {
     /// Build the layout object and bind the callback.
     /// Children must only contains window object otherwise this method will panic.
     pub fn build(self, layout: &DynLayout) -> Result<(), NwgError> {
-        use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::winuser::WM_SIZE;
+        use winapi::{
+            shared::minwindef::{HIWORD, LOWORD},
+            um::winuser::WM_SIZE,
+        };
 
         if self.layout.base.is_null() {
             return Err(NwgError::layout_create("DynLayout does not have a parent."));

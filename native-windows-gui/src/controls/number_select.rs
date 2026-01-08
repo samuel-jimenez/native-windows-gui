@@ -1,12 +1,11 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
+
 use winapi::um::winuser::{WS_DISABLED, WS_EX_CONTROLPARENT, WS_TABSTOP, WS_VISIBLE};
 
 use super::{Button, ButtonFlags, ControlBase, ControlHandle, TextInput, TextInputFlags};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
 use crate::{
     Font, NwgError, RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "UpDown is not yet bound to a winapi object";
@@ -559,9 +558,10 @@ impl<'a> NumberSelectBuilder<'a> {
         let text_handle = out.edit.handle.clone();
 
         let handler = bind_raw_event_handler_inner(&out.handle, 0x4545, move |_hwnd, msg, w, l| {
-            use winapi::shared::minwindef::HIWORD;
-            use winapi::shared::windef::HWND;
-            use winapi::um::winuser::{BN_CLICKED, WM_COMMAND};
+            use winapi::{
+                shared::{minwindef::HIWORD, windef::HWND},
+                um::winuser::{BN_CLICKED, WM_COMMAND},
+            };
 
             match msg {
                 WM_COMMAND => {

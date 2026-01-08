@@ -1,20 +1,28 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::{
-    base_helper::{check_hwnd, to_utf16},
-    window_helper as wh,
-};
-use crate::{Font, NwgError, RawEventHandler, unbind_raw_event_handler};
-use std::{cell::RefCell, mem};
-use winapi::shared::minwindef::{BOOL, LPARAM, WPARAM};
-use winapi::shared::windef::HWND;
-use winapi::um::winnt::LPWSTR;
-use winapi::um::winuser::{EnumChildWindows, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE};
-
-#[cfg(feature = "image-list")]
-use crate::ImageList;
-
 #[cfg(feature = "image-list")]
 use std::ptr;
+use std::{cell::RefCell, mem};
+
+use winapi::{
+    shared::{
+        minwindef::{BOOL, LPARAM, WPARAM},
+        windef::HWND,
+    },
+    um::{
+        winnt::LPWSTR,
+        winuser::{EnumChildWindows, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE},
+    },
+};
+
+use super::{ControlBase, ControlHandle};
+#[cfg(feature = "image-list")]
+use crate::ImageList;
+use crate::{
+    Font, NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{
+        base_helper::{check_hwnd, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "TabsContainer/Tab is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TabsContainer/Tab handle is not HWND!";
@@ -257,11 +265,15 @@ impl TabsContainer {
 
     /// The tab widget lacks basic functionalities on it's own. This fix it.
     fn hook_tabs(&self) {
+        use winapi::{
+            shared::minwindef::{HIWORD, LOWORD},
+            um::{
+                commctrl::{TCM_GETCURSEL, TCN_SELCHANGE},
+                winuser::{NMHDR, SendMessageW, WM_NOTIFY, WM_SIZE},
+            },
+        };
+
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::commctrl::{TCM_GETCURSEL, TCN_SELCHANGE};
-        use winapi::um::winuser::SendMessageW;
-        use winapi::um::winuser::{NMHDR, WM_NOTIFY, WM_SIZE};
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);
@@ -301,10 +313,12 @@ impl TabsContainer {
                 unsafe {
                     match msg {
                         WM_SIZE => {
-                            use winapi::shared::windef::{HGDIOBJ, RECT};
-                            use winapi::um::wingdi::SelectObject;
-                            use winapi::um::winuser::{
-                                DT_CALCRECT, DT_LEFT, DrawTextW, GetDC, ReleaseDC,
+                            use winapi::{
+                                shared::windef::{HGDIOBJ, RECT},
+                                um::{
+                                    wingdi::SelectObject,
+                                    winuser::{DT_CALCRECT, DT_LEFT, DrawTextW, GetDC, ReleaseDC},
+                                },
                             };
 
                             let size = l as u32;
@@ -503,8 +517,10 @@ impl Tab {
 
     /// Sets the title of the tab
     pub fn set_text<'a>(&self, text: &'a str) {
-        use winapi::um::commctrl::{TCIF_TEXT, TCITEMW, TCM_SETITEMW};
-        use winapi::um::winuser::GWL_USERDATA;
+        use winapi::um::{
+            commctrl::{TCIF_TEXT, TCITEMW, TCM_SETITEMW},
+            winuser::GWL_USERDATA,
+        };
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);
@@ -537,8 +553,10 @@ impl Tab {
     */
     #[cfg(feature = "image-list")]
     pub fn set_image_index(&self, index: Option<i32>) {
-        use winapi::um::commctrl::{TCIF_IMAGE, TCITEMW, TCM_SETITEMW};
-        use winapi::um::winuser::GWL_USERDATA;
+        use winapi::um::{
+            commctrl::{TCIF_IMAGE, TCITEMW, TCM_SETITEMW},
+            winuser::GWL_USERDATA,
+        };
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

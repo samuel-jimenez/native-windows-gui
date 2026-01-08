@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use proc_macro2 as pm2;
 use quote::ToTokens;
-use std::collections::HashMap;
-use syn;
-use syn::parse::{Parse, ParseBuffer, ParseStream};
-use syn::punctuated::Punctuated;
+use syn::{
+    self,
+    parse::{Parse, ParseBuffer, ParseStream},
+    punctuated::Punctuated,
+};
 
 /// A callback function definition
 struct CallbackFunction {

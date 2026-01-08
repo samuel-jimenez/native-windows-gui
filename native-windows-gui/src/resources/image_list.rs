@@ -1,7 +1,11 @@
-use crate::{Bitmap, Icon, NwgError};
 use std::ptr;
-use winapi::shared::windef::{HBITMAP, HICON};
-use winapi::um::commctrl::{HIMAGELIST, ImageList_AddMasked};
+
+use winapi::{
+    shared::windef::{HBITMAP, HICON},
+    um::commctrl::{HIMAGELIST, ImageList_AddMasked},
+};
+
+use crate::{Bitmap, Icon, NwgError};
 
 const NOT_BOUND: &'static str = "ImageList is not yet bound to a winapi object";
 
@@ -125,8 +129,10 @@ impl ImageList {
 
     /// Adds a new icon to the image list. Returns the index to the image. Panics if the icon was not initialized
     pub fn add_icon(&self, icon: &Icon) -> i32 {
-        use winapi::um::wingdi::DeleteObject;
-        use winapi::um::winuser::{GetIconInfo, ICONINFO};
+        use winapi::um::{
+            wingdi::DeleteObject,
+            winuser::{GetIconInfo, ICONINFO},
+        };
 
         if self.handle.is_null() {
             panic!("{}", NOT_BOUND);

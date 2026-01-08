@@ -2,20 +2,28 @@
 A tree-view control is a window that displays a hierarchical list of items
 */
 
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError};
 use std::{mem, ptr};
-use winapi::shared::minwindef::{LPARAM, WPARAM};
-use winapi::um::commctrl::{HTREEITEM, TVIS_EXPANDED, TVIS_SELECTED, TVITEMW, TVS_SHOWSELALWAYS};
-use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
 #[cfg(feature = "image-list")]
 use winapi::um::commctrl::HIMAGELIST;
+use winapi::{
+    shared::minwindef::{LPARAM, WPARAM},
+    um::{
+        commctrl::{HTREEITEM, TVIS_EXPANDED, TVIS_SELECTED, TVITEMW, TVS_SHOWSELALWAYS},
+        winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+    },
+};
 
+use super::{ControlBase, ControlHandle};
 #[cfg(feature = "image-list")]
 use crate::ImageList;
+use crate::{
+    Font, NwgError,
+    win32::{
+        base_helper::{check_hwnd, from_utf16, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "TreeView is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TreeView handle is not HWND!";
@@ -254,8 +262,7 @@ impl TreeView {
 
     /// Sets the text color in the treeview
     pub fn set_text_color(&self, r: u8, g: u8, b: u8) {
-        use winapi::um::commctrl::TVM_SETTEXTCOLOR;
-        use winapi::um::wingdi::RGB;
+        use winapi::um::{commctrl::TVM_SETTEXTCOLOR, wingdi::RGB};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let color = RGB(r, g, b);
@@ -267,8 +274,10 @@ impl TreeView {
 
     /// Returns the text color in the treeview
     pub fn text_color(&self) -> [u8; 3] {
-        use winapi::um::commctrl::TVM_GETTEXTCOLOR;
-        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
+        use winapi::um::{
+            commctrl::TVM_GETTEXTCOLOR,
+            wingdi::{GetBValue, GetGValue, GetRValue},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -386,11 +395,13 @@ impl TreeView {
         parent: Option<&TreeItem>,
         position: TreeInsert,
     ) -> TreeItem {
-        use winapi::um::commctrl::TVINSERTSTRUCTW_u;
-        use winapi::um::commctrl::{
-            TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_TEXT, TVINSERTSTRUCTW, TVM_INSERTITEMW,
+        use winapi::um::{
+            commctrl::{
+                TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_TEXT, TVINSERTSTRUCTW,
+                TVINSERTSTRUCTW_u, TVM_INSERTITEMW,
+            },
+            winnt::LPWSTR,
         };
-        use winapi::um::winnt::LPWSTR;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -434,12 +445,13 @@ impl TreeView {
         position: TreeInsert,
         data: isize,
     ) -> TreeItem {
-        use winapi::um::commctrl::TVINSERTSTRUCTW_u;
-        use winapi::um::commctrl::{
-            TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_PARAM, TVIF_TEXT, TVINSERTSTRUCTW,
-            TVM_INSERTITEMW,
+        use winapi::um::{
+            commctrl::{
+                TVI_FIRST, TVI_LAST, TVI_ROOT, TVI_SORT, TVIF_PARAM, TVIF_TEXT, TVINSERTSTRUCTW,
+                TVINSERTSTRUCTW_u, TVM_INSERTITEMW,
+            },
+            winnt::LPWSTR,
         };
-        use winapi::um::winnt::LPWSTR;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -565,8 +577,10 @@ impl TreeView {
 
     /// Set the text for specified item in the treeview.
     pub fn set_item_text(&self, tree_item: &TreeItem, new_text: &str) {
-        use winapi::um::commctrl::{TVIF_TEXT, TVM_SETITEMW};
-        use winapi::um::winnt::LPWSTR;
+        use winapi::um::{
+            commctrl::{TVIF_TEXT, TVM_SETITEMW},
+            winnt::LPWSTR,
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let text = to_utf16(new_text);
@@ -804,8 +818,10 @@ impl TreeView {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::commctrl::TVS_NOTOOLTIPS;
-        use winapi::um::winuser::{WS_BORDER, WS_CHILD};
+        use winapi::um::{
+            commctrl::TVS_NOTOOLTIPS,
+            winuser::{WS_BORDER, WS_CHILD},
+        };
 
         WS_CHILD | WS_BORDER | TVS_NOTOOLTIPS
     }
@@ -814,8 +830,7 @@ impl TreeView {
     /// Return None if Failed.
     /// Return the treeview's handle if successful.
     pub fn edit_label(&self, item: &TreeItem) -> Option<ControlHandle> {
-        use winapi::shared::windef::HWND;
-        use winapi::um::commctrl::TVM_EDITLABELW;
+        use winapi::{shared::windef::HWND, um::commctrl::TVM_EDITLABELW};
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
         let result = wh::send_message(

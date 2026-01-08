@@ -1,8 +1,11 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh};
-use crate::{Bitmap, Font, Icon, NwgError};
 use winapi::um::winuser::{
     BS_BITMAP, BS_ICON, BS_NOTIFY, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE,
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Bitmap, Font, Icon, NwgError,
+    win32::{base_helper::check_hwnd, resources_helper as rh, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "Button is not yet bound to a winapi object";
@@ -102,8 +105,10 @@ impl Button {
     /// Sets the bitmap image of the button. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_bitmap<'a>(&self, image: Option<&'a Bitmap>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::winuser::{BM_SETIMAGE, IMAGE_BITMAP};
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::winuser::{BM_SETIMAGE, IMAGE_BITMAP},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -114,8 +119,10 @@ impl Button {
     /// Sets the bitmap image of the button. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
     pub fn set_icon<'a>(&self, image: Option<&'a Icon>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::winuser::{BM_SETIMAGE, IMAGE_ICON};
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::winuser::{BM_SETIMAGE, IMAGE_ICON},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -127,10 +134,13 @@ impl Button {
     /// If the button has a bitmap, the value will be returned in `bitmap`
     /// If the button has a icon, the value will be returned in `icon`
     pub fn image<'a>(&self, bitmap: &mut Option<Bitmap>, icon: &mut Option<Icon>) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::shared::windef::HBITMAP;
-        use winapi::um::winnt::HANDLE;
-        use winapi::um::winuser::{BM_GETIMAGE, IMAGE_BITMAP, IMAGE_ICON};
+        use winapi::{
+            shared::{minwindef::WPARAM, windef::HBITMAP},
+            um::{
+                winnt::HANDLE,
+                winuser::{BM_GETIMAGE, IMAGE_BITMAP, IMAGE_ICON},
+            },
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 

@@ -5,6 +5,8 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::cell::RefCell;
+
 use nwd::NwgUi;
 use nwg::{NativeUi, taffy};
 use taffy::{
@@ -12,8 +14,6 @@ use taffy::{
     style::*,
     style_helpers::{auto, length},
 };
-
-use std::cell::RefCell;
 
 #[derive(Default, NwgUi)]
 pub struct FlexboxDynamic {

@@ -1,20 +1,23 @@
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use crate::win32::window::{
-    RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler,
-};
-use crate::win32::window_helper as wh;
 use std::{
     cell::{Ref, RefCell, RefMut},
     ptr,
     rc::Rc,
 };
-use winapi::shared::windef::HWND;
 
 use taffy::{
     NodeId, TaffyError, TaffyTree,
     geometry::{Point, Rect, Size},
     style::*,
+};
+use winapi::shared::windef::HWND;
+
+use crate::{
+    NwgError,
+    controls::ControlHandle,
+    win32::{
+        window::{RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler},
+        window_helper as wh,
+    },
 };
 
 #[derive(Debug)]
@@ -655,8 +658,10 @@ impl FlexboxLayoutBuilder {
 
     /// Build the layout object and bind the callback.
     pub fn build(self, layout: &FlexboxLayout) -> Result<(), NwgError> {
-        use winapi::shared::minwindef::{HIWORD, LOWORD};
-        use winapi::um::winuser::WM_SIZE;
+        use winapi::{
+            shared::minwindef::{HIWORD, LOWORD},
+            um::winuser::WM_SIZE,
+        };
 
         let (w, h) = unsafe { wh::get_window_size(self.layout.base) };
         let base_handle = ControlHandle::Hwnd(self.layout.base);

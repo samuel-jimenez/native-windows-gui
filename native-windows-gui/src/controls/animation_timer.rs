@@ -1,15 +1,18 @@
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use crate::win32::window_helper as wh;
 use std::{
     sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
 
-use winapi::shared::minwindef::{LPARAM, WPARAM};
-use winapi::shared::windef::HWND;
-use winapi::um::winuser::SendNotifyMessageW;
+use winapi::{
+    shared::{
+        minwindef::{LPARAM, WPARAM},
+        windef::HWND,
+    },
+    um::winuser::SendNotifyMessageW,
+};
+
+use crate::{NwgError, controls::ControlHandle, win32::window_helper as wh};
 
 const NOT_BOUND: &'static str = "AnimationTimer is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: AnimationTimer handle is not Timer!";

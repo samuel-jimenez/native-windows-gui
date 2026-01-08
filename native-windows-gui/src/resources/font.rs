@@ -1,11 +1,14 @@
-use crate::NwgError;
-use crate::win32::base_helper::{from_utf16, to_utf16};
-use crate::win32::resources_helper as rh;
-use std::ptr;
-use winapi::shared::windef::HFONT;
-use winapi::um::winnt::HANDLE;
+use std::{ptr, sync::Mutex};
 
-use std::sync::Mutex;
+use winapi::{shared::windef::HFONT, um::winnt::HANDLE};
+
+use crate::{
+    NwgError,
+    win32::{
+        base_helper::{from_utf16, to_utf16},
+        resources_helper as rh,
+    },
+};
 
 lazy_static! {
     /// Default font to use when creating controls. Set using `Font::set_global_default` && get using `Font::global_default()`
@@ -185,9 +188,14 @@ impl Font {
     /// Probably pretty slow, so cache the value if possible
     pub fn families() -> Vec<String> {
         use std::mem;
-        use winapi::shared::minwindef::{DWORD, LPARAM};
-        use winapi::um::wingdi::{DEFAULT_CHARSET, EnumFontFamiliesExW, LOGFONTW, TEXTMETRICW};
-        use winapi::um::winuser::GetDC;
+
+        use winapi::{
+            shared::minwindef::{DWORD, LPARAM},
+            um::{
+                wingdi::{DEFAULT_CHARSET, EnumFontFamiliesExW, LOGFONTW, TEXTMETRICW},
+                winuser::GetDC,
+            },
+        };
 
         let mut families = Vec::with_capacity(16);
 

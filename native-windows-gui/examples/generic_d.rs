@@ -8,9 +8,11 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
-use std::cell::RefCell;
-use std::fmt::Display;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use nwd::NwgUi;
 use nwg::NativeUi;

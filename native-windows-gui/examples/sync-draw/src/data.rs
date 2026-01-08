@@ -1,9 +1,8 @@
-use std::sync::Arc;
-use std::thread;
+use std::{sync::Arc, thread};
+
 use winapi::shared::minwindef::DWORD;
 
-use crate::opengl_canvas::Texel;
-use crate::{SharedMemory, Win32Event, Win32EventWaitResult, nwg};
+use crate::{SharedMemory, Win32Event, Win32EventWaitResult, nwg, opengl_canvas::Texel};
 
 type Size = (u32, u32);
 
@@ -163,14 +162,14 @@ impl AppData {
 
     /// Collect the instances of SyncDraw running on the host
     fn collect_instances() -> Vec<DWORD> {
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-        use std::path::Path;
-        use std::{mem, ptr};
-        use winapi::um::handleapi::CloseHandle;
-        use winapi::um::processthreadsapi::{GetCurrentProcessId, OpenProcess};
-        use winapi::um::psapi::{EnumProcesses, GetModuleFileNameExW};
-        use winapi::um::winnt::{PROCESS_QUERY_INFORMATION, PROCESS_VM_READ, WCHAR};
+        use std::{ffi::OsString, mem, os::windows::ffi::OsStringExt, path::Path, ptr};
+
+        use winapi::um::{
+            handleapi::CloseHandle,
+            processthreadsapi::{GetCurrentProcessId, OpenProcess},
+            psapi::{EnumProcesses, GetModuleFileNameExW},
+            winnt::{PROCESS_QUERY_INFORMATION, PROCESS_VM_READ, WCHAR},
+        };
 
         const DWORD_SIZE: usize = mem::size_of::<DWORD>();
         const PROCESS_BUFFER_SIZE: usize = 1024;

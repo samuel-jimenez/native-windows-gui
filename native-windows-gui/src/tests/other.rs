@@ -1,5 +1,6 @@
-use crate::*;
 use std::cell::RefCell;
+
+use crate::*;
 
 #[derive(Default)]
 pub struct OtherTests {
@@ -9,10 +10,10 @@ pub struct OtherTests {
 }
 
 mod other_tests_ui {
+    use std::{ops::Deref, rc::Rc};
+
     use super::*;
     use crate::{NativeUi, NwgError};
-    use std::ops::Deref;
-    use std::rc::Rc;
 
     pub struct OtherTestsUi {
         inner: Rc<OtherTests>,

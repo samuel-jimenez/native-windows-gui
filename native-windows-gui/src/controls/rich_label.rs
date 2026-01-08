@@ -1,11 +1,12 @@
-use super::{CharFormat, ControlBase, ControlHandle, ParaFormat};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::richedit as rich;
-use crate::win32::window_helper as wh;
-use crate::{Font, HTextAlign, NwgError, RawEventHandler, unbind_raw_event_handler};
+use std::{cell::RefCell, ops::Range, rc::Rc};
+
 use winapi::um::winuser::{EM_SETSEL, ES_MULTILINE, WS_DISABLED, WS_VISIBLE};
 
-use std::{cell::RefCell, ops::Range, rc::Rc};
+use super::{CharFormat, ControlBase, ControlHandle, ParaFormat};
+use crate::{
+    Font, HTextAlign, NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, richedit as rich, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "RichLabel is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: RichLabel handle is not HWND!";
@@ -274,18 +275,18 @@ impl RichLabel {
 
     unsafe fn override_events(&self) {
         unsafe {
-            use crate::bind_raw_event_handler_inner;
             use std::{mem, ptr};
-            use winapi::shared::windef::{HBRUSH, POINT, RECT};
-            use winapi::um::winuser::{
-                COLOR_WINDOW, NCCALCSIZE_PARAMS, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER,
-                SWP_NOSIZE,
+
+            use winapi::{
+                shared::windef::{HBRUSH, POINT, RECT},
+                um::winuser::{
+                    COLOR_WINDOW, FillRect, GetClientRect, GetDC, GetWindowRect, NCCALCSIZE_PARAMS,
+                    ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+                    ScreenToClient, SetWindowPos, WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE,
+                },
             };
-            use winapi::um::winuser::{
-                FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-                SetWindowPos,
-            };
-            use winapi::um::winuser::{WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE};
+
+            use crate::bind_raw_event_handler_inner;
 
             let callback_line_height = self.line_height.clone();
 

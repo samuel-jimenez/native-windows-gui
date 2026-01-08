@@ -1,9 +1,11 @@
-use crate::win32::resources_helper as rh;
+use std::{ffi::OsString, fmt, ptr};
+
 use winapi::um::shobjidl::{IFileDialog, IFileOpenDialog};
 
-use crate::win32::base_helper::to_utf16;
-use crate::{ControlHandle, NwgError};
-use std::{ffi::OsString, fmt, ptr};
+use crate::{
+    ControlHandle, NwgError,
+    win32::{base_helper::to_utf16, resources_helper as rh},
+};
 
 /**
     A enum that dictates how a file dialog should behave

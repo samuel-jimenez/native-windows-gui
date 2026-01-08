@@ -1,29 +1,29 @@
-use winapi::ctypes::c_int;
-use winapi::shared::windef::{HBITMAP, HFONT};
-use winapi::um::winnt::HANDLE;
-
-use super::base_helper::{get_system_error, to_utf16};
-use crate::resources::OemImage;
-
-#[allow(unused_imports)]
-use crate::NwgError;
+#[cfg(feature = "file-dialog")]
+use std::ffi::OsString;
 #[allow(unused_imports)]
 use std::{mem, ptr};
 
-#[cfg(feature = "file-dialog")]
-use crate::resources::FileDialogAction;
-#[cfg(feature = "file-dialog")]
-use std::ffi::OsString;
 #[cfg(feature = "file-dialog")]
 use winapi::Interface;
 #[cfg(feature = "file-dialog")]
 use winapi::um::shobjidl::{IFileDialog, IFileOpenDialog};
 #[cfg(feature = "file-dialog")]
 use winapi::um::shobjidl_core::IShellItem;
+use winapi::{
+    ctypes::c_int,
+    shared::windef::{HBITMAP, HFONT},
+    um::winnt::HANDLE,
+};
+
+use super::base_helper::{get_system_error, to_utf16};
+#[allow(unused_imports)]
+use crate::NwgError;
+#[cfg(feature = "file-dialog")]
+use crate::resources::FileDialogAction;
+use crate::resources::OemImage;
 
 pub fn is_bitmap(handle: HBITMAP) -> bool {
-    use winapi::shared::minwindef::LPVOID;
-    use winapi::um::wingdi::GetBitmapBits;
+    use winapi::{shared::minwindef::LPVOID, um::wingdi::GetBitmapBits};
 
     let mut bits: [u8; 1] = [0; 1];
     unsafe { GetBitmapBits(handle, 1, &mut bits as *mut [u8; 1] as LPVOID) != 0 }
@@ -54,10 +54,9 @@ pub unsafe fn build_font(
     family_name: Option<&str>,
 ) -> Result<HFONT, NwgError> {
     unsafe {
-        use winapi::um::wingdi::CreateFontW;
         use winapi::um::wingdi::{
-            CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-            VARIABLE_PITCH,
+            CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS, CreateFontW, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, VARIABLE_PITCH,
         };
         let [use_italic, use_underline, use_strikeout] = style;
 
@@ -107,10 +106,9 @@ pub unsafe fn build_image<'a>(
     image_type: u32,
 ) -> Result<HANDLE, NwgError> {
     unsafe {
-        use winapi::um::winuser::LoadImageW;
         use winapi::um::winuser::{
             IDC_ARROW, IDI_ERROR, IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, LR_CREATEDIBSECTION,
-            LR_DEFAULTSIZE, LR_LOADFROMFILE, LR_SHARED,
+            LR_DEFAULTSIZE, LR_LOADFROMFILE, LR_SHARED, LoadImageW,
         };
 
         let filepath = to_utf16(source);
@@ -231,10 +229,11 @@ pub unsafe fn build_oem_image(
     size: Option<(u32, u32)>,
 ) -> Result<HANDLE, NwgError> {
     unsafe {
-        use winapi::shared::ntdef::LPCWSTR;
-        use winapi::um::winuser::LoadImageW;
-        use winapi::um::winuser::{
-            IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED,
+        use winapi::{
+            shared::ntdef::LPCWSTR,
+            um::winuser::{
+                IMAGE_BITMAP, IMAGE_CURSOR, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED, LoadImageW,
+            },
         };
 
         let (width, height) = size.unwrap_or((0, 0));
@@ -276,13 +275,17 @@ pub unsafe fn build_oem_image(
 */
 #[cfg(not(feature = "image-decoder"))]
 pub unsafe fn bitmap_from_memory(source: &[u8]) -> Result<HANDLE, NwgError> {
-    use winapi::ctypes::c_void;
-    use winapi::shared::{minwindef::DWORD, ntdef::LONG};
-    use winapi::um::wingdi::{
-        BI_RGB, BITMAPFILEHEADER, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap,
-        CreateCompatibleDC, DIB_RGB_COLORS, RGBQUAD, SetDIBits,
+    use winapi::{
+        ctypes::c_void,
+        shared::{minwindef::DWORD, ntdef::LONG},
+        um::{
+            wingdi::{
+                BI_RGB, BITMAPFILEHEADER, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap,
+                CreateCompatibleDC, DIB_RGB_COLORS, RGBQUAD, SetDIBits,
+            },
+            winuser::{GetDC, ReleaseDC},
+        },
     };
-    use winapi::um::winuser::{GetDC, ReleaseDC};
 
     // Check the header size requirement
     let fheader_size = mem::size_of::<BITMAPFILEHEADER>();
@@ -363,9 +366,13 @@ pub unsafe fn icon_from_memory(
     size: Option<(u32, u32)>,
 ) -> Result<HANDLE, NwgError> {
     unsafe {
-        use winapi::um::wingdi::DeleteObject;
-        use winapi::um::winuser::{CreateIconIndirect, LoadImageW};
-        use winapi::um::winuser::{ICONINFO, IDI_ERROR, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED};
+        use winapi::um::{
+            wingdi::DeleteObject,
+            winuser::{
+                CreateIconIndirect, ICONINFO, IDI_ERROR, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED,
+                LoadImageW,
+            },
+        };
 
         let color_bmp = build_image_decoder_from_memory(src, size);
         if color_bmp.is_err() {
@@ -440,11 +447,14 @@ pub unsafe fn create_file_dialog<'a, 'b>(
     filters: Option<String>,
 ) -> Result<*mut IFileDialog, NwgError> {
     unsafe {
-        use winapi::shared::minwindef::LPVOID;
-        use winapi::shared::{winerror::S_OK, wtypesbase::CLSCTX_INPROC_SERVER};
-        use winapi::um::combaseapi::CoCreateInstance;
-        use winapi::um::shobjidl::{FOS_ALLOWMULTISELECT, FOS_FORCEFILESYSTEM, FOS_PICKFOLDERS};
-        use winapi::um::shobjidl_core::{CLSID_FileOpenDialog, CLSID_FileSaveDialog};
+        use winapi::{
+            shared::{minwindef::LPVOID, winerror::S_OK, wtypesbase::CLSCTX_INPROC_SERVER},
+            um::{
+                combaseapi::CoCreateInstance,
+                shobjidl::{FOS_ALLOWMULTISELECT, FOS_FORCEFILESYSTEM, FOS_PICKFOLDERS},
+                shobjidl_core::{CLSID_FileOpenDialog, CLSID_FileSaveDialog},
+            },
+        };
 
         let (clsid, uuid) = match action {
             FileDialogAction::Save => (CLSID_FileSaveDialog, IFileDialog::uuidof()),
@@ -518,14 +528,15 @@ pub unsafe fn file_dialog_set_default_folder<'a>(
     folder_name: &'a str,
 ) -> Result<(), NwgError> {
     unsafe {
-        use winapi::ctypes::c_void;
-        use winapi::shared::{
-            guiddef::REFIID,
-            ntdef::{HRESULT, PCWSTR},
-            winerror::{S_FALSE, S_OK},
+        use winapi::{
+            ctypes::c_void,
+            shared::{
+                guiddef::REFIID,
+                ntdef::{HRESULT, PCWSTR},
+                winerror::{S_FALSE, S_OK},
+            },
+            um::{objidl::IBindCtx, shobjidl_core::SFGAOF},
         };
-        use winapi::um::objidl::IBindCtx;
-        use winapi::um::shobjidl_core::SFGAOF;
 
         const SFGAO_FOLDER: u32 = 0x20000000;
 
@@ -585,9 +596,10 @@ pub unsafe fn file_dialog_set_filters<'a>(
     filters: &'a str,
 ) -> Result<(), NwgError> {
     unsafe {
-        use winapi::shared::minwindef::UINT;
-        use winapi::shared::winerror::S_OK;
-        use winapi::um::shtypes::COMDLG_FILTERSPEC;
+        use winapi::{
+            shared::{minwindef::UINT, winerror::S_OK},
+            um::shtypes::COMDLG_FILTERSPEC,
+        };
 
         let mut raw_filters: Vec<COMDLG_FILTERSPEC> = Vec::with_capacity(3);
         let mut keep_alive: Vec<(Vec<u16>, Vec<u16>)> = Vec::with_capacity(3);
@@ -642,8 +654,10 @@ pub unsafe fn filedialog_get_items(
     dialog: &mut IFileOpenDialog,
 ) -> Result<Vec<OsString>, NwgError> {
     unsafe {
-        use winapi::shared::{minwindef::DWORD, winerror::S_OK};
-        use winapi::um::shobjidl::IShellItemArray;
+        use winapi::{
+            shared::{minwindef::DWORD, winerror::S_OK},
+            um::shobjidl::IShellItemArray,
+        };
 
         let mut _item: *mut IShellItem = ptr::null_mut();
         let mut _items: *mut IShellItemArray = ptr::null_mut();
@@ -674,11 +688,12 @@ pub unsafe fn filedialog_get_items(
 #[cfg(feature = "file-dialog")]
 unsafe fn get_ishellitem_path(item: &mut IShellItem) -> Result<OsString, NwgError> {
     unsafe {
+        use winapi::{
+            shared::{minwindef::LPVOID, ntdef::PWSTR, winerror::S_OK},
+            um::{combaseapi::CoTaskMemFree, shobjidl_core::SIGDN_FILESYSPATH},
+        };
+
         use super::base_helper::os_string_from_wide_ptr;
-        use winapi::shared::minwindef::LPVOID;
-        use winapi::shared::{ntdef::PWSTR, winerror::S_OK};
-        use winapi::um::combaseapi::CoTaskMemFree;
-        use winapi::um::shobjidl_core::SIGDN_FILESYSPATH;
 
         let mut item_path: PWSTR = ptr::null_mut();
         if item.GetDisplayName(SIGDN_FILESYSPATH, &mut item_path) != S_OK {

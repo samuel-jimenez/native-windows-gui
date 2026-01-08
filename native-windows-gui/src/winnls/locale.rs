@@ -1,11 +1,15 @@
-use super::*;
-use crate::NwgError;
-use crate::win32::base_helper::{from_utf16, to_utf16};
 use std::{mem, ptr};
-use winapi::um::winnls::{
-    GetLocaleInfoEx, GetSystemDefaultLocaleName, GetUserDefaultLocaleName, LCTYPE,
+
+use winapi::um::{
+    winnls::{GetLocaleInfoEx, GetSystemDefaultLocaleName, GetUserDefaultLocaleName, LCTYPE},
+    winnt::{LOCALE_NAME_MAX_LENGTH, LPWSTR},
 };
-use winapi::um::winnt::{LOCALE_NAME_MAX_LENGTH, LPWSTR};
+
+use super::*;
+use crate::{
+    NwgError,
+    win32::base_helper::{from_utf16, to_utf16},
+};
 
 /**
 Represent a Windows locale. Can be used to fetch a lot of information regarding the locale.
@@ -53,9 +57,12 @@ impl Locale {
 
     /// Return the identifier (ex: en-US) of every supported locales.
     pub fn all() -> Vec<String> {
+        use winapi::{
+            shared::minwindef::{BOOL, DWORD, LPARAM},
+            um::winnls::EnumSystemLocalesEx,
+        };
+
         use crate::win32::base_helper::from_wide_ptr;
-        use winapi::shared::minwindef::{BOOL, DWORD, LPARAM};
-        use winapi::um::winnls::EnumSystemLocalesEx;
 
         unsafe extern "system" fn enum_locales(locale: LPWSTR, _flags: DWORD, p: LPARAM) -> BOOL {
             unsafe {

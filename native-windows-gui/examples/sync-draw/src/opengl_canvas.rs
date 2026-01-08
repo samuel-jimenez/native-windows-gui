@@ -1,13 +1,13 @@
-use crate::gl;
-use crate::glutin::{
-    Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
-    os::windows::RawContextExt,
-};
-use crate::nwg;
+use std::{cell::RefCell, ffi::c_void, mem, ptr};
 
-use std::cell::RefCell;
-use std::ffi::c_void;
-use std::{mem, ptr};
+use crate::{
+    gl,
+    glutin::{
+        Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
+        os::windows::RawContextExt,
+    },
+    nwg,
+};
 
 /**
     A macro that loads the required opengl functions pointers.

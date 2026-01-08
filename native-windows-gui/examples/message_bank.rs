@@ -4,8 +4,9 @@
 */
 
 extern crate native_windows_gui as nwg;
-use nwg::NativeUi;
 use std::cell::RefCell;
+
+use nwg::NativeUi;
 
 #[derive(Default)]
 pub struct MessageBank {
@@ -72,11 +73,11 @@ impl MessageBank {
 // ALL of this stuff is handled by native-windows-derive
 //
 mod message_bank_ui {
-    use super::*;
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
+
     use native_windows_gui as nwg;
-    use std::cell::RefCell;
-    use std::ops::Deref;
-    use std::rc::Rc;
+
+    use super::*;
 
     pub struct MessageBankUi {
         inner: Rc<MessageBank>,

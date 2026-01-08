@@ -6,11 +6,12 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::time::Duration;
+
 use nwd::NwgUi;
 #[allow(unused, deprecated)]
 use nwg::{NativeUi, set_dpi_awareness};
 use plotters::prelude::*;
-use std::time::Duration;
 
 #[derive(Default, NwgUi)]
 pub struct HdpiPlottingExample {

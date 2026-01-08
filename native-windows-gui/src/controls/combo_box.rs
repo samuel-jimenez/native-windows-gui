@@ -1,13 +1,25 @@
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    fmt::Display,
+    mem,
+};
+
+use winapi::{
+    shared::{
+        minwindef::{LPARAM, WPARAM},
+        windef::HWND,
+    },
+    um::winuser::{CBS_DROPDOWNLIST, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+};
+
 use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler};
-use std::cell::{Ref, RefCell, RefMut};
-use std::fmt::Display;
-use std::mem;
-use winapi::shared::minwindef::{LPARAM, WPARAM};
-use winapi::shared::windef::HWND;
-use winapi::um::winuser::{CBS_DROPDOWNLIST, WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
+use crate::{
+    Font, NwgError, RawEventHandler, VTextAlign, unbind_raw_event_handler,
+    win32::{
+        base_helper::{check_hwnd, from_utf16, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "Combobox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Combobox handle is not HWND!";
@@ -157,8 +169,10 @@ impl<D: Display + Default> ComboBox<D> {
     /// Return the display value of the currently selected item
     /// Return `None` if no item is selected. This reads the visual value.
     pub fn selection_string(&self) -> Option<String> {
-        use winapi::shared::ntdef::WCHAR;
-        use winapi::um::winuser::{CB_ERR, CB_GETCURSEL, CB_GETLBTEXT, CB_GETLBTEXTLEN};
+        use winapi::{
+            shared::ntdef::WCHAR,
+            um::winuser::{CB_ERR, CB_GETCURSEL, CB_GETLBTEXT, CB_GETLBTEXTLEN},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -438,19 +452,22 @@ impl<D: Display + Default> ComboBox<D> {
     /// TODO: FIX VERTICAL CENTERING
     #[allow(unused)]
     fn hook_non_client_size(&self, bg: Option<[u8; 3]>, v_align: VTextAlign) {
-        use crate::bind_raw_event_handler_inner;
         use std::ptr;
-        use winapi::shared::windef::{HBRUSH, HGDIOBJ, POINT, RECT};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
-        use winapi::um::winuser::{
-            COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_NCCALCSIZE, WM_NCPAINT,
-            WM_SIZE,
+
+        use winapi::{
+            shared::windef::{HBRUSH, HGDIOBJ, POINT, RECT},
+            um::{
+                wingdi::{CreateSolidBrush, RGB, SelectObject},
+                winuser::{
+                    COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, GetClientRect, GetDC,
+                    GetWindowRect, NCCALCSIZE_PARAMS, ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE,
+                    SWP_NOOWNERZORDER, SWP_NOSIZE, ScreenToClient, SetWindowPos, WM_NCCALCSIZE,
+                    WM_NCPAINT, WM_SIZE,
+                },
+            },
         };
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-            SetWindowPos,
-        };
-        use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
+
+        use crate::bind_raw_event_handler_inner;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

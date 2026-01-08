@@ -1,7 +1,7 @@
-use super::{ControlBase, ControlHandle};
-use crate::NwgError;
-use crate::win32::menu as mh;
 use std::ptr;
+
+use super::{ControlBase, ControlHandle};
+use crate::{NwgError, win32::menu as mh};
 
 const NOT_BOUND: &'static str = "Menu/MenuItem is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Menu/MenuItem handle is not HMENU!";
@@ -144,8 +144,10 @@ impl Menu {
 
     /// Show a popup menu as the selected position. Do nothing for menubar menu.
     pub fn popup_with_flags(&self, x: i32, y: i32, flags: PopupMenuFlags) {
-        use winapi::ctypes::c_int;
-        use winapi::um::winuser::{SetForegroundWindow, TrackPopupMenu};
+        use winapi::{
+            ctypes::c_int,
+            um::winuser::{SetForegroundWindow, TrackPopupMenu},
+        };
 
         if self.handle.blank() {
             panic!("Menu is not bound");

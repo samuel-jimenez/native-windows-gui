@@ -1,5 +1,7 @@
-use syn::parse::{Parse, ParseBuffer, ParseStream};
-use syn::punctuated::Punctuated;
+use syn::{
+    parse::{Parse, ParseBuffer, ParseStream},
+    punctuated::Punctuated,
+};
 
 #[derive(Debug)]
 pub struct Param {

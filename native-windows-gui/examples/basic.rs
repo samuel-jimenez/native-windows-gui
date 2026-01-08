@@ -36,11 +36,11 @@ impl BasicApp {
 // ALL of this stuff is handled by native-windows-derive
 //
 mod basic_app_ui {
-    use super::*;
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
+
     use native_windows_gui as nwg;
-    use std::cell::RefCell;
-    use std::ops::Deref;
-    use std::rc::Rc;
+
+    use super::*;
 
     pub struct BasicAppUi {
         inner: Rc<BasicApp>,

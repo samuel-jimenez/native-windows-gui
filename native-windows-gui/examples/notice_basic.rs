@@ -6,12 +6,14 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::{
+    cell::RefCell,
+    sync::mpsc::{Receiver, channel},
+    thread,
+};
+
 use nwd::NwgUi;
 use nwg::NativeUi;
-
-use std::cell::RefCell;
-use std::sync::mpsc::{Receiver, channel};
-use std::thread;
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {

@@ -1,9 +1,12 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::cell::RefCell;
+
 use winapi::shared::minwindef::{LPARAM, WPARAM};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Font, NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "StatusBar is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: StatusBar handle is not HWND!";
@@ -53,8 +56,7 @@ impl StatusBar {
 
     /// Set the minimum height of the statusbar (in pixels)
     pub fn set_min_height(&self, height: u32) {
-        use winapi::um::commctrl::SB_SETMINHEIGHT;
-        use winapi::um::winuser::WM_SIZE;
+        use winapi::um::{commctrl::SB_SETMINHEIGHT, winuser::WM_SIZE};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, SB_SETMINHEIGHT, height as WPARAM, 0);
@@ -84,9 +86,12 @@ impl StatusBar {
 
     /// Return the text in one of the region of the status bar
     pub fn text<'a>(&self, index: u8) -> String {
+        use winapi::{
+            shared::minwindef::LOWORD,
+            um::commctrl::{SB_GETTEXTLENGTHW, SB_GETTEXTW},
+        };
+
         use crate::win32::base_helper::from_utf16;
-        use winapi::shared::minwindef::LOWORD;
-        use winapi::um::commctrl::{SB_GETTEXTLENGTHW, SB_GETTEXTW};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let result = wh::send_message(handle, SB_GETTEXTLENGTHW, index as WPARAM, 0);
@@ -109,8 +114,9 @@ impl StatusBar {
 
     /// Set the text in one of the region of the status bar
     pub fn set_text<'a>(&self, index: u8, text: &'a str) {
-        use crate::win32::base_helper::to_utf16;
         use winapi::um::commctrl::SB_SETTEXTW;
+
+        use crate::win32::base_helper::to_utf16;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let text = to_utf16(text);
@@ -142,8 +148,9 @@ impl StatusBar {
     /// Status bar do not resize automatically. Instead, a resize message must be
     /// manually sent by the parent window to trigger the resize action.
     pub fn hook_parent_resize(&self) {
-        use crate::bind_raw_event_handler_inner;
         use winapi::um::winuser::WM_SIZE;
+
+        use crate::bind_raw_event_handler_inner;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

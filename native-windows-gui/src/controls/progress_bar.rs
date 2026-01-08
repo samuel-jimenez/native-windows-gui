@@ -3,13 +3,18 @@ A push button is a rectangle containing an application-defined text label, an ic
 that indicates what the button does when the user selects it.
 */
 
-use super::{ControlBase, ControlHandle};
-use crate::NwgError;
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
 use std::ops::Range;
-use winapi::um::commctrl::{PBS_MARQUEE, PBS_VERTICAL};
-use winapi::um::winuser::{WS_DISABLED, WS_VISIBLE};
+
+use winapi::um::{
+    commctrl::{PBS_MARQUEE, PBS_VERTICAL},
+    winuser::{WS_DISABLED, WS_VISIBLE},
+};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    NwgError,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Progress bar is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Progress bar handle is not HWND!";
@@ -106,8 +111,10 @@ impl ProgressBar {
 
     /// Set the state of the progress bar
     pub fn set_state(&self, state: ProgressBarState) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::commctrl::{PBM_SETSTATE, PBST_ERROR, PBST_NORMAL, PBST_PAUSED};
+        use winapi::{
+            shared::minwindef::WPARAM,
+            um::commctrl::{PBM_SETSTATE, PBST_ERROR, PBST_NORMAL, PBST_PAUSED},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -130,8 +137,7 @@ impl ProgressBar {
 
     /// Increase the bar value by a value
     pub fn advance_delta(&self, v: u32) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::commctrl::PBM_DELTAPOS;
+        use winapi::{shared::minwindef::WPARAM, um::commctrl::PBM_DELTAPOS};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, PBM_DELTAPOS, v as WPARAM, 0);
@@ -147,8 +153,7 @@ impl ProgressBar {
 
     /// Set the step of the progress bar.
     pub fn set_step(&self, s: u32) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::commctrl::PBM_SETSTEP;
+        use winapi::{shared::minwindef::WPARAM, um::commctrl::PBM_SETSTEP};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, PBM_SETSTEP, s as WPARAM, 0);
@@ -165,8 +170,7 @@ impl ProgressBar {
     /// Set the position of the progress bar. If the value is outside of range
     /// sets the value to the nearest bound.
     pub fn set_pos(&self, p: u32) {
-        use winapi::shared::minwindef::WPARAM;
-        use winapi::um::commctrl::PBM_SETPOS;
+        use winapi::{shared::minwindef::WPARAM, um::commctrl::PBM_SETPOS};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, PBM_SETPOS, p as WPARAM, 0);
@@ -186,8 +190,10 @@ impl ProgressBar {
 
     /// Set the range of the progress bar
     pub fn set_range(&self, range: Range<u32>) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::commctrl::PBM_SETRANGE32;
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::commctrl::PBM_SETRANGE32,
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(
@@ -200,8 +206,10 @@ impl ProgressBar {
 
     /// Set the progress bar marquee mode
     pub fn set_marquee(&self, enable: bool, update_interval: u32) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::um::commctrl::PBM_SETMARQUEE;
+        use winapi::{
+            shared::minwindef::{LPARAM, WPARAM},
+            um::commctrl::PBM_SETMARQUEE,
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(

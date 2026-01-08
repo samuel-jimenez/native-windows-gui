@@ -3,8 +3,7 @@ extern crate proc_macro2 as pm2;
 
 #[macro_use]
 extern crate syn;
-use syn::punctuated::Punctuated;
-use syn::{DeriveInput, GenericParam, LifetimeDef, TypeParam};
+use syn::{DeriveInput, GenericParam, LifetimeDef, TypeParam, punctuated::Punctuated};
 
 #[macro_use]
 extern crate quote;

@@ -1,20 +1,29 @@
 //! winapi-rs does not implements richedit.h, so here's the low level stuff
 //! implemented here instead of in rich_text_box because it's kind of messy
-use crate::controls::{
-    CharEffects, CharFormat, ParaAlignment, ParaFormat, ParaLineSpacing, ParaNumbering,
-    ParaNumberingStyle, UnderlineType,
+use std::{convert::TryFrom, mem, ptr};
+
+use winapi::{
+    shared::{
+        minwindef::{BYTE, DWORD, UINT, WORD},
+        ntdef::{LCID, LONG, SHORT},
+        windef::{COLORREF, HWND},
+    },
+    um::{
+        wingdi::{LF_FACESIZE, RGB},
+        winuser::WM_USER,
+    },
 };
-use crate::win32::base_helper::{from_utf16, to_utf16};
-use crate::win32::window_helper as wh;
-use std::convert::TryFrom;
-use std::{mem, ptr};
-use winapi::shared::{
-    minwindef::{BYTE, DWORD, UINT, WORD},
-    ntdef::{LCID, LONG, SHORT},
-    windef::{COLORREF, HWND},
+
+use crate::{
+    controls::{
+        CharEffects, CharFormat, ParaAlignment, ParaFormat, ParaLineSpacing, ParaNumbering,
+        ParaNumberingStyle, UnderlineType,
+    },
+    win32::{
+        base_helper::{from_utf16, to_utf16},
+        window_helper as wh,
+    },
 };
-use winapi::um::wingdi::{LF_FACESIZE, RGB};
-use winapi::um::winuser::WM_USER;
 
 pub const EM_SETBKGNDCOLOR: u32 = WM_USER + 67;
 

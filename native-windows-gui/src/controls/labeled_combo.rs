@@ -1,11 +1,15 @@
+use std::{
+    cell::{Ref, RefMut},
+    cmp::max,
+    fmt::Display,
+};
+
+use taffy::{Dimension, Size};
+
 use super::ControlHandle;
 use crate::{
     ComboBox, ComboBoxFlags, FlexboxLayout, Font, HTextAlign, Label, NwgError, VTextAlign,
 };
-use std::cell::{Ref, RefMut};
-use std::cmp::max;
-use std::fmt::Display;
-use taffy::{Dimension, Size};
 
 /**
 A labeled combobox is a combobox control with included label.

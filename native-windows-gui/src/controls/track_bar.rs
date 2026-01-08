@@ -1,20 +1,24 @@
+use std::{cell::RefCell, ops::Range};
+
+use winapi::{
+    shared::{
+        minwindef::{LPARAM, WPARAM},
+        windef::HBRUSH,
+    },
+    um::{
+        commctrl::{
+            TBS_AUTOTICKS, TBS_BOTTOM, TBS_ENABLESELRANGE, TBS_HORZ, TBS_LEFT, TBS_NOTICKS,
+            TBS_RIGHT, TBS_TOP, TBS_VERT,
+        },
+        wingdi::DeleteObject,
+        winuser::{WS_TABSTOP, WS_VISIBLE},
+    },
+};
+
 use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{NwgError, RawEventHandler};
-use std::cell::RefCell;
-use std::ops::Range;
-use winapi::shared::{
-    minwindef::{LPARAM, WPARAM},
-    windef::HBRUSH,
-};
-use winapi::um::commctrl::{
-    TBS_AUTOTICKS, TBS_BOTTOM, TBS_ENABLESELRANGE, TBS_HORZ, TBS_LEFT, TBS_NOTICKS, TBS_RIGHT,
-    TBS_TOP, TBS_VERT,
-};
-use winapi::um::{
-    wingdi::DeleteObject,
-    winuser::{WS_TABSTOP, WS_VISIBLE},
+use crate::{
+    NwgError, RawEventHandler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
 const NOT_BOUND: &'static str = "TrackBar is not yet bound to a winapi object";
@@ -276,10 +280,15 @@ impl TrackBar {
 
     /// Change the label background color to transparent.
     fn hook_background_color(&mut self, c: [u8; 3]) {
+        use winapi::{
+            shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND},
+            um::{
+                wingdi::{CreateSolidBrush, RGB},
+                winuser::WM_CTLCOLORSTATIC,
+            },
+        };
+
         use crate::bind_raw_event_handler_inner;
-        use winapi::shared::{basetsd::UINT_PTR, minwindef::LRESULT, windef::HWND};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB};
-        use winapi::um::winuser::WM_CTLCOLORSTATIC;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

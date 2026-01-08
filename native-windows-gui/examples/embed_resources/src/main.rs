@@ -8,9 +8,10 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::cell::RefCell;
+
 use nwd::NwgUi;
 use nwg::NativeUi;
-use std::cell::RefCell;
 
 #[derive(Default, NwgUi)]
 pub struct EmbedApp {

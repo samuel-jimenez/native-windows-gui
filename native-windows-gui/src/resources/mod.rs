@@ -23,27 +23,21 @@ mod image_list;
 mod embed;
 
 pub use bitmap::{Bitmap, BitmapBuilder};
+#[cfg(feature = "color-dialog")]
+pub use color_dialog::{ColorDialog, ColorDialogBuilder};
 pub use cursor::{Cursor, CursorBuilder};
+#[cfg(feature = "embed-resource")]
+pub use embed::*;
+#[cfg(feature = "file-dialog")]
+pub use file_dialog::{FileDialog, FileDialogAction, FileDialogBuilder};
 pub use font::{Font, FontBuilder, FontInfo, MemFont};
+#[cfg(feature = "font-dialog")]
+pub use font_dialog::{FontDialog, FontDialogBuilder};
 pub use icon::{Icon, IconBuilder};
-pub use system_images::*;
-
 #[cfg(feature = "image-decoder")]
 pub use image_decoder::{
     ContainerFormat, ImageData, ImageDecoder, ImageDecoderBuilder, ImageSource,
 };
-
-#[cfg(feature = "file-dialog")]
-pub use file_dialog::{FileDialog, FileDialogAction, FileDialogBuilder};
-
-#[cfg(feature = "color-dialog")]
-pub use color_dialog::{ColorDialog, ColorDialogBuilder};
-
-#[cfg(feature = "font-dialog")]
-pub use font_dialog::{FontDialog, FontDialogBuilder};
-
 #[cfg(feature = "image-list")]
 pub use image_list::{ImageList, ImageListBuilder};
-
-#[cfg(feature = "embed-resource")]
-pub use embed::*;
+pub use system_images::*;

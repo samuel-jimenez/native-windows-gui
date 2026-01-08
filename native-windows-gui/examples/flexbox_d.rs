@@ -8,15 +8,17 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::NativeUi;
+use nwg::{
+    NativeUi,
+    taffy::{
+        LengthPercentage, LengthPercentageAuto,
+        geometry::{Rect, Size},
+        style::{AlignSelf, Dimension, FlexDirection},
+        style_helpers::{auto, length, percent},
+    },
+};
 
 // Flexbox style
-use nwg::taffy::{LengthPercentage, LengthPercentageAuto};
-use nwg::taffy::{
-    geometry::{Rect, Size},
-    style::{AlignSelf, Dimension, FlexDirection},
-    style_helpers::{auto, length, percent},
-};
 const FIFTY_PC: Dimension = Dimension::percent(0.5);
 const PT_10: LengthPercentage = LengthPercentage::length(10.0);
 const PT_5: LengthPercentageAuto = LengthPercentageAuto::length(5.0);

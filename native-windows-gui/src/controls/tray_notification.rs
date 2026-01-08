@@ -1,13 +1,15 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::to_utf16;
-use crate::win32::window_helper as wh;
-use crate::{Icon, NwgError};
 use std::{mem, ptr};
+
 use winapi::um::shellapi::{
     NIIF_ERROR, NIIF_INFO, NIIF_LARGE_ICON, NIIF_NONE, NIIF_NOSOUND, NIIF_RESPECT_QUIET_TIME,
-    NIIF_USER, NIIF_WARNING,
+    NIIF_USER, NIIF_WARNING, NOTIFYICONDATAW, Shell_NotifyIconW,
 };
-use winapi::um::shellapi::{NOTIFYICONDATAW, Shell_NotifyIconW};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Icon, NwgError,
+    win32::{base_helper::to_utf16, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "TrayNotification is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TrayNotification handle is not HWND!";
@@ -164,8 +166,10 @@ impl TrayNotification {
 
     /// Update the icon in the system tray
     pub fn set_icon(&self, icon: &Icon) {
-        use winapi::shared::windef::HICON;
-        use winapi::um::shellapi::{NIF_ICON, NIM_MODIFY};
+        use winapi::{
+            shared::windef::HICON,
+            um::shellapi::{NIF_ICON, NIM_MODIFY},
+        };
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);
@@ -198,8 +202,10 @@ impl TrayNotification {
         flags: Option<TrayNotificationFlags>,
         icon: Option<&'a Icon>,
     ) {
-        use winapi::shared::windef::HICON;
-        use winapi::um::shellapi::{NIF_INFO, NIM_MODIFY};
+        use winapi::{
+            shared::windef::HICON,
+            um::shellapi::{NIF_INFO, NIM_MODIFY},
+        };
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);
@@ -355,12 +361,16 @@ impl<'a> TrayNotificationBuilder<'a> {
     }
 
     pub fn build(self, out: &mut TrayNotification) -> Result<(), NwgError> {
-        use winapi::shared::windef::HICON;
-        use winapi::um::shellapi::{
-            NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_REALTIME, NIF_SHOWTIP, NIF_STATE, NIF_TIP,
-            NIM_ADD, NIS_HIDDEN, NOTIFYICON_VERSION_4, NOTIFYICONDATAW_u,
+        use winapi::{
+            shared::windef::HICON,
+            um::{
+                shellapi::{
+                    NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_REALTIME, NIF_SHOWTIP, NIF_STATE, NIF_TIP,
+                    NIM_ADD, NIS_HIDDEN, NOTIFYICON_VERSION_4, NOTIFYICONDATAW_u,
+                },
+                winnt::WCHAR,
+            },
         };
-        use winapi::um::winnt::WCHAR;
 
         // Flags
         let version = NOTIFYICON_VERSION_4;

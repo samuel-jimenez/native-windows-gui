@@ -1,13 +1,14 @@
-use super::ControlHandle;
-use crate::NwgError;
-use crate::win32::window::{build_hwnd_control, build_notice, build_timer};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::windef::HWND;
-
-#[cfg(feature = "menu")]
-use crate::win32::menu::build_hmenu_control;
 #[cfg(feature = "menu")]
 use winapi::shared::windef::HMENU;
+use winapi::shared::{minwindef::DWORD, windef::HWND};
+
+use super::ControlHandle;
+#[cfg(feature = "menu")]
+use crate::win32::menu::build_hmenu_control;
+use crate::{
+    NwgError,
+    win32::window::{build_hwnd_control, build_notice, build_timer},
+};
 
 const NOTICE: u32 = 1;
 const TRAY: u32 = 2;

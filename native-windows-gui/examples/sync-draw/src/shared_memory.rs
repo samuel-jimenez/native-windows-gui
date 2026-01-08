@@ -1,10 +1,15 @@
-use crate::opengl_canvas::Texel;
 use std::{mem, ptr};
-use winapi::shared::basetsd::SIZE_T;
-use winapi::shared::minwindef::DWORD;
-use winapi::um::handleapi::CloseHandle;
-use winapi::um::memoryapi::{FILE_MAP_ALL_ACCESS, MapViewOfFile, UnmapViewOfFile};
-use winapi::um::winnt::{HANDLE, WCHAR};
+
+use winapi::{
+    shared::{basetsd::SIZE_T, minwindef::DWORD},
+    um::{
+        handleapi::CloseHandle,
+        memoryapi::{FILE_MAP_ALL_ACCESS, MapViewOfFile, UnmapViewOfFile},
+        winnt::{HANDLE, WCHAR},
+    },
+};
+
+use crate::opengl_canvas::Texel;
 
 const NAME: &'static str = "SyncDraw_Shared_Memory";
 const HEADER_SIZE: SIZE_T = mem::size_of::<SharedHeader>() as SIZE_T;
@@ -44,9 +49,9 @@ pub struct SharedMemory {
 impl SharedMemory {
     /// Try to create a new shared memory region
     pub fn new() -> SharedMemory {
-        use winapi::um::handleapi::INVALID_HANDLE_VALUE;
-        use winapi::um::memoryapi::CreateFileMappingW;
-        use winapi::um::winnt::PAGE_READWRITE;
+        use winapi::um::{
+            handleapi::INVALID_HANDLE_VALUE, memoryapi::CreateFileMappingW, winnt::PAGE_READWRITE,
+        };
 
         let handle = unsafe {
             let name = SharedMemory::name();
@@ -236,8 +241,7 @@ impl SharedMemory {
 
     /// Returns the name of the shared memory encoded in utf16
     fn name() -> Vec<WCHAR> {
-        use std::ffi::OsStr;
-        use std::os::windows::ffi::OsStrExt;
+        use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
 
         OsStr::new(NAME)
             .encode_wide()

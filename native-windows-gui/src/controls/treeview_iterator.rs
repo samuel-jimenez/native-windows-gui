@@ -1,7 +1,9 @@
-use crate::win32::window_helper as wh;
-use crate::{TreeItem, TreeView};
-use winapi::shared::windef::HWND;
-use winapi::um::commctrl::{HTREEITEM, TVGN_CHILD, TVGN_NEXT, TVGN_PARENT, TVGN_ROOT};
+use winapi::{
+    shared::windef::HWND,
+    um::commctrl::{HTREEITEM, TVGN_CHILD, TVGN_NEXT, TVGN_PARENT, TVGN_ROOT},
+};
+
+use crate::{TreeItem, TreeView, win32::window_helper as wh};
 
 #[derive(Copy, Clone)]
 #[repr(usize)]
@@ -100,8 +102,10 @@ impl<'a> Iterator for TreeViewIterator<'a> {
 }
 
 fn next_item(tree: HWND, action: NextAction, handle: HTREEITEM) -> Option<TreeItem> {
-    use winapi::shared::minwindef::{LPARAM, WPARAM};
-    use winapi::um::commctrl::TVM_GETNEXTITEM;
+    use winapi::{
+        shared::minwindef::{LPARAM, WPARAM},
+        um::commctrl::TVM_GETNEXTITEM,
+    };
 
     let handle =
         wh::send_message(tree, TVM_GETNEXTITEM, action as WPARAM, handle as LPARAM) as HTREEITEM;

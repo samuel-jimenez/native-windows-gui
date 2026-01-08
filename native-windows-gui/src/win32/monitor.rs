@@ -1,10 +1,14 @@
-use crate::ControlHandle;
 use std::mem;
-use winapi::shared::windef::HWND;
-use winapi::um::winuser::{
-    GetMonitorInfoW, GetSystemMetrics, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromWindow,
-    SM_CXSCREEN, SM_CXVIRTUALSCREEN, SM_CYSCREEN, SM_CYVIRTUALSCREEN,
+
+use winapi::{
+    shared::windef::HWND,
+    um::winuser::{
+        GetMonitorInfoW, GetSystemMetrics, MONITOR_DEFAULTTONEAREST, MONITORINFO,
+        MonitorFromWindow, SM_CXSCREEN, SM_CXVIRTUALSCREEN, SM_CYSCREEN, SM_CYVIRTUALSCREEN,
+    },
 };
+
+use crate::ControlHandle;
 
 /**
     Expose basic properties of the monitor(s) on the system and the virtual screen.

@@ -1,10 +1,14 @@
 use std::ptr;
-use winapi::shared::winerror::WAIT_TIMEOUT;
-use winapi::um::handleapi::CloseHandle;
-use winapi::um::synchapi::{CreateEventW, OpenEventW, SetEvent, WaitForSingleObject};
-use winapi::um::winbase::{WAIT_FAILED, WAIT_OBJECT_0};
-use winapi::um::winnt::HANDLE;
-use winapi::um::winnt::{EVENT_MODIFY_STATE, SYNCHRONIZE};
+
+use winapi::{
+    shared::winerror::WAIT_TIMEOUT,
+    um::{
+        handleapi::CloseHandle,
+        synchapi::{CreateEventW, OpenEventW, SetEvent, WaitForSingleObject},
+        winbase::{WAIT_FAILED, WAIT_OBJECT_0},
+        winnt::{EVENT_MODIFY_STATE, HANDLE, SYNCHRONIZE},
+    },
+};
 
 pub enum Win32EventWaitResult {
     Signaled,
@@ -70,8 +74,7 @@ impl Default for Win32Event {
 }
 
 fn to_utf16(s: &str) -> Vec<u16> {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
+    use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
 
     OsStr::new(s)
         .encode_wide()

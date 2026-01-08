@@ -468,10 +468,15 @@ impl EventData {
 //
 
 use std::fmt;
-use winapi::shared::windef::{HWND, POINT};
-use winapi::um::commctrl::NMTTDISPINFOW;
-use winapi::um::shellapi::{DragFinish, HDROP};
-use winapi::um::winuser::{BeginPaint, EndPaint, MINMAXINFO, PAINTSTRUCT};
+
+use winapi::{
+    shared::windef::{HWND, POINT},
+    um::{
+        commctrl::NMTTDISPINFOW,
+        shellapi::{DragFinish, HDROP},
+        winuser::{BeginPaint, EndPaint, MINMAXINFO, PAINTSTRUCT},
+    },
+};
 
 /// A wrapper structure that sets the tooltip text on an `OnTooltipText` callback
 pub struct ToolTipTextData {
@@ -499,8 +504,9 @@ impl ToolTipTextData {
     /// WINAPI does not easily allow tooltips with more than 79 characters (80 with NULL)
     /// With a text > 79 characters, this method will do nothing.
     pub fn set_text<'b>(&self, text: &'b str) {
-        use crate::win32::base_helper::to_utf16;
         use std::ptr;
+
+        use crate::win32::base_helper::to_utf16;
 
         let text_len = text.len();
         if text_len > 79 {
@@ -517,6 +523,7 @@ impl ToolTipTextData {
 
     fn clear(&self) {
         use std::{mem, ptr};
+
         use winapi::um::winnt::WCHAR;
 
         unsafe {
@@ -598,6 +605,7 @@ impl DropFiles {
     /// Return the number of files dropped
     pub fn len(&self) -> usize {
         use std::ptr;
+
         use winapi::um::shellapi::DragQueryFileW;
 
         unsafe { DragQueryFileW(self.drop, 0xFFFFFFFF, ptr::null_mut(), 0) as usize }
@@ -605,9 +613,11 @@ impl DropFiles {
 
     /// Return the files path dropped into the app
     pub fn files(&self) -> Vec<String> {
-        use crate::win32::base_helper::from_utf16;
         use std::ptr;
+
         use winapi::um::shellapi::DragQueryFileW;
+
+        use crate::win32::base_helper::from_utf16;
 
         let len = self.len();
         let mut files = Vec::with_capacity(len);

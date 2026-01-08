@@ -6,14 +6,14 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
-use nwd::NwgUi;
-use nwg::NativeUi;
-use nwg::taffy::prelude::*;
-use plotters::prelude::*;
 use std::{
     cell::RefCell,
     time::{Duration, Instant},
 };
+
+use nwd::NwgUi;
+use nwg::{NativeUi, taffy::prelude::*};
+use plotters::prelude::*;
 
 const EXAMPLES: &[&str] = &[
     "Simple",

@@ -1,7 +1,8 @@
 extern crate native_windows_gui as nwg;
 
-use nwg::{NativeUi, PartialUi};
 use std::{cell::RefCell, ops::Deref, rc::Rc};
+
+use nwg::{NativeUi, PartialUi};
 
 #[derive(Default)]
 pub struct MainUi {

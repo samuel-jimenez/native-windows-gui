@@ -1,6 +1,8 @@
 use super::control_handle::ControlHandle;
-use crate::NwgError;
-use crate::win32::{window::build_notice, window_helper as wh};
+use crate::{
+    NwgError,
+    win32::{window::build_notice, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Notice is not yet bound to a winapi object";
 const UNUSABLE_NOTICE: &'static str = "Notice parent window was freed";
@@ -129,9 +131,13 @@ pub struct NoticeSender {
 impl NoticeSender {
     /// Send a message to the thread of the parent `Notice`
     pub fn notice(&self) {
-        use winapi::shared::minwindef::{LPARAM, WPARAM};
-        use winapi::shared::windef::HWND;
-        use winapi::um::winuser::SendNotifyMessageW;
+        use winapi::{
+            shared::{
+                minwindef::{LPARAM, WPARAM},
+                windef::HWND,
+            },
+            um::winuser::SendNotifyMessageW,
+        };
 
         unsafe {
             SendNotifyMessageW(

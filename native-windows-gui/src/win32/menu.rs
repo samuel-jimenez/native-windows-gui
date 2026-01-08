@@ -1,14 +1,19 @@
 /*!
 Native Windows GUI menu base.
 */
+use std::{
+    mem, ptr,
+    sync::atomic::{AtomicU32, Ordering},
+};
+
+use winapi::shared::{
+    basetsd::UINT_PTR,
+    minwindef::UINT,
+    windef::{HMENU, HWND},
+};
+
 use super::base_helper::{CUSTOM_ID_BEGIN, to_utf16};
-use crate::NwgError;
-use crate::controls::ControlHandle;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::{mem, ptr};
-use winapi::shared::basetsd::UINT_PTR;
-use winapi::shared::minwindef::UINT;
-use winapi::shared::windef::{HMENU, HWND};
+use crate::{NwgError, controls::ControlHandle};
 
 static MENU_ITEMS_ID: AtomicU32 = AtomicU32::new(CUSTOM_ID_BEGIN);
 
@@ -23,9 +28,9 @@ pub unsafe fn build_hmenu_control(
 ) -> Result<ControlHandle, NwgError> {
     unsafe {
         use winapi::um::winuser::{
-            AppendMenuW, CreateMenu, CreatePopupMenu, DrawMenuBar, GetMenu, SetMenu,
+            AppendMenuW, CreateMenu, CreatePopupMenu, DrawMenuBar, GetMenu, MF_POPUP, MF_STRING,
+            SetMenu,
         };
-        use winapi::um::winuser::{MF_POPUP, MF_STRING};
 
         if separator {
             if hmenu.is_none() {
@@ -117,9 +122,13 @@ pub unsafe fn build_hmenu_control(
 */
 pub unsafe fn enable_menuitem(h: HMENU, pos: Option<UINT>, id: Option<UINT>, enabled: bool) {
     unsafe {
-        use winapi::shared::minwindef::BOOL;
-        use winapi::um::winuser::{GetMenuItemCount, SetMenuItemInfoW};
-        use winapi::um::winuser::{MENUITEMINFOW, MFS_DISABLED, MFS_ENABLED, MIIM_STATE};
+        use winapi::{
+            shared::minwindef::BOOL,
+            um::winuser::{
+                GetMenuItemCount, MENUITEMINFOW, MFS_DISABLED, MFS_ENABLED, MIIM_STATE,
+                SetMenuItemInfoW,
+            },
+        };
 
         let use_position = id.is_none();
         let choice = if use_position { pos } else { id };
@@ -157,9 +166,10 @@ pub unsafe fn enable_menuitem(h: HMENU, pos: Option<UINT>, id: Option<UINT>, ena
 */
 pub unsafe fn is_menuitem_enabled(h: HMENU, pos: Option<UINT>, id: Option<UINT>) -> bool {
     unsafe {
-        use winapi::shared::minwindef::BOOL;
-        use winapi::um::winuser::GetMenuItemInfoW;
-        use winapi::um::winuser::{MENUITEMINFOW, MFS_DISABLED, MIIM_STATE};
+        use winapi::{
+            shared::minwindef::BOOL,
+            um::winuser::{GetMenuItemInfoW, MENUITEMINFOW, MFS_DISABLED, MIIM_STATE},
+        };
 
         if id.is_none() && pos.is_none() {
             panic!("Both pos and id are None");
@@ -231,9 +241,13 @@ pub unsafe fn menu_item_checked(parent_menu: HMENU, id: u32) -> bool {
 
 unsafe fn build_hmenu_separator(menu: HMENU) -> ControlHandle {
     unsafe {
-        use winapi::shared::minwindef::BOOL;
-        use winapi::um::winuser::{AppendMenuW, GetMenuItemCount, SetMenuItemInfoW};
-        use winapi::um::winuser::{MENUITEMINFOW, MF_SEPARATOR, MIIM_ID};
+        use winapi::{
+            shared::minwindef::BOOL,
+            um::winuser::{
+                AppendMenuW, GetMenuItemCount, MENUITEMINFOW, MF_SEPARATOR, MIIM_ID,
+                SetMenuItemInfoW,
+            },
+        };
 
         let item_id = MENU_ITEMS_ID.fetch_add(1, Ordering::SeqCst);
 
@@ -269,8 +283,10 @@ unsafe fn build_hmenu_separator(menu: HMENU) -> ControlHandle {
 */
 unsafe fn use_menu_command(h: HMENU) {
     unsafe {
-        use winapi::shared::minwindef::DWORD;
-        use winapi::um::winuser::{MENUINFO, MIM_STYLE, MNS_NOTIFYBYPOS, SetMenuInfo};
+        use winapi::{
+            shared::minwindef::DWORD,
+            um::winuser::{MENUINFO, MIM_STYLE, MNS_NOTIFYBYPOS, SetMenuInfo},
+        };
 
         let mut info = MENUINFO {
             cbSize: mem::size_of::<MENUINFO>() as DWORD,

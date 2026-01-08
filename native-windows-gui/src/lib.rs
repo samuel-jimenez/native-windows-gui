@@ -21,29 +21,24 @@ mod common_types;
 pub use common_types::*;
 
 pub(crate) mod win32;
+#[cfg(feature = "clipboard")]
+pub use win32::clipboard::{Clipboard, ClipboardData, ClipboardFormat};
+#[cfg(feature = "cursor")]
+pub use win32::cursor::GlobalCursor;
+#[allow(deprecated)]
+pub use win32::high_dpi::{dpi, scale_factor, set_dpi_awareness};
+pub(crate) use win32::window::bind_raw_event_handler_inner;
 pub use win32::{
     dispatch_thread_events, dispatch_thread_events_with_callback, enable_visual_styles,
     init_common_controls,
     message_box::*,
+    monitor::Monitor,
     stop_thread_dispatch,
     window::{
         EventHandler, RawEventHandler, bind_event_handler, bind_raw_event_handler,
         full_bind_event_handler, has_raw_handler, unbind_event_handler, unbind_raw_event_handler,
     },
 };
-
-pub(crate) use win32::window::bind_raw_event_handler_inner;
-
-#[allow(deprecated)]
-pub use win32::high_dpi::{dpi, scale_factor, set_dpi_awareness};
-
-pub use win32::monitor::Monitor;
-
-#[cfg(feature = "cursor")]
-pub use win32::cursor::GlobalCursor;
-
-#[cfg(feature = "clipboard")]
-pub use win32::clipboard::{Clipboard, ClipboardData, ClipboardFormat};
 
 mod resources;
 pub use resources::*;

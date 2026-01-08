@@ -1,6 +1,8 @@
-use crate::*;
 use std::cell::RefCell;
+
 use winapi::um::winuser::WM_LBUTTONUP;
+
+use crate::*;
 
 struct MessageBoxOnDrop {}
 

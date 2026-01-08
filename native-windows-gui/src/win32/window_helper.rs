@@ -1,13 +1,20 @@
-use super::base_helper::{from_utf16, to_utf16};
-use super::high_dpi;
 use std::{mem, ptr};
-use winapi::ctypes::c_int;
-use winapi::shared::minwindef::{LPARAM, LRESULT, UINT, WPARAM};
-use winapi::shared::windef::{HFONT, HMENU, HWND};
-use winapi::um::winuser::WM_USER;
 
 #[cfg(feature = "rich-textbox")]
 use winapi::um::winuser::WNDCLASSEXW;
+use winapi::{
+    ctypes::c_int,
+    shared::{
+        minwindef::{LPARAM, LRESULT, UINT, WPARAM},
+        windef::{HFONT, HMENU, HWND},
+    },
+    um::winuser::WM_USER,
+};
+
+use super::{
+    base_helper::{from_utf16, to_utf16},
+    high_dpi,
+};
 
 pub const NOTICE_MESSAGE: UINT = WM_USER + 100;
 pub const NWG_INIT: UINT = WM_USER + 101;
@@ -18,9 +25,13 @@ pub const NWG_TIMER_STOP: UINT = WM_USER + 104;
 /// Returns the class info of a hwnd handle
 #[cfg(feature = "rich-textbox")]
 pub fn get_class_info(hwnd: HWND) -> Result<WNDCLASSEXW, ()> {
-    use winapi::shared::ntdef::WCHAR;
-    use winapi::um::libloaderapi::GetModuleHandleW;
-    use winapi::um::winuser::{GetClassInfoExW, GetClassNameW};
+    use winapi::{
+        shared::ntdef::WCHAR,
+        um::{
+            libloaderapi::GetModuleHandleW,
+            winuser::{GetClassInfoExW, GetClassNameW},
+        },
+    };
 
     unsafe {
         let mut info: WNDCLASSEXW = mem::zeroed();
@@ -44,10 +55,10 @@ pub fn get_class_info(hwnd: HWND) -> Result<WNDCLASSEXW, ()> {
 /// Reeturn the background color of a window
 #[cfg(feature = "rich-textbox")]
 pub fn get_background_color(hwnd: HWND) -> Result<[u8; 3], ()> {
-    use winapi::um::wingdi::{
-        GetBValue, GetGValue, GetObjectW, GetRValue, GetStockObject, LOGBRUSH,
+    use winapi::um::{
+        wingdi::{GetBValue, GetGValue, GetObjectW, GetRValue, GetStockObject, LOGBRUSH},
+        winuser::GetSysColorBrush,
     };
-    use winapi::um::winuser::GetSysColorBrush;
 
     match get_class_info(hwnd) {
         Ok(info) => unsafe {
@@ -131,8 +142,7 @@ pub fn iterate_window_children<F>(hwnd_parent: HWND, cb: F)
 where
     F: FnMut(HWND) -> (),
 {
-    use winapi::shared::minwindef::BOOL;
-    use winapi::um::winuser::EnumChildWindows;
+    use winapi::{shared::minwindef::BOOL, um::winuser::EnumChildWindows};
 
     struct EnumChildData<F> {
         parent: HWND,
@@ -209,8 +219,7 @@ pub fn restore_window(handle: HWND) {
 /// Set the font of a window
 pub unsafe fn set_window_font(handle: HWND, font_handle: Option<HFONT>, redraw: bool) {
     unsafe {
-        use winapi::um::winuser::SendMessageW;
-        use winapi::um::winuser::WM_SETFONT;
+        use winapi::um::winuser::{SendMessageW, WM_SETFONT};
 
         let font_handle = font_handle.unwrap_or(ptr::null_mut());
 
@@ -220,8 +229,7 @@ pub unsafe fn set_window_font(handle: HWND, font_handle: Option<HFONT>, redraw: 
 
 #[cfg(feature = "timer")]
 pub fn kill_timer(hwnd: HWND, id: u32) {
-    use winapi::shared::basetsd::UINT_PTR;
-    use winapi::um::winuser::KillTimer;
+    use winapi::{shared::basetsd::UINT_PTR, um::winuser::KillTimer};
 
     unsafe {
         KillTimer(hwnd, id as UINT_PTR);
@@ -230,8 +238,7 @@ pub fn kill_timer(hwnd: HWND, id: u32) {
 
 #[cfg(feature = "timer")]
 pub fn start_timer(hwnd: HWND, id: u32, interval: u32) {
-    use winapi::shared::basetsd::UINT_PTR;
-    use winapi::um::winuser::SetTimer;
+    use winapi::{shared::basetsd::UINT_PTR, um::winuser::SetTimer};
 
     unsafe {
         SetTimer(hwnd, id as UINT_PTR, interval, None);
@@ -297,8 +304,9 @@ pub unsafe fn set_window_text<'a>(handle: HWND, text: &'a str) {
 
 pub unsafe fn set_window_position(handle: HWND, x: i32, y: i32) {
     unsafe {
-        use winapi::um::winuser::SetWindowPos;
-        use winapi::um::winuser::{SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER};
+        use winapi::um::winuser::{
+            SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, SetWindowPos,
+        };
 
         let (x, y) = high_dpi::logical_to_physical(x, y);
         SetWindowPos(
@@ -315,9 +323,8 @@ pub unsafe fn set_window_position(handle: HWND, x: i32, y: i32) {
 
 pub unsafe fn set_window_after(handle: HWND, after: Option<HWND>) {
     unsafe {
-        use winapi::um::winuser::SetWindowPos;
         use winapi::um::winuser::{
-            HWND_TOP, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+            HWND_TOP, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, SetWindowPos,
         };
 
         let after_handle = match after {
@@ -339,8 +346,10 @@ pub unsafe fn set_window_after(handle: HWND, after: Option<HWND>) {
 
 pub unsafe fn get_window_position(handle: HWND) -> (i32, i32) {
     unsafe {
-        use winapi::shared::windef::{POINT, RECT};
-        use winapi::um::winuser::{GetParent, GetWindowRect, ScreenToClient};
+        use winapi::{
+            shared::windef::{POINT, RECT},
+            um::winuser::{GetParent, GetWindowRect, ScreenToClient},
+        };
 
         let mut r: RECT = mem::zeroed();
         GetWindowRect(handle, &mut r);
@@ -363,11 +372,12 @@ pub unsafe fn get_window_position(handle: HWND) -> (i32, i32) {
 
 pub unsafe fn set_window_size(handle: HWND, w: u32, h: u32, fix: bool) {
     unsafe {
-        use winapi::shared::windef::RECT;
-        use winapi::um::winuser::{AdjustWindowRectEx, GetWindowLongW, SetWindowPos};
-        use winapi::um::winuser::{
-            GWL_EXSTYLE, GWL_STYLE, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-            SWP_NOZORDER,
+        use winapi::{
+            shared::windef::RECT,
+            um::winuser::{
+                AdjustWindowRectEx, GWL_EXSTYLE, GWL_STYLE, GetWindowLongW, SWP_NOACTIVATE,
+                SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, SetWindowPos,
+            },
         };
 
         let (mut w, mut h) = high_dpi::logical_to_physical(w as i32, h as i32);
@@ -410,8 +420,7 @@ pub unsafe fn get_window_physical_size(handle: HWND) -> (u32, u32) {
 
 unsafe fn get_window_size_impl(handle: HWND, return_physical: bool) -> (u32, u32) {
     unsafe {
-        use winapi::shared::windef::RECT;
-        use winapi::um::winuser::GetClientRect;
+        use winapi::{shared::windef::RECT, um::winuser::GetClientRect};
 
         let mut r: RECT = mem::zeroed();
         GetClientRect(handle, &mut r);
@@ -428,8 +437,7 @@ unsafe fn get_window_size_impl(handle: HWND, return_physical: bool) -> (u32, u32
 
 pub unsafe fn set_window_visibility(handle: HWND, visible: bool) {
     unsafe {
-        use winapi::um::winuser::ShowWindow;
-        use winapi::um::winuser::{SW_HIDE, SW_SHOW};
+        use winapi::um::winuser::{SW_HIDE, SW_SHOW, ShowWindow};
 
         let visible = if visible { SW_SHOW } else { SW_HIDE };
         ShowWindow(handle, visible);
@@ -452,8 +460,7 @@ pub unsafe fn get_window_enabled(handle: HWND) -> bool {
 
 pub unsafe fn set_window_enabled(handle: HWND, enabled: bool) {
     unsafe {
-        use winapi::um::winuser::{GWL_STYLE, WS_DISABLED};
-        use winapi::um::winuser::{InvalidateRect, UpdateWindow};
+        use winapi::um::winuser::{GWL_STYLE, InvalidateRect, UpdateWindow, WS_DISABLED};
 
         let old_style = get_window_long(handle, GWL_STYLE) as usize;
         if enabled {
@@ -471,10 +478,9 @@ pub unsafe fn set_window_enabled(handle: HWND, enabled: bool) {
 #[cfg(feature = "tabs")]
 pub unsafe fn get_window_class_name(handle: HWND) -> String {
     unsafe {
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-        use winapi::shared::ntdef::WCHAR;
-        use winapi::um::winuser::GetClassNameW;
+        use std::{ffi::OsString, os::windows::ffi::OsStringExt};
+
+        use winapi::{shared::ntdef::WCHAR, um::winuser::GetClassNameW};
 
         let mut class_name_raw: Vec<WCHAR> = Vec::with_capacity(100);
         class_name_raw.set_len(100);

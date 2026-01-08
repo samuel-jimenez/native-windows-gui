@@ -1,5 +1,6 @@
-use crate::win32::window_helper as wh;
 use winapi::shared::windef::{HMENU, HWND};
+
+use crate::win32::window_helper as wh;
 
 /**
     Inner handle type used internally by each control.

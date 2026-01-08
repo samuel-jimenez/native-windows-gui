@@ -1,19 +1,25 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{Font, HTextAlign, NwgError, RawEventHandler};
-use std::cell::RefCell;
-use std::char;
-use std::ops::Range;
-use winapi::shared::{
-    minwindef::{LPARAM, UINT, WPARAM},
-    windef::HBRUSH,
+use std::{cell::RefCell, char, ops::Range};
+
+use winapi::{
+    shared::{
+        minwindef::{LPARAM, UINT, WPARAM},
+        windef::HBRUSH,
+    },
+    um::{
+        wingdi::DeleteObject,
+        winuser::{
+            ES_AUTOHSCROLL, ES_CENTER, ES_LEFT, ES_NUMBER, ES_RIGHT, WS_DISABLED, WS_TABSTOP,
+            WS_VISIBLE,
+        },
+    },
 };
-use winapi::um::{
-    wingdi::DeleteObject,
-    winuser::{
-        ES_AUTOHSCROLL, ES_CENTER, ES_LEFT, ES_NUMBER, ES_RIGHT, WS_DISABLED, WS_TABSTOP,
-        WS_VISIBLE,
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    Font, HTextAlign, NwgError, RawEventHandler,
+    win32::{
+        base_helper::{check_hwnd, to_utf16},
+        window_helper as wh,
     },
 };
 
@@ -326,10 +332,9 @@ impl TextInput {
     /// as long as the user specified, however it might be longer or shorter than
     /// the actual placeholder text.
     pub fn placeholder_text<'a>(&self, text_length: usize) -> String {
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-        use winapi::shared::ntdef::WCHAR;
-        use winapi::um::commctrl::EM_GETCUEBANNER;
+        use std::{ffi::OsString, os::windows::ffi::OsStringExt};
+
+        use winapi::{shared::ntdef::WCHAR, um::commctrl::EM_GETCUEBANNER};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let mut placeholder_text: Vec<WCHAR> = Vec::with_capacity(text_length);
@@ -377,19 +382,22 @@ impl TextInput {
 
     /// Center the text vertically. Can't believe that must be manually hacked in.
     fn hook_non_client_size(&mut self, bg: Option<[u8; 3]>) {
-        use crate::bind_raw_event_handler_inner;
         use std::{mem, ptr};
-        use winapi::shared::windef::{HGDIOBJ, POINT, RECT};
-        use winapi::um::wingdi::{CreateSolidBrush, RGB, SelectObject};
-        use winapi::um::winuser::{
-            COLOR_WINDOW, DT_CALCRECT, DT_LEFT, NCCALCSIZE_PARAMS, WM_NCCALCSIZE, WM_NCPAINT,
-            WM_SIZE,
+
+        use winapi::{
+            shared::windef::{HGDIOBJ, POINT, RECT},
+            um::{
+                wingdi::{CreateSolidBrush, RGB, SelectObject},
+                winuser::{
+                    COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, GetClientRect, GetDC,
+                    GetWindowRect, NCCALCSIZE_PARAMS, ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE,
+                    SWP_NOOWNERZORDER, SWP_NOSIZE, ScreenToClient, SetWindowPos, WM_NCCALCSIZE,
+                    WM_NCPAINT, WM_SIZE,
+                },
+            },
         };
-        use winapi::um::winuser::{
-            DrawTextW, FillRect, GetClientRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-            SetWindowPos,
-        };
-        use winapi::um::winuser::{SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE};
+
+        use crate::bind_raw_event_handler_inner;
 
         if self.handle.blank() {
             panic!("{}", NOT_BOUND);

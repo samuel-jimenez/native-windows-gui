@@ -1,9 +1,12 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::check_hwnd;
-use crate::win32::window_helper as wh;
-use crate::{NwgError, RawEventHandler};
 use std::{cell::RefCell, mem, ops::Range};
+
 use winapi::um::winuser::{SBS_HORZ, SBS_VERT, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
+
+use super::{ControlBase, ControlHandle};
+use crate::{
+    NwgError, RawEventHandler,
+    win32::{base_helper::check_hwnd, window_helper as wh},
+};
 
 const NOT_BOUND: &'static str = "Scroll bar is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: Scroll bar handle is not HWND!";
@@ -211,17 +214,20 @@ impl ScrollBar {
     /// Scrollbar are useless on their own. We need to hook them and handle ALL the message ourself. yay windows...
     unsafe fn hook_scrollbar_controls(&self) {
         unsafe {
+            use winapi::{
+                shared::{
+                    minwindef::{LOWORD, TRUE},
+                    windef::HWND,
+                },
+                um::winuser::{
+                    GET_WHEEL_DELTA_WPARAM, GetScrollInfo, SB_BOTTOM, SB_CTL, SB_LINEDOWN,
+                    SB_LINELEFT, SB_LINERIGHT, SB_LINEUP, SB_PAGEDOWN, SB_PAGELEFT, SB_PAGERIGHT,
+                    SB_PAGEUP, SB_THUMBTRACK, SB_TOP, SCROLLINFO, SIF_ALL, SIF_POS, SetScrollInfo,
+                    WM_HSCROLL, WM_MOUSEWHEEL, WM_VSCROLL,
+                },
+            };
+
             use crate::bind_raw_event_handler_inner;
-            use winapi::shared::{
-                minwindef::{LOWORD, TRUE},
-                windef::HWND,
-            };
-            use winapi::um::winuser::{
-                GET_WHEEL_DELTA_WPARAM, GetScrollInfo, SB_BOTTOM, SB_CTL, SB_LINEDOWN, SB_LINELEFT,
-                SB_LINERIGHT, SB_LINEUP, SB_PAGEDOWN, SB_PAGELEFT, SB_PAGERIGHT, SB_PAGEUP,
-                SB_THUMBTRACK, SB_TOP, SCROLLINFO, SIF_ALL, SIF_POS, SetScrollInfo, WM_HSCROLL,
-                WM_MOUSEWHEEL, WM_VSCROLL,
-            };
 
             if self.handle.blank() {
                 panic!("{}", NOT_BOUND);

@@ -1,10 +1,16 @@
-use super::{Bitmap, Cursor, Icon};
-use crate::NwgError;
-use crate::win32::base_helper::{from_utf16, to_utf16};
 use std::{ptr, slice};
-use winapi::ctypes::c_void;
-use winapi::shared::minwindef::{HGLOBAL, HINSTANCE, HRSRC};
-use winapi::um::winuser::{LR_CREATEDIBSECTION, LR_DEFAULTSIZE, LoadImageW};
+
+use winapi::{
+    ctypes::c_void,
+    shared::minwindef::{HGLOBAL, HINSTANCE, HRSRC},
+    um::winuser::{LR_CREATEDIBSECTION, LR_DEFAULTSIZE, LoadImageW},
+};
+
+use super::{Bitmap, Cursor, Icon};
+use crate::{
+    NwgError,
+    win32::base_helper::{from_utf16, to_utf16},
+};
 
 /// Raw resource type that can be stored into an embedded resource.
 #[derive(Copy, Clone, Debug)]

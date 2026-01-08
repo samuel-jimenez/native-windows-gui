@@ -1,22 +1,31 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::base_helper::{check_hwnd, from_utf16, to_utf16};
-use crate::win32::window_helper as wh;
-use crate::{NwgError, RawEventHandler, unbind_raw_event_handler};
 use std::{cell::RefCell, mem, ptr, rc::Rc};
-use winapi::shared::windef::{HBITMAP, HBRUSH};
-use winapi::um::commctrl::{
-    HDF_SORTDOWN, HDF_SORTUP, HDI_FORMAT, HDITEMW, HDM_GETITEMW, HDM_SETITEMW, LVCF_FMT, LVCF_TEXT,
-    LVCF_WIDTH, LVCFMT_BITMAP_ON_RIGHT, LVCFMT_CENTER, LVCFMT_COL_HAS_IMAGES, LVCFMT_IMAGE,
-    LVCFMT_JUSTIFYMASK, LVCFMT_LEFT, LVCFMT_RIGHT, LVCOLUMNW, LVIF_IMAGE, LVIF_TEXT, LVITEMW,
-    LVM_GETHEADER, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_AUTOSIZECOLUMNS, LVS_EX_BORDERSELECT,
-    LVS_EX_FULLROWSELECT, LVS_EX_GRIDLINES, LVS_EX_HEADERDRAGDROP, LVS_EX_HEADERINALLVIEWS,
-    LVS_ICON, LVS_LIST, LVS_NOCOLUMNHEADER, LVS_REPORT, LVS_SHOWSELALWAYS, LVS_SINGLESEL,
-    LVS_SMALLICON,
-};
-use winapi::um::winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE};
 
+use winapi::{
+    shared::windef::{HBITMAP, HBRUSH},
+    um::{
+        commctrl::{
+            HDF_SORTDOWN, HDF_SORTUP, HDI_FORMAT, HDITEMW, HDM_GETITEMW, HDM_SETITEMW, LVCF_FMT,
+            LVCF_TEXT, LVCF_WIDTH, LVCFMT_BITMAP_ON_RIGHT, LVCFMT_CENTER, LVCFMT_COL_HAS_IMAGES,
+            LVCFMT_IMAGE, LVCFMT_JUSTIFYMASK, LVCFMT_LEFT, LVCFMT_RIGHT, LVCOLUMNW, LVIF_IMAGE,
+            LVIF_TEXT, LVITEMW, LVM_GETHEADER, LVM_SETEXTENDEDLISTVIEWSTYLE,
+            LVS_EX_AUTOSIZECOLUMNS, LVS_EX_BORDERSELECT, LVS_EX_FULLROWSELECT, LVS_EX_GRIDLINES,
+            LVS_EX_HEADERDRAGDROP, LVS_EX_HEADERINALLVIEWS, LVS_ICON, LVS_LIST, LVS_NOCOLUMNHEADER,
+            LVS_REPORT, LVS_SHOWSELALWAYS, LVS_SINGLESEL, LVS_SMALLICON,
+        },
+        winuser::{WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+    },
+};
+
+use super::{ControlBase, ControlHandle};
 #[cfg(feature = "image-list")]
 use crate::ImageList;
+use crate::{
+    NwgError, RawEventHandler, unbind_raw_event_handler,
+    win32::{
+        base_helper::{check_hwnd, from_utf16, to_utf16},
+        window_helper as wh,
+    },
+};
 
 const NOT_BOUND: &'static str = "ListView is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: ListView handle is not HWND!";
@@ -336,8 +345,7 @@ impl ListView {
 
     /// Sets the text color of the list view
     pub fn set_text_color(&self, r: u8, g: u8, b: u8) {
-        use winapi::um::commctrl::LVM_SETTEXTCOLOR;
-        use winapi::um::wingdi::RGB;
+        use winapi::um::{commctrl::LVM_SETTEXTCOLOR, wingdi::RGB};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -350,8 +358,10 @@ impl ListView {
 
     /// Returns the current text color
     pub fn text_color(&self) -> [u8; 3] {
-        use winapi::um::commctrl::LVM_GETTEXTCOLOR;
-        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
+        use winapi::um::{
+            commctrl::LVM_GETTEXTCOLOR,
+            wingdi::{GetBValue, GetGValue, GetRValue},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let col = wh::send_message(handle, LVM_GETTEXTCOLOR, 0, 0) as u32;
@@ -361,8 +371,7 @@ impl ListView {
 
     /// Sets the background color of the list view
     pub fn set_background_color(&self, r: u8, g: u8, b: u8) {
-        use winapi::um::commctrl::LVM_SETBKCOLOR;
-        use winapi::um::wingdi::RGB;
+        use winapi::um::{commctrl::LVM_SETBKCOLOR, wingdi::RGB};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -375,8 +384,10 @@ impl ListView {
 
     /// Returns the background color of the list view
     pub fn background_color(&self) -> [u8; 3] {
-        use winapi::um::commctrl::LVM_GETBKCOLOR;
-        use winapi::um::wingdi::{GetBValue, GetGValue, GetRValue};
+        use winapi::um::{
+            commctrl::LVM_GETBKCOLOR,
+            wingdi::{GetBValue, GetGValue, GetRValue},
+        };
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let col = wh::send_message(handle, LVM_GETBKCOLOR, 0, 0) as u32;
@@ -948,8 +959,7 @@ impl ListView {
     /// `dx` specifies the distance, in pixels, to set between icons on the x-axis
     /// `dy` specifies the distance, in pixels, to set between icons on the y-axis
     pub fn set_icon_spacing(&self, dx: u16, dy: u16) {
-        use winapi::shared::minwindef::MAKELONG;
-        use winapi::um::commctrl::LVM_SETICONSPACING;
+        use winapi::{shared::minwindef::MAKELONG, um::commctrl::LVM_SETICONSPACING};
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         let spacing = MAKELONG(dx, dy);
@@ -1058,8 +1068,9 @@ impl ListView {
     }
 
     fn set_double_buffered(&mut self) {
-        use crate::bind_raw_event_handler_inner;
         use winapi::um::wingdi::{CreateSolidBrush, RGB};
+
+        use crate::bind_raw_event_handler_inner;
 
         let double_buffer = ListViewDoubleBuffer {
             buffer: ptr::null_mut(),
@@ -1071,15 +1082,17 @@ impl ListView {
         let callback_double_buffer = rc_double_buffer.clone();
 
         let handler = bind_raw_event_handler_inner(&self.handle, 0x020, move |hwnd, msg, _, _| {
-            use winapi::um::wingdi::{
-                BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject,
-                SRCCOPY, SelectObject,
+            use winapi::um::{
+                wingdi::{
+                    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject,
+                    SRCCOPY, SelectObject,
+                },
+                winuser::{
+                    BeginPaint, EndPaint, FillRect, GetClientRect, PAINTSTRUCT, RDW_ERASENOW,
+                    RDW_INVALIDATE, RDW_UPDATENOW, RedrawWindow, SendMessageW, WM_ERASEBKGND,
+                    WM_PAINT, WM_PRINTCLIENT,
+                },
             };
-            use winapi::um::winuser::{
-                BeginPaint, EndPaint, FillRect, GetClientRect, RDW_ERASENOW, RDW_INVALIDATE,
-                RDW_UPDATENOW, RedrawWindow, SendMessageW,
-            };
-            use winapi::um::winuser::{PAINTSTRUCT, WM_ERASEBKGND, WM_PAINT, WM_PRINTCLIENT};
 
             match msg {
                 WM_PAINT => unsafe {

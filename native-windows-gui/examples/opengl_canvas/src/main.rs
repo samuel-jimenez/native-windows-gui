@@ -9,12 +9,15 @@ extern crate glutin;
 #[macro_use]
 extern crate native_windows_gui as nwg;
 
-use crate::glutin::{
-    Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
-    os::windows::RawContextExt,
-};
-use crate::nwg::NativeUi;
 use std::cell::RefCell;
+
+use crate::{
+    glutin::{
+        Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, RawContext, dpi::PhysicalSize,
+        os::windows::RawContextExt,
+    },
+    nwg::NativeUi,
+};
 
 type Ctx = RawContext<PossiblyCurrent>;
 
@@ -38,8 +41,7 @@ pub struct OpenGlCanvas {
 impl OpenGlCanvas {
     /// Create an opengl canvas with glutin & gl
     pub fn create_context(&self) {
-        use std::ffi::c_void;
-        use std::{mem, ptr};
+        use std::{ffi::c_void, mem, ptr};
 
         unsafe {
             let ctx = ContextBuilder::new()
@@ -231,10 +233,11 @@ impl ExternCanvas {
 }
 
 mod extern_canvas_ui {
-    use super::*;
+    use std::{ops::Deref, rc::Rc};
+
     use native_windows_gui as nwg;
-    use std::ops::Deref;
-    use std::rc::Rc;
+
+    use super::*;
 
     pub struct ExternCanvasUi {
         inner: Rc<ExternCanvas>,

@@ -1,12 +1,15 @@
-use super::{ControlBase, ControlHandle};
-use crate::win32::window_helper as wh;
-use crate::{Font, NwgError};
-use newline_converter::{dos2unix, unix2dos};
 use std::ops::Range;
-use winapi::shared::minwindef::{LPARAM, WPARAM};
-use winapi::um::winuser::{
-    ES_AUTOHSCROLL, ES_AUTOVSCROLL, WS_DISABLED, WS_HSCROLL, WS_TABSTOP, WS_VISIBLE, WS_VSCROLL,
+
+use newline_converter::{dos2unix, unix2dos};
+use winapi::{
+    shared::minwindef::{LPARAM, WPARAM},
+    um::winuser::{
+        ES_AUTOHSCROLL, ES_AUTOVSCROLL, WS_DISABLED, WS_HSCROLL, WS_TABSTOP, WS_VISIBLE, WS_VSCROLL,
+    },
 };
+
+use super::{ControlBase, ControlHandle};
+use crate::{Font, NwgError, win32::window_helper as wh};
 
 const NOT_BOUND: &'static str = "TextBox is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TextBox handle is not HWND!";

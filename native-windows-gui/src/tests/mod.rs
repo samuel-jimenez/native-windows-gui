@@ -1,5 +1,6 @@
-use crate::*;
 use std::cell::RefCell;
+
+use crate::*;
 
 mod control_test;
 use control_test::*;
@@ -28,10 +29,10 @@ pub struct TestControlPanel {
 }
 
 mod test_control_panel_ui {
+    use std::{ops::Deref, rc::Rc};
+
     use super::*;
     use crate::{NativeUi, NwgError};
-    use std::ops::Deref;
-    use std::rc::Rc;
 
     pub struct TestControlPanelUi {
         inner: Rc<TestControlPanel>,

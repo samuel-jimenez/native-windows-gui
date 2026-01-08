@@ -8,9 +8,10 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
+use std::{cell::RefCell, thread};
+
 use nwd::NwgUi;
 use nwg::NativeUi;
-use std::{cell::RefCell, thread};
 
 /// The dialog UI
 #[derive(Default, NwgUi)]
