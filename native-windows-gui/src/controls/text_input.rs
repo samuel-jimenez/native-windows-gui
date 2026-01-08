@@ -391,8 +391,8 @@ impl TextInput {
                 winuser::{
                     COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, GetClientRect, GetDC,
                     GetWindowRect, NCCALCSIZE_PARAMS, ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE,
-                    SWP_NOOWNERZORDER, SWP_NOSIZE, ScreenToClient, SetWindowPos, WM_NCCALCSIZE,
-                    WM_NCPAINT, WM_SIZE,
+                    SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, ScreenToClient, SetWindowPos,
+                    WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE,
                 },
             },
         };
@@ -496,7 +496,11 @@ impl TextInput {
                             0,
                             0,
                             0,
-                            SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED,
+                            SWP_NOZORDER
+                                | SWP_NOOWNERZORDER
+                                | SWP_NOSIZE
+                                | SWP_NOMOVE
+                                | SWP_FRAMECHANGED,
                         );
                     }
                     _ => {}
