@@ -2,7 +2,9 @@ use std::convert::From;
 #[allow(unused)]
 use std::fmt::Display;
 
-use super::{Button, CheckBox, ControlHandle, ImageFrame, Label, RadioButton, TextInput, Window};
+use super::{
+    Button, CheckBox, ControlHandle, GroupBox, ImageFrame, Label, RadioButton, TextInput, Window,
+};
 
 macro_rules! handles {
     ($control:ty) => {
@@ -88,6 +90,7 @@ macro_rules! subclass_control {
 
 handles!(Window);
 handles!(Button);
+handles!(GroupBox);
 handles!(ImageFrame);
 handles!(Label);
 handles!(CheckBox);

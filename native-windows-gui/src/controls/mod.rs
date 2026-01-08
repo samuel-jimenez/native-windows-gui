@@ -2,6 +2,7 @@ mod button;
 mod check_box;
 mod control_base;
 mod control_handle;
+mod group_box;
 mod image_frame;
 mod label;
 mod radio_button;
@@ -108,6 +109,7 @@ pub use date_picker::{DatePicker, DatePickerBuilder, DatePickerFlags, DatePicker
 pub use extern_canvas::{ExternCanvas, ExternCanvasBuilder, ExternCanvasFlags};
 #[cfg(feature = "frame")]
 pub use frame::{Frame, FrameBuilder, FrameFlags};
+pub use group_box::{GroupBox, GroupBoxBuilder, GroupBoxFlags};
 pub use image_frame::{ImageFrame, ImageFrameBuilder, ImageFrameFlags};
 pub use label::{Label, LabelBuilder, LabelFlags};
 #[cfg(all(feature = "combobox", feature = "labeled"))]
