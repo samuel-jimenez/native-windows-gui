@@ -436,9 +436,7 @@ impl TextInput {
                         ReleaseDC(hwnd, dc);
 
                         // Calculate NC area to center text.
-                        let mut client: RECT = mem::zeroed();
                         let mut window: RECT = mem::zeroed();
-                        GetClientRect(hwnd, &mut client);
                         GetWindowRect(hwnd, &mut window);
 
                         let window_height = window.bottom - window.top;

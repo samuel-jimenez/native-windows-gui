@@ -14,6 +14,7 @@ const BAD_HANDLE: &'static str = "INTERNAL ERROR: Button handle is not HWND!";
 bitflags! {
     /**
         The button flags
+        TODO Overridden by `enabled` parameter
 
         * NONE:     No flags. Equivalent to a invisible blank button.
         * VISIBLE:  The button is immediately visible after creation
@@ -354,6 +355,13 @@ impl<'a> ButtonBuilder<'a> {
 
     pub fn build(self, out: &mut Button) -> Result<(), NwgError> {
         let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
+        // // TODO out.set_enabled(self.enabled)
+        // if !self.visible {
+        //     flags &= !WS_VISIBLE
+        // }
+        // if !self.enabled {
+        //     flags |= WS_DISABLED
+        // }
 
         let parent = match self.parent {
             Some(p) => Ok(p),

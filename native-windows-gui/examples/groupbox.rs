@@ -12,10 +12,13 @@ pub struct FlexBoxApp {
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     sub_layout: nwg::FlexboxLayout,
-    button1: nwg::Button,
+    button0: nwg::Button,
     groupbox: nwg::GroupBox,
+    button1: nwg::Button,
     button2: nwg::Button,
     button3: nwg::Button,
+    button4: nwg::Button,
+    button5: nwg::Button,
 }
 
 impl FlexBoxApp {
@@ -31,6 +34,7 @@ mod flexbox_app_ui {
     use std::{cell::RefCell, ops::Deref, rc::Rc};
 
     use native_windows_gui as nwg;
+    use nwg::{Button, FlexboxLayout, GroupBox, Window};
 
     use super::*;
 
@@ -44,32 +48,39 @@ mod flexbox_app_ui {
             use nwg::Event as E;
 
             // Controls
-            nwg::Window::builder()
+            Window::builder()
                 .size((500, 300))
                 .position((300, 300))
                 .title("GroupBox example")
                 .build(&mut data.window)?;
-
-            nwg::Button::builder()
-                .text("Btn 1")
+            Button::builder()
+                .text("Btn 0")
                 .parent(&data.window)
-                .focus(true)
-                .build(&mut data.button1)?;
-
-            nwg::GroupBox::builder()
+                .build(&mut data.button0)?;
+            GroupBox::builder()
                 .text("Group!Box")
                 .parent(&data.window)
                 .build(&mut data.groupbox)?;
-
-            nwg::Button::builder()
+            Button::builder()
+                .parent(&data.groupbox)
+                .text("Btn 1")
+                .build(&mut data.button1)?;
+            Button::builder()
+                .parent(&data.groupbox)
                 .text("Btn 2")
-                .parent(&data.groupbox)
                 .build(&mut data.button2)?;
-
-            nwg::Button::builder()
-                .text("Btn 3")
+            Button::builder()
                 .parent(&data.groupbox)
+                .text("Btn 3")
                 .build(&mut data.button3)?;
+            Button::builder()
+                .parent(&data.groupbox)
+                .text("Btn 4")
+                .build(&mut data.button4)?;
+            Button::builder()
+                .parent(&data.groupbox)
+                .text("Btn 5")
+                .build(&mut data.button5)?;
 
             // Wrap-up
             let ui = FlexBoxAppUi {
@@ -107,7 +118,16 @@ mod flexbox_app_ui {
             const FIFTY_PC: Dimension = Dimension::percent(0.5);
             const PT_10: LengthPercentage = LengthPercentage::length(10.0);
             const PT_5: LengthPercentageAuto = LengthPercentageAuto::length(5.0);
+            // this obviously will be font dependent.
+            // TODO add a builder flag to auto-size client area.
+            const PT_35: LengthPercentage = LengthPercentage::length(35.0);
 
+            const GROUP_PADDING: Rect<LengthPercentage> = Rect {
+                left: PT_10,
+                right: PT_10,
+                top: PT_35,
+                bottom: PT_10,
+            };
             const PADDING: Rect<LengthPercentage> = Rect {
                 left: PT_10,
                 right: PT_10,
@@ -120,32 +140,47 @@ mod flexbox_app_ui {
                 top: PT_5,
                 bottom: PT_5,
             };
-
-            nwg::FlexboxLayout::builder()
+            FlexboxLayout::builder()
                 .parent(&ui.groupbox)
-                .flex_direction(FlexDirection::Row)
-                .padding(PADDING)
+                .flex_direction(FlexDirection::Column)
+                .padding(GROUP_PADDING)
+                .child(&ui.button1)
+                .child_margin(MARGIN)
+                .child_size(Size {
+                    width: auto(),
+                    height: percent(0.25),
+                })
                 .child(&ui.button2)
                 .child_margin(MARGIN)
-                .child_align_self(Some(AlignSelf::FlexEnd))
                 .child_size(Size {
-                    width: percent(0.25),
-                    height: FIFTY_PC,
+                    width: auto(),
+                    height: percent(0.25),
                 })
                 .child(&ui.button3)
                 .child_margin(MARGIN)
-                .child_align_self(Some(AlignSelf::FlexEnd))
+                .child_flex_grow(2.0)
                 .child_size(Size {
-                    width: percent(0.25),
-                    height: FIFTY_PC,
+                    width: auto(),
+                    height: percent(0.25),
+                })
+                .child(&ui.button4)
+                .child_margin(MARGIN)
+                .child_size(Size {
+                    width: auto(),
+                    height: percent(0.25),
+                })
+                .child(&ui.button5)
+                .child_margin(MARGIN)
+                .child_size(Size {
+                    width: auto(),
+                    height: percent(0.25),
                 })
                 .build(&ui.sub_layout)?;
-
-            nwg::FlexboxLayout::builder()
+            FlexboxLayout::builder()
                 .parent(&ui.window)
                 .flex_direction(FlexDirection::Row)
                 .padding(PADDING)
-                .child(&ui.button1)
+                .child(&ui.button0)
                 .child_margin(MARGIN)
                 .child_max_size(Size {
                     width: length(200.0),
