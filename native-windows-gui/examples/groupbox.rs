@@ -112,7 +112,7 @@ mod flexbox_app_ui {
             use nwg::taffy::{
                 Dimension, LengthPercentage, LengthPercentageAuto,
                 geometry::{Rect, Size},
-                style::{AlignSelf, FlexDirection},
+                style::FlexDirection,
                 style_helpers::{auto, length, percent},
             };
             const FIFTY_PC: Dimension = Dimension::percent(0.5);

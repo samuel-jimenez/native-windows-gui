@@ -13,7 +13,7 @@ use nwg::{
     taffy::{
         LengthPercentage, LengthPercentageAuto,
         geometry::{Rect, Size},
-        style::{AlignSelf, Dimension, FlexDirection},
+        style::{Dimension, FlexDirection},
         style_helpers::{auto, length, percent},
     },
 };
