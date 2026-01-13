@@ -28,7 +28,7 @@ pub fn parameters(field: &syn::Field, attr_id: &'static str) -> (Vec<syn::Ident>
     let mut exprs = Vec::with_capacity(params.len());
 
     for p in params {
-        if p.ident == "ty" {
+        if p.ident == "ty" || p.ident == "nested" {
             continue;
         }
 

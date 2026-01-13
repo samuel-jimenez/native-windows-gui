@@ -50,7 +50,7 @@ impl<'a> NwgControl<'a> {
         })
     }
 
-    fn parse_type(field: &syn::Field) -> syn::Ident {
+    fn parse_type(field: &syn::Field) -> (syn::Ident, bool) {
         // Check for `ty` in nwg_control
         let nwg_control = |attr: &&syn::Attribute| {
             attr.path
@@ -73,10 +73,12 @@ impl<'a> NwgControl<'a> {
             ),
         };
 
+        let nested = params.params.iter().any(|p| p.ident == "nested");
+
         match params.params.iter().find(|p| p.ident == "ty").map(|p| &p.e) {
             Some(syn::Expr::Path(p)) => match p.path.segments.last().map(|seg| seg.ident.clone()) {
                 Some(ty) => {
-                    return ty;
+                    return (ty, nested);
                 }
                 None => {}
             },
@@ -86,7 +88,7 @@ impl<'a> NwgControl<'a> {
         // Use field type
         match &field.ty {
             syn::Type::Path(p) => match p.path.segments.last() {
-                Some(seg) => seg.ident.clone(),
+                Some(seg) => (seg.ident.clone(), nested),
                 None => panic!(
                     "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
                     field.ident
@@ -613,9 +615,9 @@ impl<'a> NwgUi<'a> {
         for (field_pos, field) in named_fields.iter().enumerate() {
             if NwgControl::valid(field) {
                 let id = field.ident.as_ref().unwrap();
-                let ty = NwgControl::parse_type(field);
+                let (ty, nested) = NwgControl::parse_type(field);
                 let (names, values) = crate::controls::parameters(field, "nwg_control");
-                let nested = SUB_CONTROL.iter().any(|nest| ty == nest);
+                let nested = nested || SUB_CONTROL.iter().any(|nest| ty == nest);
 
                 let f = NwgControl {
                     id,
