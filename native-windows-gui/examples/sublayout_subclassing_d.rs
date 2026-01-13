@@ -55,7 +55,6 @@ impl NumberUnitsEdit {
             focus: false,
             font: None,
             parent: None,
-            background_color: None,
         }
     }
 }
@@ -82,7 +81,6 @@ pub struct NumberUnitsEditBuilder<'a> {
     readonly: bool,
     font: Option<&'a Font>,
     parent: Option<ControlHandle>,
-    background_color: Option<[u8; 3]>,
     focus: bool,
 }
 
@@ -187,11 +185,6 @@ impl<'a> NumberUnitsEditBuilder<'a> {
 
     pub fn font(mut self, font: Option<&'a Font>) -> NumberUnitsEditBuilder<'a> {
         self.font = font;
-        self
-    }
-
-    pub fn background_color(mut self, color: Option<[u8; 3]>) -> NumberUnitsEditBuilder<'a> {
-        self.background_color = color;
         self
     }
 
