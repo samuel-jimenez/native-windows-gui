@@ -209,6 +209,7 @@ struct NwgLayout<'a> {
     names: Vec<syn::Ident>,
     values: Vec<syn::Expr>,
     weight: [u16; 2],
+    sublayout: bool,
 }
 
 impl<'a> NwgLayout<'a> {
@@ -264,6 +265,9 @@ struct NwgPartial<'a> {
     id: &'a syn::Ident,
     ty: &'a syn::Ident,
     parent: Option<syn::Ident>,
+    layout: Option<LayoutChild>,
+    layout_index: usize,
+    weight: [u16; 2],
     nested: bool,
 }
 
@@ -422,12 +426,14 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
         enum ControlLayout<'b> {
             Control(&'b NwgControl<'b>),
             Layout(&'b NwgLayout<'b>),
+            Partial(&'b NwgPartial<'b>),
         }
         impl<'b> ControlLayout<'b> {
             fn weight(&self) -> u16 {
                 match self {
                     ControlLayout::Control(c) => c.weight[1],
                     ControlLayout::Layout(c) => c.weight[1],
+                    ControlLayout::Partial(c) => c.weight[1],
                 }
             }
         }
@@ -437,6 +443,7 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let (id, layout, nested, layout_item) = match self {
                     ControlLayout::Control(c) => (c.id, &c.layout, c.nested, false),
                     ControlLayout::Layout(c) => (c.id, &c.layout, false, true),
+                    ControlLayout::Partial(c) => (c.id, &c.layout, false, true),
                 };
                 let param_name = if nested || layout_item {
                     quote! {child_layout}
@@ -493,9 +500,11 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let names = &self.layout.names;
                 let values = &self.layout.values;
                 let children = &self.children;
-                let build = match &self.layout.layout {
-                    Some(..) => quote! {build_partial},
-                    None => quote! {build},
+                let sublayout = self.layout.sublayout;
+
+                let build = match sublayout || self.layout.layout.is_some() {
+                    true => quote! {build_partial},
+                    false => quote! {build},
                 };
                 let layout_tk = quote! {
                     #ty::builder()
@@ -524,6 +533,12 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                             .iter()
                             .filter(|c| c.layout.is_some() && c.layout_index == i)
                             .map(|c| ControlLayout::Layout(c)),
+                    )
+                    .chain(
+                        ui.partials
+                            .iter()
+                            .filter(|c| c.layout.is_some() && c.layout_index == i)
+                            .map(|c| ControlLayout::Partial(c)),
                     )
                     .sorted_by(|a, b| a.weight().cmp(&b.weight()))
                     .collect(),
@@ -596,7 +611,7 @@ pub struct NwgUi<'a> {
 }
 
 impl<'a> NwgUi<'a> {
-    pub fn build(data: &'a syn::DataStruct, partial: bool) -> NwgUi<'a> {
+    pub fn build(data: &'a syn::DataStruct, partial: bool, sublayout: bool) -> NwgUi<'a> {
         let named_fields = match &data.fields {
             syn::Fields::Named(n) => &n.named,
             _ => panic!("Ui structure must have named fields"),
@@ -663,6 +678,7 @@ impl<'a> NwgUi<'a> {
                     names,
                     values,
                     weight: [0, field_pos as u16],
+                    sublayout: sublayout,
                 };
 
                 // Reorder layouts
@@ -684,6 +700,9 @@ impl<'a> NwgUi<'a> {
                     id: field.ident.as_ref().unwrap(),
                     ty: NwgPartial::parse_type(field),
                     parent: NwgPartial::parse_parent(field),
+                    layout: LayoutChild::prepare(field),
+                    layout_index: 0,
+                    weight: [0, field_pos as u16],
                     nested: partial,
                 };
 
@@ -727,6 +746,15 @@ impl<'a> NwgUi<'a> {
 
             // Match the layout item to the layout object
             for control in layouts.iter_mut() {
+                if let Some(child_layout) = control.layout.as_mut() {
+                    if child_layout.parent_matches(layout_id) {
+                        child_layout.parse(layout_type);
+                        control.layout_index = i;
+                    }
+                }
+            }
+            // Match the layout item to the layout object
+            for control in partials.iter_mut() {
                 if let Some(child_layout) = control.layout.as_mut() {
                     if child_layout.parent_matches(layout_id) {
                         child_layout.parse(layout_type);
