@@ -706,9 +706,3 @@ impl<'a, D: Display + Default> ComboBoxBuilder<'a, D> {
         Ok(())
     }
 }
-
-impl<D: Display + Default> PartialEq for ComboBox<D> {
-    fn eq(&self, other: &Self) -> bool {
-        self.handle == other.handle
-    }
-}

@@ -54,10 +54,10 @@ fn build_combobox(combo: &mut nwg::LabeledCombo<&'static str>, window: &nwg::Win
 */
 #[derive(Default)]
 pub struct LabeledCombo<D: Display + Default> {
-    layout: FlexboxLayout,
+    pub layout: FlexboxLayout,
 
     label: Label,
-    field: ComboBox<D>,
+    pub field: ComboBox<D>,
 }
 
 impl<D: Display + Default> LabeledCombo<D> {
@@ -419,41 +419,9 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
         Ok(())
     }
 }
-impl<D: Display + Default> ::std::ops::Deref for LabeledCombo<D> {
-    type Target = crate::ComboBox<D>;
-    fn deref(&self) -> &crate::ComboBox<D> {
-        &self.field
-    }
-}
-impl<D: Display + Default> ::std::ops::DerefMut for LabeledCombo<D> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.field
-    }
-}
-impl<D: Display + Default> Into<crate::ControlHandle> for &LabeledCombo<D> {
-    fn into(self) -> crate::ControlHandle {
-        self.field.handle.clone()
-    }
-}
-impl<D: Display + Default> Into<crate::ControlHandle> for &mut LabeledCombo<D> {
-    fn into(self) -> crate::ControlHandle {
-        self.field.handle.clone()
-    }
-}
-impl<D: Display + Default> PartialEq<LabeledCombo<D>> for crate::ControlHandle {
-    fn eq(&self, other: &LabeledCombo<D>) -> bool {
-        *self == other.field.handle
-    }
-}
 
 impl<D: Display + Default> PartialEq for LabeledCombo<D> {
     fn eq(&self, other: &Self) -> bool {
         self.field == other.field
-    }
-}
-
-impl<D: Display + Default> From<&LabeledCombo<D>> for FlexboxLayout {
-    fn from(control: &LabeledCombo<D>) -> Self {
-        control.layout.clone()
     }
 }

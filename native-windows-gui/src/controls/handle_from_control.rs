@@ -7,32 +7,39 @@ use super::{
 };
 
 macro_rules! handles {
-    ($control:ty) => {
-        #[allow(deprecated)]
-        impl From<&$control> for ControlHandle {
-            fn from(control: &$control) -> Self {
+    ($control:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?) => {
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$control$(< $( $lt ),+ >)?> for ControlHandle {
+            fn from(control: &$control$(< $( $lt ),+ >)?) -> Self {
                 control.handle
             }
         }
 
-        #[allow(deprecated)]
-        impl From<&mut $control> for ControlHandle {
-            fn from(control: &mut $control) -> Self {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&mut $control$(< $( $lt ),+ >)?> for ControlHandle {
+            fn from(control: &mut $control$(< $( $lt ),+ >)?) -> Self {
                 control.handle
             }
         }
 
-        #[allow(deprecated)]
-        impl PartialEq<ControlHandle> for $control {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<ControlHandle> for $control$(< $( $lt ),+ >)? {
             fn eq(&self, other: &ControlHandle) -> bool {
                 self.handle == *other
             }
         }
 
-        #[allow(deprecated)]
-        impl PartialEq<$control> for ControlHandle {
-            fn eq(&self, other: &$control) -> bool {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$control$(< $( $lt ),+ >)?> for ControlHandle {
+            fn eq(&self, other: &$control$(< $( $lt ),+ >)?) -> bool {
                 *self == other.handle
+            }
+        }
+    };
+}
+
+macro_rules! partial_eq {
+    ($control:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?) => {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$control$(< $( $lt ),+ >)?> for $control$(< $( $lt ),+ >)? {
+            fn eq(&self, other: &Self) -> bool {
+                self.handle == other.handle
             }
         }
     };
@@ -54,34 +61,37 @@ subclass_control!(TestControl, TextInput, edit);
 */
 #[macro_export]
 macro_rules! subclass_control {
-    ($ty:ident, $base_type:ident, $field: ident) => {
-        impl ::std::ops::Deref for $ty {
-            type Target = $crate::$base_type;
-            fn deref(&self) -> &$crate::$base_type {
+  ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
+    $base_type:ident $(< $( $blt:tt ),+ >)?,
+    $field:ident) => {
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::Deref for $ty$(< $( $lt ),+ >)? {
+            type Target = $crate::$base_type$(< $( $blt ),+ >)?;
+            fn deref(&self) -> &$crate::$base_type$(< $( $blt ),+ >)? {
                 &self.$field
             }
         }
 
-        impl ::std::ops::DerefMut for $ty {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::DerefMut for $ty$(< $( $lt ),+ >)? {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.$field
             }
         }
 
-        impl Into<$crate::ControlHandle> for &$ty {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? Into<$crate::ControlHandle> for &$ty$(< $( $lt ),+ >)? {
             fn into(self) -> $crate::ControlHandle {
                 self.$field.handle.clone()
             }
         }
 
-        impl Into<$crate::ControlHandle> for &mut $ty {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? Into<$crate::ControlHandle> for &mut $ty$(< $( $lt ),+ >)? {
             fn into(self) -> $crate::ControlHandle {
                 self.$field.handle.clone()
             }
         }
 
-        impl PartialEq<$ty> for $crate::ControlHandle {
-            fn eq(&self, other: &$ty) -> bool {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$ty$(< $( $lt ),+ >)?> for $crate::ControlHandle {
+            fn eq(&self, other: &$ty$(< $( $lt ),+ >)?) -> bool {
                 *self == other.$field.handle
             }
         }
@@ -103,11 +113,17 @@ pub struct TestLayout {
 subclass_layout!(TestLayout, FlexboxLayout, layout);
 ```
 */
+
 #[macro_export]
 macro_rules! subclass_layout {
-    ($ty:ident, $base_type:ident, $field: ident) => {
-        impl From<&$ty> for $crate::$base_type {
-            fn from(control: &$ty) -> Self {
+  ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
+    $base_type:ident,
+    $field:ident) => {
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?
+            From<&$ty$(< $( $lt ),+ >)?>
+        for $crate::$base_type {
+           fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
                 control.$field.clone()
             }
         }
@@ -161,49 +177,34 @@ handles!(MenuSeparator);
 use super::ComboBox;
 
 #[cfg(feature = "combobox")]
-impl<D: Display + Default> From<&ComboBox<D>> for ControlHandle {
-    fn from(control: &ComboBox<D>) -> Self {
-        control.handle
-    }
-}
+handles!(ComboBox<D: Display + Default>);
 
 #[cfg(feature = "combobox")]
-impl<D: Display + Default> PartialEq<ControlHandle> for ComboBox<D> {
-    fn eq(&self, other: &ControlHandle) -> bool {
-        self.handle == *other
-    }
-}
+partial_eq!(ComboBox<D: Display + Default>);
 
-#[cfg(feature = "combobox")]
-impl<D: Display + Default> PartialEq<ComboBox<D>> for ControlHandle {
-    fn eq(&self, other: &ComboBox<D>) -> bool {
-        *self == other.handle
-    }
-}
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+use super::LabeledCombo;
+
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+subclass_control!(LabeledCombo<D: Display + Default>, ComboBox<D>, field);
+
+#[cfg(all(feature = "combobox", feature = "labeled"))]
+subclass_layout!(LabeledCombo<D: Display + Default>, FlexboxLayout, layout);
+
+#[cfg(feature = "labeled")]
+use super::LabeledEdit;
+
+#[cfg(feature = "labeled")]
+subclass_layout!(LabeledEdit, FlexboxLayout, layout);
+
+#[cfg(feature = "labeled")]
+subclass_control!(LabeledEdit, TextInput, field);
 
 #[cfg(feature = "listbox")]
 use super::ListBox;
 
 #[cfg(feature = "listbox")]
-impl<D: Display + Default> From<&ListBox<D>> for ControlHandle {
-    fn from(control: &ListBox<D>) -> Self {
-        control.handle
-    }
-}
-
-#[cfg(feature = "listbox")]
-impl<D: Display + Default> PartialEq<ControlHandle> for ListBox<D> {
-    fn eq(&self, other: &ControlHandle) -> bool {
-        self.handle == *other
-    }
-}
-
-#[cfg(feature = "listbox")]
-impl<D: Display + Default> PartialEq<ListBox<D>> for ControlHandle {
-    fn eq(&self, other: &ListBox<D>) -> bool {
-        *self == other.handle
-    }
-}
+handles!(ListBox<D: Display + Default>);
 
 #[cfg(feature = "tabs")]
 use super::{Tab, TabsContainer};

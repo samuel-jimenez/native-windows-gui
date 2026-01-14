@@ -5,7 +5,6 @@ use taffy::{Dimension, Size};
 use super::ControlHandle;
 use crate::{
     FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, TextInputFlags, VTextAlign,
-    subclass_control, subclass_layout,
 };
 
 /**
@@ -51,14 +50,11 @@ fn build_box(tbox: &mut nwg::LabeledEdit, window: &nwg::Window, font: &nwg::Font
 
 #[derive(Default)]
 pub struct LabeledEdit {
-    layout: FlexboxLayout,
+    pub layout: FlexboxLayout,
 
     label: Label,
-    field: TextInput,
+    pub field: TextInput,
 }
-
-subclass_layout!(LabeledEdit, FlexboxLayout, layout);
-subclass_control!(LabeledEdit, TextInput, field);
 
 impl LabeledEdit {
     pub fn builder<'a>() -> LabeledEditBuilder<'a> {
