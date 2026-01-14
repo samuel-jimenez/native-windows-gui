@@ -88,6 +88,32 @@ macro_rules! subclass_control {
     };
 }
 
+/**
+Automatically implements the functionalities required to process an external struct as a NWG sub-layout.
+
+```rust
+#[macro_use] extern crate native_windows_gui as nwg;
+
+pub struct TestLayout {
+    layout: nwg::FlexboxLayout,
+    edit: nwg::TextInput,
+    custom_data: String,
+}
+
+subclass_layout!(TestLayout, FlexboxLayout, layout);
+```
+*/
+#[macro_export]
+macro_rules! subclass_layout {
+    ($ty:ident, $base_type:ident, $field: ident) => {
+        impl From<&$ty> for $crate::$base_type {
+            fn from(control: &$ty) -> Self {
+                control.$field.clone()
+            }
+        }
+    };
+}
+
 handles!(Window);
 handles!(Button);
 handles!(GroupBox);

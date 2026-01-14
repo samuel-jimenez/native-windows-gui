@@ -10,7 +10,7 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::{
     ControlHandle, FlexboxLayout, Font, HTextAlign, Label, NativeUi, NwgError, TextInput,
-    TextInputFlags, VTextAlign, subclass_control,
+    TextInputFlags, VTextAlign, subclass_control, subclass_layout,
     taffy::{Dimension, Size, style::FlexDirection, style_helpers::auto},
 };
 
@@ -26,6 +26,10 @@ pub struct NumberUnitsEdit {
 // Implements default trait so that the control can be used by native windows derive
 // The parameters are: subclass_control!(user type, base type, base field name)
 subclass_control!(NumberUnitsEdit, TextInput, field);
+
+// Implements default trait so that the layout can be used by native windows derive
+// The parameters are: subclass_layout!(user type, base type, base field name)
+subclass_layout!(NumberUnitsEdit, FlexboxLayout, layout);
 
 //
 // Implement a builder API compatible with native window derive
@@ -263,12 +267,6 @@ impl<'a> NumberUnitsEditBuilder<'a> {
             .build_partial(&out.layout)?;
 
         Ok(())
-    }
-}
-
-impl From<&NumberUnitsEdit> for FlexboxLayout {
-    fn from(control: &NumberUnitsEdit) -> Self {
-        control.layout.clone()
     }
 }
 

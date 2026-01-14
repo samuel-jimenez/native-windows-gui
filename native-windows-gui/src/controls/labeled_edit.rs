@@ -5,7 +5,7 @@ use taffy::{Dimension, Size};
 use super::ControlHandle;
 use crate::{
     FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, TextInputFlags, VTextAlign,
-    subclass_control,
+    subclass_control, subclass_layout,
 };
 
 /**
@@ -56,6 +56,8 @@ pub struct LabeledEdit {
     label: Label,
     field: TextInput,
 }
+
+subclass_layout!(LabeledEdit, FlexboxLayout, layout);
 subclass_control!(LabeledEdit, TextInput, field);
 
 impl LabeledEdit {
@@ -421,11 +423,5 @@ impl<'a> LabeledEditBuilder<'a> {
 impl PartialEq for LabeledEdit {
     fn eq(&self, other: &Self) -> bool {
         self.field == other.field
-    }
-}
-
-impl From<&LabeledEdit> for FlexboxLayout {
-    fn from(control: &LabeledEdit) -> Self {
-        control.layout.clone()
     }
 }
