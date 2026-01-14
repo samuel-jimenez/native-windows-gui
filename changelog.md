@@ -1,3 +1,6 @@
+1.1.0
+* BREAKING CHANGE: Remove `Timer`
+
 1.0.12
 * A new plotting control
 * Added support for system key events  (thanks to dnlmlr)

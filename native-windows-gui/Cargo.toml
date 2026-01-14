@@ -51,7 +51,6 @@ listbox = []
 combobox = []
 tray-notification = []
 message-window = []
-timer = []
 animation-timer = []
 notice = []
 labeled = ["flexbox"]
@@ -79,7 +78,7 @@ plotting = ["plotters", "plotters-backend"]
 flexbox = ["taffy"]
 high-dpi = ["muldiv"]
 raw-win-handle = ["raw-window-handle"]
-all = ["file-dialog", "color-dialog", "font-dialog", "datetime-picker", "progress-bar", "timer", "notice","labeled", "list-view", "cursor", "image-decoder",
+all = ["file-dialog", "color-dialog", "font-dialog", "datetime-picker", "progress-bar", "notice","labeled", "list-view", "cursor", "image-decoder",
        "tabs", "tree-view", "fancy-window", "listbox", "combobox", "tray-notification", "message-window", "number-select", "clipboard", "menu",
        "trackbar", "extern-canvas", "frame", "tooltip", "status-bar", "winnls", "textbox", "rich-textbox", "image-list", "embed-resource", "scroll-bar",
        "tree-view-iterator", "flexbox", "dynamic_layout", "animation-timer", "plotting"]

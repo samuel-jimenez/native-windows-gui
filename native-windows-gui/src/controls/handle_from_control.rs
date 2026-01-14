@@ -245,13 +245,6 @@ use super::MessageWindow;
 #[cfg(feature = "message-window")]
 handles!(MessageWindow);
 
-#[cfg(feature = "timer")]
-#[allow(deprecated)]
-use super::Timer;
-
-#[cfg(feature = "timer")]
-handles!(Timer);
-
 #[cfg(feature = "animation-timer")]
 use super::AnimationTimer;
 

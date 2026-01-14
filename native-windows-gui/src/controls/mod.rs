@@ -36,9 +36,6 @@ mod track_bar;
 #[cfg(feature = "menu")]
 mod menu;
 
-#[cfg(feature = "timer")]
-mod timer;
-
 #[cfg(feature = "animation-timer")]
 mod animation_timer;
 
@@ -150,9 +147,6 @@ pub use tabs::{Tab, TabBuilder, TabsContainer, TabsContainerBuilder, TabsContain
 #[cfg(feature = "textbox")]
 pub use text_box::{TextBox, TextBoxBuilder, TextBoxFlags};
 pub use text_input::{TextInput, TextInputBuilder, TextInputFlags};
-#[cfg(feature = "timer")]
-#[allow(deprecated)]
-pub use timer::{Timer, TimerBuilder};
 #[cfg(feature = "tooltip")]
 pub use tooltip::{Tooltip, TooltipBuilder, TooltipIcon};
 #[cfg(feature = "trackbar")]

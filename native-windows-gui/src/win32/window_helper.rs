@@ -178,7 +178,7 @@ where
     }
 }
 
-#[cfg(any(feature = "timer", feature = "animation-timer", feature = "notice"))]
+#[cfg(any(feature = "animation-timer", feature = "notice"))]
 pub fn window_valid(hwnd: HWND) -> bool {
     use winapi::um::winuser::IsWindow;
 
@@ -224,24 +224,6 @@ pub unsafe fn set_window_font(handle: HWND, font_handle: Option<HFONT>, redraw: 
         let font_handle = font_handle.unwrap_or(ptr::null_mut());
 
         SendMessageW(handle, WM_SETFONT, font_handle as WPARAM, redraw as LPARAM);
-    }
-}
-
-#[cfg(feature = "timer")]
-pub fn kill_timer(hwnd: HWND, id: u32) {
-    use winapi::{shared::basetsd::UINT_PTR, um::winuser::KillTimer};
-
-    unsafe {
-        KillTimer(hwnd, id as UINT_PTR);
-    }
-}
-
-#[cfg(feature = "timer")]
-pub fn start_timer(hwnd: HWND, id: u32, interval: u32) {
-    use winapi::{shared::basetsd::UINT_PTR, um::winuser::SetTimer};
-
-    unsafe {
-        SetTimer(hwnd, id as UINT_PTR, interval, None);
     }
 }
 
