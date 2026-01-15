@@ -32,7 +32,7 @@ impl nwg::NativeUi<MainUiWrapper> for MainUi {
             .build(&mut data.window)?;
 
         // !!! Partials controls setup !!!
-        SubmitForm::build_partial(&mut data.form, Some(&data.window))?;
+        SubmitForm::build_partial(&mut data.form, Some(&data.window), false)?;
 
         let ui = MainUiWrapper {
             inner: Rc::new(data),
@@ -89,6 +89,7 @@ impl PartialUi for SubmitForm {
     fn build_partial<W: Into<nwg::ControlHandle>>(
         data: &mut SubmitForm,
         parent: Option<W>,
+        _expand_layout_p: bool,
     ) -> Result<(), nwg::NwgError> {
         let parent = parent.unwrap().into();
 

@@ -68,9 +68,9 @@ mod test_control_panel_ui {
                 .build(&mut data.free_test_button)?;
 
             // Partials
-            ControlsTest::build_partial(&mut data.controls_tests, Some(&data.window))?;
-            ThreadTest::build_partial(&mut data.thread_tests, Some(&data.window))?;
-            FreeingTest::build_partial(&mut data.freeing_tests, Some(&data.window))?;
+            ControlsTest::build_partial(&mut data.controls_tests, Some(&data.window), false)?;
+            ThreadTest::build_partial(&mut data.thread_tests, Some(&data.window), false)?;
+            FreeingTest::build_partial(&mut data.freeing_tests, Some(&data.window), false)?;
 
             // Wrap-up
             let ui = TestControlPanelUi {

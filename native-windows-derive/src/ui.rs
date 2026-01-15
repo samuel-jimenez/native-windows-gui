@@ -500,17 +500,21 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                 let names = &self.layout.names;
                 let values = &self.layout.values;
                 let children = &self.children;
-                let sublayout = self.layout.sublayout;
 
-                let build = match sublayout || self.layout.layout.is_some() {
-                    true => quote! {build_partial},
-                    false => quote! {build},
+                let sublayout = self.layout.sublayout;
+                let build = if self.layout.layout.is_some() {
+                    quote! {build_partial(&ui.#id)}
+                } else if !sublayout {
+                    quote! {build(&ui.#id)}
+                } else {
+                    quote! {build_conditional(&ui.#id, expand_layout_p)}
                 };
+
                 let layout_tk = quote! {
                     #ty::builder()
                     #(.#names(#values))*
                     #(.#children)*
-                    .#build(&ui.#id)?;
+                    .#build?;
                 };
                 layout_tk.to_tokens(tokens);
             }
@@ -569,20 +573,21 @@ impl<'a> ToTokens for NwgUiPartials<'a> {
                 let id = &i.id;
                 let parent = &i.parent;
                 let nested = &i.nested;
+                let expand_layout_p = &i.layout.is_some();
 
                 let partial_tk = if parent.is_none() {
                     if !nested {
                         quote! {
-                            #ty::build_partial::<&Window>(&mut data.#id, None)?;
+                            #ty::build_partial::<&Window>(&mut data.#id, None, #expand_layout_p)?;
                         }
                     } else {
                         quote! {
-                            #ty::build_partial(&mut data.#id, Some(parent_ref.unwrap()))?;
+                            #ty::build_partial(&mut data.#id, Some(parent_ref.unwrap()), #expand_layout_p)?;
                         }
                     }
                 } else {
                     quote! {
-                        #ty::build_partial(&mut data.#id, Some(&data.#parent))?;
+                        #ty::build_partial(&mut data.#id, Some(&data.#parent), #expand_layout_p)?;
                     }
                 };
 
@@ -611,7 +616,7 @@ pub struct NwgUi<'a> {
 }
 
 impl<'a> NwgUi<'a> {
-    pub fn build(data: &'a syn::DataStruct, partial: bool, sublayout: bool) -> NwgUi<'a> {
+    pub fn build(data: &'a syn::DataStruct, partial: bool) -> NwgUi<'a> {
         let named_fields = match &data.fields {
             syn::Fields::Named(n) => &n.named,
             _ => panic!("Ui structure must have named fields"),
@@ -678,7 +683,7 @@ impl<'a> NwgUi<'a> {
                     names,
                     values,
                     weight: [0, field_pos as u16],
-                    sublayout: sublayout,
+                    sublayout: partial,
                 };
 
                 // Reorder layouts

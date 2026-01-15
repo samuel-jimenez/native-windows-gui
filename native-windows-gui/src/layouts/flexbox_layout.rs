@@ -656,6 +656,19 @@ impl FlexboxLayoutBuilder {
         self.layout.children[index].modify_style(|s| fnc(s));
     }
 
+    /// Build the layout object and optionally bind the callback.
+    pub fn build_conditional(
+        self,
+        layout: &FlexboxLayout,
+        expand_layout_p: bool,
+    ) -> Result<(), NwgError> {
+        if expand_layout_p {
+            self.build_partial(layout)
+        } else {
+            self.build(layout)
+        }
+    }
+
     /// Build the layout object and bind the callback.
     pub fn build(self, layout: &FlexboxLayout) -> Result<(), NwgError> {
         use winapi::{

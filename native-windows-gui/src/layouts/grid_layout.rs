@@ -622,6 +622,16 @@ impl GridLayoutBuilder {
         self
     }
 
+    /// Build the layout object and optionally bind the callback.
+    /// FlexboxLayout uses this. Here it is a synonym for build so derive works.
+    pub fn build_conditional(
+        self,
+        layout: &GridLayout,
+        _expand_layout_p: bool,
+    ) -> Result<(), NwgError> {
+        self.build(layout)
+    }
+
     /// Build the layout object and bind the callback.
     /// Children must only contains window object otherwise this method will panic.
     pub fn build(self, layout: &GridLayout) -> Result<(), NwgError> {

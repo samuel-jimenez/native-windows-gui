@@ -166,6 +166,7 @@ mod partial_controls_test_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut ControlsTest,
             _parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             //
             // Resources

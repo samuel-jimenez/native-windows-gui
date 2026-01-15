@@ -136,6 +136,7 @@ mod partial_freeing_test_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut FreeingTest,
             _parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             Window::builder()
                 .flags(WindowFlags::WINDOW)

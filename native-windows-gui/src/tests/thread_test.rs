@@ -69,6 +69,7 @@ mod partial_canvas_test_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut ThreadTest,
             _parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             Font::builder()
                 .size(40)

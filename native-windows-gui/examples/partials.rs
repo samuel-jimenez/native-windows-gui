@@ -170,9 +170,9 @@ mod partial_demo_ui {
                 .build(&mut data.frame3)?;
 
             // Partials
-            PeopleUi::build_partial(&mut data.people_ui, Some(&data.frame1))?;
-            AnimalUi::build_partial(&mut data.animal_ui, Some(&data.frame2))?;
-            FoodUi::build_partial(&mut data.food_ui, Some(&data.frame3))?;
+            PeopleUi::build_partial(&mut data.people_ui, Some(&data.frame1), false)?;
+            AnimalUi::build_partial(&mut data.animal_ui, Some(&data.frame2), false)?;
+            FoodUi::build_partial(&mut data.food_ui, Some(&data.frame3), false)?;
 
             // Wrap-up
             let ui = Rc::new(PartialDemoUi {
@@ -274,6 +274,7 @@ mod partial_people_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut PeopleUi,
             parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 
@@ -363,6 +364,7 @@ mod partial_animal_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut AnimalUi,
             parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 
@@ -453,6 +455,7 @@ mod partial_food_ui {
         fn build_partial<W: Into<ControlHandle>>(
             data: &mut FoodUi,
             parent: Option<W>,
+            _expand_layout_p: bool,
         ) -> Result<(), NwgError> {
             let parent = parent.unwrap().into();
 

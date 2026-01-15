@@ -308,8 +308,6 @@ struct Ui {
 #[proc_macro_derive(
     NwgUi,
     attributes(
-        parent,
-        sublayout,
         nwg_control,
         nwg_resource,
         nwg_events,
@@ -336,7 +334,7 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
     let generics = quote! { #lt #generic_params #gt }; // <'a: 'b, T: Trait1, const C>
     let generic_names = quote! { #lt #generic_names #gt }; // <'a, T, C>
 
-    let ui = NwgUi::build(&ui_data, false, false);
+    let ui = NwgUi::build(&ui_data, false);
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
@@ -447,8 +445,6 @@ pub struct MyApp {
 #[proc_macro_derive(
     NwgPartial,
     attributes(
-        parent,
-        sublayout,
         nwg_control,
         nwg_resource,
         nwg_events,
@@ -459,12 +455,6 @@ pub struct MyApp {
 )]
 pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
     let base = parse_macro_input!(input as DeriveInput);
-    let sublayout = base.attrs.iter().any(|attr| {
-        attr.path
-            .get_ident()
-            .map(|ident| ident == "sublayout")
-            .unwrap_or(false)
-    });
 
     let names = parse_base_names(&base);
 
@@ -481,7 +471,7 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
     let generic_names = quote! { #lt #generic_names #gt }; // <'a, T, C>
 
     let ui_data = parse_ui_data(&base).expect("NWG derive can only be implemented on structs");
-    let ui = NwgUi::build(&ui_data, true, sublayout);
+    let ui = NwgUi::build(&ui_data, true);
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
@@ -505,7 +495,7 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
             impl #generics PartialUi for #struct_name #generic_names #where_clause {
 
                 #[allow(unused)]
-                fn build_partial<W: Into<ControlHandle>>(data: &mut Self, _parent: Option<W>) -> Result<(), NwgError> {
+                fn build_partial<W: Into<ControlHandle>>(data: &mut Self, _parent: Option<W>, expand_layout_p: bool) -> Result<(), NwgError> {
                     let parent = _parent.map(|p| p.into());
                     let parent_ref = parent.as_ref();
 

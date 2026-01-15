@@ -73,10 +73,12 @@ pub trait PartialUi {
         Parameters:
           - `data`: A reference to the struct data from the parent struct
           - `parent`: An optional reference to the parent UI control. If this is defined, the ui controls of the partial should be children of this value.
+          - `expand_layout_p`: Whether this is child_layuot. If this is true, the ui layout of the partial should be a sublayout.
     */
     fn build_partial<W: Into<ControlHandle>>(
         data: &mut Self,
         parent: Option<W>,
+        expand_layout_p: bool,
     ) -> Result<(), NwgError>;
 
     /**
