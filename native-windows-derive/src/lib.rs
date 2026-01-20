@@ -308,12 +308,15 @@ struct Ui {
 #[proc_macro_derive(
     NwgUi,
     attributes(
+        nwg_root,
         nwg_control,
         nwg_resource,
         nwg_events,
         nwg_layout,
         nwg_layout_item,
-        nwg_partial
+        nwg_partial,
+        nwg_control_layout,
+        nwg_partial_control
     )
 )]
 pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
@@ -445,12 +448,15 @@ pub struct MyApp {
 #[proc_macro_derive(
     NwgPartial,
     attributes(
+        nwg_root,
         nwg_control,
         nwg_resource,
         nwg_events,
         nwg_layout,
         nwg_layout_item,
-        nwg_partial
+        nwg_partial,
+        nwg_control_layout,
+        nwg_partial_control
     )
 )]
 pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
@@ -477,6 +483,17 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
     let partials = ui.partials();
     let layouts = ui.layouts();
     let events = ui.events();
+    let (_root_id, _root_type) = ui.root_element();
+
+    let subclass = if _root_id.is_some() {
+        let root_id = _root_id.unwrap();
+        let root_type = _root_type.unwrap();
+        quote! {
+        nwg::subclass_control!(#struct_name, #root_type, #root_id);
+        }
+    } else {
+        quote! {}
+    };
 
     let nwg_name = crate_name("native-windows-gui");
 
@@ -491,6 +508,8 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
             extern crate #nwg as nwg;
             use nwg::*;
             use super::*;
+
+            #subclass
 
             impl #generics PartialUi for #struct_name #generic_names #where_clause {
 

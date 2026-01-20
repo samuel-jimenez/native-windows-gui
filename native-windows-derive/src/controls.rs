@@ -39,6 +39,41 @@ pub fn parameters(field: &syn::Field, attr_id: &'static str) -> (Vec<syn::Ident>
     (names, exprs)
 }
 
+pub fn parameters_fn(
+    field: &syn::Field,
+    find_attr: fn(attr: &&syn::Attribute) -> bool,
+) -> (Vec<syn::Ident>, Vec<syn::Expr>) {
+    let member = match field.ident.as_ref() {
+        Some(m) => m,
+        None => unreachable!(),
+    };
+
+    let attr = match field.attrs.iter().find(find_attr) {
+        Some(attr) => attr,
+        None => unreachable!(),
+    };
+
+    let ctrl: Parameters = match syn::parse2(attr.tokens.clone()) {
+        Ok(a) => a,
+        Err(e) => panic!("Failed to parse field #{}: {}", member, e),
+    };
+
+    let params = ctrl.params;
+    let mut names = Vec::with_capacity(params.len());
+    let mut exprs = Vec::with_capacity(params.len());
+
+    for p in params {
+        if p.ident == "ty" || p.ident == "nested" {
+            continue;
+        }
+
+        names.push(p.ident);
+        exprs.push(p.e);
+    }
+
+    (names, exprs)
+}
+
 pub fn expand_flags(member_name: &syn::Ident, ty: &syn::Ident, flags: syn::Expr) -> syn::Expr {
     let flags_type = format!("{}Flags", ty);
 
