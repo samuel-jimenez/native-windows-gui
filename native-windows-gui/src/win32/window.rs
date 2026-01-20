@@ -794,7 +794,7 @@ unsafe extern "system" fn process_events(
                     .unwrap_or("".to_string());
                 match &class_name as &str {
                     "Button" => callback(button_commands(message), NO_DATA, handle),
-                    "Edit" => callback(edit_commands(message), NO_DATA, handle),
+                    "Edit" => callback(edit_commands(child_handle, message), NO_DATA, handle),
                     "ComboBox" => callback(combo_commands(message), NO_DATA, handle),
                     "Static" => callback(static_commands(child_handle, message), NO_DATA, handle),
                     "ListBox" => callback(listbox_commands(message), NO_DATA, handle),
@@ -981,11 +981,22 @@ fn button_commands(m: u16) -> Event {
     }
 }
 
-fn edit_commands(m: u16) -> Event {
-    use winapi::um::winuser::EN_CHANGE;
-    match m {
-        EN_CHANGE => Event::OnTextInput,
-        _ => Event::Unknown,
+fn edit_commands(handle: HWND, m: u16) -> Event {
+    unsafe {
+        use winapi::um::winuser::{EM_GETMODIFY, EN_CHANGE, SendMessageW};
+
+        // Don't send event if the text was changed programatically.
+        let modified = SendMessageW(handle, EM_GETMODIFY.into(), 0, 0) != 0;
+        match m {
+            EN_CHANGE => {
+                if modified {
+                    Event::OnTextInput
+                } else {
+                    Event::Unknown
+                }
+            }
+            _ => Event::Unknown,
+        }
     }
 }
 
