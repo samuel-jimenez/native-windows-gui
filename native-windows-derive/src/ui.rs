@@ -860,6 +860,14 @@ impl<'a> NwgUi<'a> {
             }
         }
 
+        if root_id.is_some() {
+            for control in partials.iter_mut() {
+                if control.parent.is_none() {
+                    control.parent = root_id.cloned()
+                }
+            }
+        }
+
         // Parent Weight
         fn compute_weight(controls: &[NwgControl], index: usize, weight: &mut [u16; 2]) {
             match &controls[index].parent_id {
