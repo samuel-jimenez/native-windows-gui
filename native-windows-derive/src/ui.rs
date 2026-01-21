@@ -785,33 +785,21 @@ impl<'a> NwgUi<'a> {
             // Match the layout item to the layout object
             let layout_id = layouts[i].id;
             let layout_type = layouts[i].ty;
-            for control in controls.iter_mut() {
-                if let Some(child_layout) = control.layout.as_mut() {
-                    if child_layout.parent_matches(layout_id) {
-                        child_layout.parse(layout_type);
-                        control.layout_index = i;
+            macro_rules! expand_layout_parent {
+                ( $vec:ident ) => {
+                    for control in $vec.iter_mut() {
+                        if let Some(child_layout) = control.layout.as_mut() {
+                            if child_layout.parent_matches(layout_id) {
+                                child_layout.parse(layout_type);
+                                control.layout_index = i;
+                            }
+                        }
                     }
-                }
+                };
             }
-
-            // Match the layout item to the layout object
-            for control in layouts.iter_mut() {
-                if let Some(child_layout) = control.layout.as_mut() {
-                    if child_layout.parent_matches(layout_id) {
-                        child_layout.parse(layout_type);
-                        control.layout_index = i;
-                    }
-                }
-            }
-            // Match the layout item to the layout object
-            for control in partials.iter_mut() {
-                if let Some(child_layout) = control.layout.as_mut() {
-                    if child_layout.parent_matches(layout_id) {
-                        child_layout.parse(layout_type);
-                        control.layout_index = i;
-                    }
-                }
-            }
+            expand_layout_parent!(controls);
+            expand_layout_parent!(layouts);
+            expand_layout_parent!(partials);
         }
 
         for i in 0..(controls.len()) {
