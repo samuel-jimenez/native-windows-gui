@@ -135,7 +135,7 @@ pub fn enable_visual_styles() {
 
     let mut activation_cookie: ULONG_PTR = 0;
     let mut act_ctx = ACTCTXW {
-        cbSize: mem::size_of::<ACTCTXW> as ULONG,
+        cbSize: mem::size_of::<ACTCTXW> as *const () as ULONG,
         dwFlags: ACTCTX_FLAG_SET_PROCESS_DEFAULT,
         lpSource: manifest_path_raw.as_ptr(),
         wProcessorArchitecture: 0,
