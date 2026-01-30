@@ -27,17 +27,16 @@ const BAD_HANDLE: &'static str = "INTERNAL ERROR: Combobox handle is not HWND!";
 bitflags! {
     /**
         The ComboBox flags
+        Defaults to VISIBLE | DISABLED
 
         * NONE:         No flags. Equivalent to a invisible combobox.
         * VISIBLE:      The combobox is immediately visible after creation
-        * DISABLED:     The combobox cannot be interacted with by the user. It also has a grayed out look.
         * TAB_STOP:     The control can be selected using tab navigation
         * DROPDOWNLIST: The combobox can only select options from the dropdown list, with no edit option.
         */
     pub struct ComboBoxFlags: u32 {
         const NONE = 0;
         const VISIBLE = WS_VISIBLE;
-        const DISABLED = WS_DISABLED;
         const TAB_STOP = WS_TABSTOP;
         const DROPDOWNLIST = CBS_DROPDOWNLIST;
     }
@@ -663,7 +662,14 @@ impl<'a, D: Display + Default> ComboBoxBuilder<'a, D> {
     }
 
     pub fn build(self, out: &mut ComboBox<D>) -> Result<(), NwgError> {
-        let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
+        let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
+        // let mut flags = out.flags();
+        // if !self.visible {
+        //     flags &= !WS_VISIBLE
+        // }
+        if !self.enabled {
+            flags |= WS_DISABLED
+        }
 
         let parent = match self.parent {
             Some(p) => Ok(p),
