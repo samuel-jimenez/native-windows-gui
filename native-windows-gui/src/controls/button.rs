@@ -1,3 +1,4 @@
+use derive_setters::Setters;
 use winapi::um::winuser::{
     BS_BITMAP, BS_ICON, BS_NOTIFY, WS_CHILD, WS_DISABLED, WS_TABSTOP, WS_VISIBLE,
 };
@@ -81,19 +82,7 @@ pub struct Button {
 
 impl Button {
     pub fn builder<'a>() -> ButtonBuilder<'a> {
-        ButtonBuilder {
-            text: "Button",
-            size: (100, 25),
-            position: (0, 0),
-            enabled: true,
-            flags: None,
-            ex_flags: 0,
-            font: None,
-            parent: None,
-            bitmap: None,
-            icon: None,
-            focus: false,
-        }
+        ButtonBuilder::default()
     }
 
     /// Simulate a user click
@@ -283,76 +272,42 @@ impl Drop for Button {
     }
 }
 
+#[derive(Setters)]
 pub struct ButtonBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
     position: (i32, i32),
     enabled: bool,
+    #[setter(strip_option)]
     flags: Option<ButtonFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
     bitmap: Option<&'a Bitmap>,
     icon: Option<&'a Icon>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
     focus: bool,
 }
 
+impl<'a> Default for ButtonBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            text: "Button",
+            size: (100, 25),
+            position: (0, 0),
+            enabled: true,
+            flags: None,
+            ex_flags: 0,
+            font: None,
+            parent: None,
+            bitmap: None,
+            icon: None,
+            focus: false,
+        }
+    }
+}
+
 impl<'a> ButtonBuilder<'a> {
-    pub fn flags(mut self, flags: ButtonFlags) -> ButtonBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> ButtonBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> ButtonBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> ButtonBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> ButtonBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn enabled(mut self, e: bool) -> ButtonBuilder<'a> {
-        self.enabled = e;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> ButtonBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn bitmap(mut self, bit: Option<&'a Bitmap>) -> ButtonBuilder<'a> {
-        self.bitmap = bit;
-        self
-    }
-
-    pub fn icon(mut self, ico: Option<&'a Icon>) -> ButtonBuilder<'a> {
-        self.icon = ico;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> ButtonBuilder<'a> {
-        self.focus = focus;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> ButtonBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut Button) -> Result<(), NwgError> {
         let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
         // // TODO out.set_enabled(self.enabled)

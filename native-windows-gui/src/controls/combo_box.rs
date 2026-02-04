@@ -4,12 +4,16 @@ use std::{
     mem,
 };
 
+use derive_setters::Setters;
 use winapi::{
     shared::{
         minwindef::{LPARAM, WPARAM},
         windef::HWND,
     },
-    um::winuser::{CBS_DROPDOWNLIST, WS_DISABLED, WS_TABSTOP, WS_VISIBLE},
+    um::winuser::{
+        CBS_AUTOHSCROLL, CBS_DROPDOWNLIST, CBS_LOWERCASE, CBS_UPPERCASE, WS_DISABLED, WS_TABSTOP,
+        WS_VISIBLE, WS_VSCROLL,
+    },
 };
 
 use super::{ControlBase, ControlHandle};
@@ -27,18 +31,28 @@ const BAD_HANDLE: &'static str = "INTERNAL ERROR: Combobox handle is not HWND!";
 bitflags! {
     /**
         The ComboBox flags
-        Defaults to VISIBLE | DISABLED
+        Defaults to VISIBLE | TAB_STOP | VSCROLL
 
         * NONE:         No flags. Equivalent to a invisible combobox.
         * VISIBLE:      The combobox is immediately visible after creation
         * TAB_STOP:     The control can be selected using tab navigation
         * DROPDOWNLIST: The combobox can only select options from the dropdown list, with no edit option.
+        * VSCROLL:      The combobox has a vertical scrollbar.
+        * AUTOHSCROLL:  The combobox edit control scroll to the cursor.
+        * UPPERCASE:    Text in the combobox is automatically upcased.
+        * LOWERCASE:    Text in the combobox is automatically downcased.
         */
     pub struct ComboBoxFlags: u32 {
         const NONE = 0;
         const VISIBLE = WS_VISIBLE;
         const TAB_STOP = WS_TABSTOP;
         const DROPDOWNLIST = CBS_DROPDOWNLIST;
+        const VSCROLL = WS_VSCROLL;
+        const AUTOHSCROLL = CBS_AUTOHSCROLL;
+        const UPPERCASE = CBS_UPPERCASE;
+        const LOWERCASE = CBS_LOWERCASE;
+
+
     }
 }
 
@@ -92,18 +106,7 @@ pub struct ComboBox<D: Display + Default> {
 
 impl<D: Display + Default> ComboBox<D> {
     pub fn builder<'a>() -> ComboBoxBuilder<'a, D> {
-        ComboBoxBuilder {
-            size: (100, 25),
-            position: (0, 0),
-            enabled: true,
-            focus: false,
-            flags: None,
-            ex_flags: 0,
-            font: None,
-            collection: None,
-            selected_index: None,
-            parent: None,
-        }
+        ComboBoxBuilder::default()
     }
 
     /// Remove the item at the selected index and returns it.
@@ -433,7 +436,7 @@ impl<D: Display + Default> ComboBox<D> {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        WS_VISIBLE | WS_TABSTOP
+        WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_AUTOHSCROLL
     }
 
     /// Winapi flags required by the control
@@ -592,70 +595,52 @@ impl<D: Display + Default> Drop for ComboBox<D> {
     }
 }
 
+#[derive(Setters)]
 pub struct ComboBoxBuilder<'a, D: Display + Default> {
     size: (i32, i32),
     position: (i32, i32),
+    visible: bool,
     enabled: bool,
     focus: bool,
+    upcase: bool,
+    downcase: bool,
+    autoscroll: bool,
+    scrollbar: bool,
+    //   const TAB_STOP = WS_TABSTOP;
+    // const DROPDOWNLIST = CBS_DROPDOWNLIST;
+    #[setter(strip_option)]
     flags: Option<ComboBoxFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
+    #[setter(strip_option)]
     collection: Option<Vec<D>>,
     selected_index: Option<usize>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
+}
+impl<'a, D: Display + Default> Default for ComboBoxBuilder<'a, D> {
+    fn default() -> Self {
+        Self {
+            size: (100, 25),
+            position: (0, 0),
+            visible: true,
+            enabled: true,
+            focus: false,
+            upcase: false,
+            downcase: false,
+            autoscroll: true,
+            scrollbar: true,
+            flags: None,
+            ex_flags: 0,
+            font: None,
+            collection: None,
+            selected_index: None,
+            parent: None,
+        }
+    }
 }
 
 impl<'a, D: Display + Default> ComboBoxBuilder<'a, D> {
-    pub fn flags(mut self, flags: ComboBoxFlags) -> ComboBoxBuilder<'a, D> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> ComboBoxBuilder<'a, D> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> ComboBoxBuilder<'a, D> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> ComboBoxBuilder<'a, D> {
-        self.position = pos;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> ComboBoxBuilder<'a, D> {
-        self.font = font;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> ComboBoxBuilder<'a, D> {
-        self.parent = Some(p.into());
-        self
-    }
-
-    pub fn collection(mut self, collection: Vec<D>) -> ComboBoxBuilder<'a, D> {
-        self.collection = Some(collection);
-        self
-    }
-
-    pub fn selected_index(mut self, index: Option<usize>) -> ComboBoxBuilder<'a, D> {
-        self.selected_index = index;
-        self
-    }
-
-    pub fn enabled(mut self, e: bool) -> ComboBoxBuilder<'a, D> {
-        self.enabled = e;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> ComboBoxBuilder<'a, D> {
-        self.focus = focus;
-        self
-    }
-
     pub fn v_align(self, _align: VTextAlign) -> ComboBoxBuilder<'a, D> {
         // Disabled for now because of a bug. Keep the method for backward compatibility
         self
@@ -664,12 +649,27 @@ impl<'a, D: Display + Default> ComboBoxBuilder<'a, D> {
     pub fn build(self, out: &mut ComboBox<D>) -> Result<(), NwgError> {
         let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
         // let mut flags = out.flags();
-        // if !self.visible {
-        //     flags &= !WS_VISIBLE
-        // }
+        if !self.visible {
+            flags &= !WS_VISIBLE
+        }
         if !self.enabled {
             flags |= WS_DISABLED
         }
+        if self.upcase {
+            flags |= CBS_UPPERCASE
+        }
+        if self.downcase {
+            flags |= CBS_LOWERCASE
+        }
+        if !self.autoscroll {
+            flags &= !CBS_AUTOHSCROLL
+        }
+        if !self.scrollbar {
+            flags &= !WS_VSCROLL
+        }
+
+        // const TAB_STOP = WS_TABSTOP;
+        // const DROPDOWNLIST = CBS_DROPDOWNLIST;
 
         let parent = match self.parent {
             Some(p) => Ok(p),

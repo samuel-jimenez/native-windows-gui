@@ -1,3 +1,4 @@
+use derive_setters::Setters;
 use winapi::um::winuser::{
     WS_CAPTION, WS_CLIPCHILDREN, WS_DISABLED, WS_EX_ACCEPTFILES, WS_EX_TOPMOST, WS_MAXIMIZE,
     WS_MAXIMIZEBOX, WS_MINIMIZE, WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_POPUP, WS_SYSMENU,
@@ -91,20 +92,7 @@ pub struct Window {
 
 impl Window {
     pub fn builder<'a>() -> WindowBuilder<'a> {
-        WindowBuilder {
-            title: "New Window",
-            size: (500, 500),
-            position: (300, 300),
-            accept_files: false,
-            topmost: false,
-            center: false,
-            maximized: false,
-            minimized: false,
-            flags: None,
-            ex_flags: 0,
-            icon: None,
-            parent: None,
-        }
+        WindowBuilder::default()
     }
 
     /// Maximize the window
@@ -292,6 +280,7 @@ unsafe impl HasRawWindowHandle for Window {
     }
 }
 
+#[derive(Setters)]
 pub struct WindowBuilder<'a> {
     title: &'a str,
     size: (i32, i32),
@@ -301,73 +290,34 @@ pub struct WindowBuilder<'a> {
     topmost: bool,
     maximized: bool,
     minimized: bool,
+    #[setter(strip_option)]
     flags: Option<WindowFlags>,
     ex_flags: u32,
     icon: Option<&'a Icon>,
+    #[setter(into)]
     parent: Option<ControlHandle>,
 }
 
+impl<'a> Default for WindowBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            title: "New Window",
+            size: (500, 500),
+            position: (300, 300),
+            accept_files: false,
+            topmost: false,
+            center: false,
+            maximized: false,
+            minimized: false,
+            flags: None,
+            ex_flags: 0,
+            icon: None,
+            parent: None,
+        }
+    }
+}
+
 impl<'a> WindowBuilder<'a> {
-    pub fn flags(mut self, flags: WindowFlags) -> WindowBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> WindowBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn title(mut self, text: &'a str) -> WindowBuilder<'a> {
-        self.title = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> WindowBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> WindowBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn icon(mut self, ico: Option<&'a Icon>) -> WindowBuilder<'a> {
-        self.icon = ico;
-        self
-    }
-
-    pub fn accept_files(mut self, accept_files: bool) -> WindowBuilder<'a> {
-        self.accept_files = accept_files;
-        self
-    }
-
-    pub fn topmost(mut self, topmost: bool) -> WindowBuilder<'a> {
-        self.topmost = topmost;
-        self
-    }
-
-    pub fn center(mut self, center: bool) -> WindowBuilder<'a> {
-        self.center = center;
-        self
-    }
-
-    pub fn maximized(mut self, maximized: bool) -> WindowBuilder<'a> {
-        self.maximized = maximized;
-        self
-    }
-
-    pub fn minimized(mut self, minimized: bool) -> WindowBuilder<'a> {
-        self.minimized = minimized;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: Option<C>) -> WindowBuilder<'a> {
-        self.parent = p.map(|p2| p2.into());
-        self
-    }
-
     pub fn build(self, out: &mut Window) -> Result<(), NwgError> {
         use crate::win32::high_dpi::physical_to_logical;
 

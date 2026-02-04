@@ -4,6 +4,7 @@ use std::{
     fmt::Display,
 };
 
+use derive_setters::Setters;
 use taffy::{Dimension, Size};
 
 use super::ControlHandle;
@@ -62,22 +63,7 @@ pub struct LabeledCombo<D: Display + Default> {
 
 impl<D: Display + Default> LabeledCombo<D> {
     pub fn builder<'a>() -> LabeledComboBuilder<'a, D> {
-        LabeledComboBuilder {
-            label_text: "",
-            label_h_align: HTextAlign::Left,
-            label_v_align: VTextAlign::Top,
-            label_width: Dimension::percent(0.45),
-            size: (100, 25),
-            position: (0, 0),
-            enabled: true,
-            focus: false,
-            flags: None,
-            ex_flags: 0,
-            font: None,
-            collection: None,
-            selected_index: None,
-            parent: None,
-        }
+        LabeledComboBuilder::default()
     }
 
     /// Return the text displayed in the label
@@ -264,22 +250,56 @@ impl<D: Display + Default> LabeledCombo<D> {
         self.field.collection_mut()
     }
 }
-
+#[derive(Setters)]
 pub struct LabeledComboBuilder<'a, D: Display + Default> {
+    #[setter(name=label)]
     label_text: &'a str,
     label_h_align: HTextAlign,
     label_v_align: VTextAlign,
     label_width: Dimension,
     size: (i32, i32),
     position: (i32, i32),
+    visible: bool,
     enabled: bool,
     focus: bool,
+    upcase: bool,
+    downcase: bool,
+    autoscroll: bool,
+    scrollbar: bool,
+    #[setter(strip_option)]
     flags: Option<ComboBoxFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
+    #[setter(strip_option)]
     collection: Option<Vec<D>>,
     selected_index: Option<usize>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
+}
+impl<'a, D: Display + Default> Default for LabeledComboBuilder<'a, D> {
+    fn default() -> Self {
+        Self {
+            label_text: "",
+            label_h_align: HTextAlign::Left,
+            label_v_align: VTextAlign::Top,
+            label_width: Dimension::percent(0.45),
+            size: (100, 25),
+            position: (0, 0),
+            visible: true,
+            enabled: true,
+            focus: false,
+            upcase: false,
+            downcase: false,
+            autoscroll: true,
+            scrollbar: true,
+            flags: None,
+            ex_flags: 0,
+            font: None,
+            collection: None,
+            selected_index: None,
+            parent: None,
+        }
+    }
 }
 
 impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
@@ -287,76 +307,6 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
         width: Dimension::percent(1.0),
         height: Dimension::auto(),
     };
-
-    pub fn flags(mut self, flags: ComboBoxFlags) -> LabeledComboBuilder<'a, D> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> LabeledComboBuilder<'a, D> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn label(mut self, label_text: &'a str) -> LabeledComboBuilder<'a, D> {
-        self.label_text = label_text;
-        self
-    }
-
-    pub fn label_h_align(mut self, align: HTextAlign) -> LabeledComboBuilder<'a, D> {
-        self.label_h_align = align;
-        self
-    }
-
-    pub fn label_v_align(mut self, align: VTextAlign) -> LabeledComboBuilder<'a, D> {
-        self.label_v_align = align;
-        self
-    }
-
-    pub fn label_width(mut self, label_width: Dimension) -> LabeledComboBuilder<'a, D> {
-        self.label_width = label_width;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> LabeledComboBuilder<'a, D> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> LabeledComboBuilder<'a, D> {
-        self.position = pos;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> LabeledComboBuilder<'a, D> {
-        self.font = font;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> LabeledComboBuilder<'a, D> {
-        self.parent = Some(p.into());
-        self
-    }
-
-    pub fn collection(mut self, collection: Vec<D>) -> LabeledComboBuilder<'a, D> {
-        self.collection = Some(collection);
-        self
-    }
-
-    pub fn selected_index(mut self, index: Option<usize>) -> LabeledComboBuilder<'a, D> {
-        self.selected_index = index;
-        self
-    }
-
-    pub fn enabled(mut self, e: bool) -> LabeledComboBuilder<'a, D> {
-        self.enabled = e;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> LabeledComboBuilder<'a, D> {
-        self.focus = focus;
-        self
-    }
 
     pub fn v_align(self, _align: VTextAlign) -> LabeledComboBuilder<'a, D> {
         // Disabled for now because of a bug. Keep the method for backward compatibility
@@ -394,8 +344,13 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
             .ex_flags(self.ex_flags)
             .size(self.size)
             .font(self.font)
+            .visible(self.visible)
             .enabled(self.enabled)
             .focus(self.focus)
+            .upcase(self.upcase)
+            .downcase(self.downcase)
+            .autoscroll(self.autoscroll)
+            .scrollbar(self.scrollbar)
             .build(&mut out.field)?;
 
         FlexboxLayout::builder()

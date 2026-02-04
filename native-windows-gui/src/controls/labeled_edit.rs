@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use derive_setters::Setters;
 use taffy::{Dimension, Size};
 
 use super::ControlHandle;
@@ -58,26 +59,7 @@ pub struct LabeledEdit {
 
 impl LabeledEdit {
     pub fn builder<'a>() -> LabeledEditBuilder<'a> {
-        LabeledEditBuilder {
-            label_text: "",
-            label_h_align: HTextAlign::Left,
-            label_v_align: VTextAlign::Center,
-            label_width: Dimension::percent(0.45),
-            text: "",
-            placeholder_text: None,
-            size: (100, 25),
-            position: (0, 0),
-            flags: None,
-            ex_flags: 0,
-            limit: 0,
-            password: None,
-            align: HTextAlign::Left,
-            readonly: false,
-            focus: false,
-            font: None,
-            parent: None,
-            background_color: None,
-        }
+        LabeledEditBuilder::default()
     }
 
     /// Return the text displayed in the label
@@ -249,7 +231,9 @@ impl LabeledEdit {
     }
 }
 
+#[derive(Setters)]
 pub struct LabeledEditBuilder<'a> {
+    #[setter(name=label)]
     label_text: &'a str,
     label_h_align: HTextAlign,
     label_v_align: VTextAlign,
@@ -258,6 +242,7 @@ pub struct LabeledEditBuilder<'a> {
     placeholder_text: Option<&'a str>,
     size: (i32, i32),
     position: (i32, i32),
+    #[setter(strip_option)]
     flags: Option<TextInputFlags>,
     ex_flags: u32,
     limit: usize,
@@ -265,9 +250,34 @@ pub struct LabeledEditBuilder<'a> {
     align: HTextAlign,
     readonly: bool,
     font: Option<&'a Font>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
     background_color: Option<[u8; 3]>,
     focus: bool,
+}
+impl<'a> Default for LabeledEditBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            label_text: "",
+            label_h_align: HTextAlign::Left,
+            label_v_align: VTextAlign::Center,
+            label_width: Dimension::percent(0.45),
+            text: "",
+            placeholder_text: None,
+            size: (100, 25),
+            position: (0, 0),
+            flags: None,
+            ex_flags: 0,
+            limit: 0,
+            password: None,
+            align: HTextAlign::Left,
+            readonly: false,
+            focus: false,
+            font: None,
+            parent: None,
+            background_color: None,
+        }
+    }
 }
 
 impl<'a> LabeledEditBuilder<'a> {
@@ -275,96 +285,6 @@ impl<'a> LabeledEditBuilder<'a> {
         width: Dimension::percent(1.0),
         height: Dimension::auto(),
     };
-
-    pub fn flags(mut self, flags: TextInputFlags) -> LabeledEditBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> LabeledEditBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> LabeledEditBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn label(mut self, label_text: &'a str) -> LabeledEditBuilder<'a> {
-        self.label_text = label_text;
-        self
-    }
-
-    pub fn label_h_align(mut self, align: HTextAlign) -> LabeledEditBuilder<'a> {
-        self.label_h_align = align;
-        self
-    }
-
-    pub fn label_v_align(mut self, align: VTextAlign) -> LabeledEditBuilder<'a> {
-        self.label_v_align = align;
-        self
-    }
-
-    pub fn label_width(mut self, label_width: Dimension) -> LabeledEditBuilder<'a> {
-        self.label_width = label_width;
-        self
-    }
-
-    pub fn placeholder_text(mut self, placeholder_text: Option<&'a str>) -> LabeledEditBuilder<'a> {
-        self.placeholder_text = placeholder_text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> LabeledEditBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> LabeledEditBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn limit(mut self, limit: usize) -> LabeledEditBuilder<'a> {
-        self.limit = limit;
-        self
-    }
-
-    pub fn password(mut self, psw: Option<char>) -> LabeledEditBuilder<'a> {
-        self.password = psw;
-        self
-    }
-
-    pub fn align(mut self, align: HTextAlign) -> LabeledEditBuilder<'a> {
-        self.align = align;
-        self
-    }
-
-    pub fn readonly(mut self, read: bool) -> LabeledEditBuilder<'a> {
-        self.readonly = read;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> LabeledEditBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn background_color(mut self, color: Option<[u8; 3]>) -> LabeledEditBuilder<'a> {
-        self.background_color = color;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> LabeledEditBuilder<'a> {
-        self.focus = focus;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> LabeledEditBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
 
     pub fn build(self, out: &mut LabeledEdit) -> Result<(), NwgError> {
         let parent = match self.parent {

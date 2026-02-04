@@ -15,6 +15,7 @@ build = "build.rs"
 keywords = ["gui", "ui", "windows"]
 
 [dependencies]
+derive-setters = { path = "./derive-setters" }
 winapi = { version = "0.3", features = [
   "winuser", "wingdi", "winbase", "libloaderapi", "processthreadsapi",
   "errhandlingapi", "winerror", "commctrl", "sysinfoapi", "shobjidl", "combaseapi",

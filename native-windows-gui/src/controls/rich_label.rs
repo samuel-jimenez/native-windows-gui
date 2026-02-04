@@ -1,5 +1,6 @@
 use std::{cell::RefCell, ops::Range, rc::Rc};
 
+use derive_setters::Setters;
 use winapi::um::winuser::{EM_SETSEL, ES_MULTILINE, WS_DISABLED, WS_VISIBLE};
 
 use super::{CharFormat, ControlBase, ControlHandle, ParaFormat};
@@ -82,18 +83,7 @@ pub struct RichLabel {
 
 impl RichLabel {
     pub fn builder<'a>() -> RichLabelBuilder<'a> {
-        RichLabelBuilder {
-            text: "A rich label",
-            size: (130, 25),
-            position: (0, 0),
-            flags: None,
-            ex_flags: 0,
-            font: None,
-            h_align: HTextAlign::Left,
-            background_color: None,
-            line_height: None,
-            parent: None,
-        }
+        RichLabelBuilder::default()
     }
 
     /// Sets the background color for a rich edit control.
@@ -401,70 +391,39 @@ impl Drop for RichLabel {
     }
 }
 
+#[derive(Setters)]
 pub struct RichLabelBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
     position: (i32, i32),
+    #[setter(strip_option)]
     flags: Option<RichLabelFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
     h_align: HTextAlign,
     background_color: Option<[u8; 3]>,
     line_height: Option<i32>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
 }
 
+impl<'a> Default for RichLabelBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            text: "A rich label",
+            size: (130, 25),
+            position: (0, 0),
+            flags: None,
+            ex_flags: 0,
+            font: None,
+            h_align: HTextAlign::Left,
+            background_color: None,
+            line_height: None,
+            parent: None,
+        }
+    }
+}
 impl<'a> RichLabelBuilder<'a> {
-    pub fn text(mut self, text: &'a str) -> RichLabelBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> RichLabelBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> RichLabelBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> RichLabelBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn flags(mut self, flags: RichLabelFlags) -> RichLabelBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> RichLabelBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn h_align(mut self, align: HTextAlign) -> RichLabelBuilder<'a> {
-        self.h_align = align;
-        self
-    }
-
-    pub fn background_color(mut self, color: Option<[u8; 3]>) -> RichLabelBuilder<'a> {
-        self.background_color = color;
-        self
-    }
-
-    pub fn line_height(mut self, height: Option<i32>) -> RichLabelBuilder<'a> {
-        self.line_height = height;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> RichLabelBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut RichLabel) -> Result<(), NwgError> {
         use winapi::um::winuser::{SS_CENTER, SS_LEFT, SS_RIGHT};
 

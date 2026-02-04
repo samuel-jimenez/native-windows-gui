@@ -1,6 +1,7 @@
 #![allow(unused)]
 use std::cell::RefCell;
 
+use derive_setters::Setters;
 use winapi::{
     shared::windef::HBRUSH,
     um::winuser::{
@@ -61,16 +62,7 @@ pub struct GroupBox {
 
 impl GroupBox {
     pub fn builder<'a>() -> GroupBoxBuilder<'a> {
-        GroupBoxBuilder {
-            text: "GroupBox",
-            size: (100, 25),
-            position: (0, 0),
-            visible: true,
-            enabled: true,
-            ex_flags: 0,
-            font: None,
-            parent: None,
-        }
+        GroupBoxBuilder::default()
     }
 
     /// Returns the font of the control
@@ -220,6 +212,7 @@ impl Drop for GroupBox {
     }
 }
 
+#[derive(Setters)]
 pub struct GroupBoxBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
@@ -228,50 +221,25 @@ pub struct GroupBoxBuilder<'a> {
     enabled: bool,
     ex_flags: u32,
     font: Option<&'a Font>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
+}
+impl<'a> Default for GroupBoxBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            text: "GroupBox",
+            size: (100, 25),
+            position: (0, 0),
+            visible: true,
+            enabled: true,
+            ex_flags: 0,
+            font: None,
+            parent: None,
+        }
+    }
 }
 
 impl<'a> GroupBoxBuilder<'a> {
-    pub fn ex_flags(mut self, flags: u32) -> GroupBoxBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> GroupBoxBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> GroupBoxBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> GroupBoxBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn visible(mut self, e: bool) -> GroupBoxBuilder<'a> {
-        self.visible = e;
-        self
-    }
-
-    pub fn enabled(mut self, e: bool) -> GroupBoxBuilder<'a> {
-        self.enabled = e;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> GroupBoxBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> GroupBoxBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut GroupBox) -> Result<(), NwgError> {
         let parent = match self.parent {
             Some(p) => Ok(p),
@@ -537,6 +505,7 @@ impl Drop for _GroupBox {
     }
 }
 
+#[derive(Setters)]
 pub struct _GroupBoxBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
@@ -544,45 +513,11 @@ pub struct _GroupBoxBuilder<'a> {
     flags: u32,
     ex_flags: u32,
     font: Option<&'a Font>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
 }
 
 impl<'a> _GroupBoxBuilder<'a> {
-    pub fn flags(mut self, flags: u32) -> _GroupBoxBuilder<'a> {
-        self.flags = flags;
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> _GroupBoxBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> _GroupBoxBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> _GroupBoxBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> _GroupBoxBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> _GroupBoxBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> _GroupBoxBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut _GroupBox) -> Result<(), NwgError> {
         let parent = match self.parent {
             Some(p) => Ok(p),
