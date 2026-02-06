@@ -1,5 +1,7 @@
 /*!
-    An application that load new fonts from file
+    An application that load new fonts from file.
+
+    `cargo run --example custom_font_d`
 */
 
 extern crate native_windows_derive as nwd;

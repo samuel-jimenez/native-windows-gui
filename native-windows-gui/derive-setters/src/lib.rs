@@ -28,7 +28,8 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
     Attribute, Data, DataStruct, DeriveInput, Error, Field, Fields, FieldsNamed, Generics, Ident,
-    ImplGenerics, PathArguments, Type, TypeGenerics, WhereClause, parse_macro_input, parse2,
+    ImplGenerics, PathArguments, Result, Type, TypeGenerics, WhereClause, parse_macro_input,
+    parse2,
 };
 
 #[proc_macro_derive(Setters, attributes(setter))]
@@ -50,7 +51,7 @@ struct SetterStruct<'a> {
     fields: Vec<SetterField<'a>>,
 }
 impl<'a> SetterStruct<'a> {
-    pub fn parse(base: &'a DeriveInput) -> Result<Self, Error> {
+    pub fn parse(base: &'a DeriveInput) -> Result<Self> {
         let ident = &base.ident;
         let generics = &base.generics;
         match &base.data {
@@ -67,7 +68,7 @@ impl<'a> SetterStruct<'a> {
         ident: &'a Ident,
         generics: &'a Generics,
         struct_data: &'a DataStruct,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self> {
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         match &struct_data.fields {
             Fields::Named(fields) => Ok(Self {
@@ -121,7 +122,7 @@ impl<'a> SetterField<'a> {
         struct_ident: &'a Ident,
         struct_generics: TypeGenerics<'a>,
         fields: &'a FieldsNamed,
-    ) -> Result<Vec<Self>, Error> {
+    ) -> Result<Vec<Self>> {
         fields
             .named
             .iter()
@@ -136,7 +137,7 @@ impl<'a> SetterField<'a> {
         struct_generics: TypeGenerics<'a>,
 
         field: &'a Field,
-    ) -> Result<Option<Self>, Error> {
+    ) -> Result<Option<Self>> {
         let attrs = SetterAttr::parse_attr(field.attrs.iter().find(SetterField::find_attr))?;
         let field_ident = field.ident.clone().unwrap();
         let mut setter_ident = field_ident.clone();
@@ -186,7 +187,7 @@ impl<'a> SetterField<'a> {
         attr.path().is_ident("setter")
     }
 
-    pub fn strip_option(field_ident: &'a Ident, ty: &'a Type) -> Result<Type, Error> {
+    pub fn strip_option(field_ident: &'a Ident, ty: &'a Type) -> Result<Type> {
         match ty {
             Type::Path(path) => {
                 let opt_path = path.path.segments.iter().last().unwrap();
@@ -260,7 +261,7 @@ struct SetterAttr {
 }
 
 impl SetterAttr {
-    fn parse_attr<'a>(attr: Option<&'a Attribute>) -> Result<Self, Error> {
+    fn parse_attr<'a>(attr: Option<&'a Attribute>) -> Result<Self> {
         let mut this = Self::default();
         match attr {
             None => Ok(this),

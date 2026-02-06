@@ -3,20 +3,20 @@ use std::collections::HashMap;
 use proc_macro2 as pm2;
 use quote::ToTokens;
 use syn::{
-    self,
+    self, Attribute, Error, Expr, Ident, Path, Result,
     parse::{Parse, ParseBuffer, ParseStream},
     punctuated::Punctuated,
 };
 
 /// A callback function definition
 struct CallbackFunction {
-    path: syn::Path,
-    args: Option<Punctuated<syn::Ident, Token![,]>>,
+    path: Path,
+    args: Option<Punctuated<Ident, Token![,]>>,
 }
 
 impl Parse for CallbackFunction {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        fn maybe_parse_parens<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>, syn::Error> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        fn maybe_parse_parens<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>> {
             let content;
             parenthesized!(content in input);
             Ok(content)
@@ -24,7 +24,9 @@ impl Parse for CallbackFunction {
 
         let path = input.parse()?;
         let args = match maybe_parse_parens(input) {
-            Ok(parse_buffer) => Some(parse_buffer.parse_terminated(syn::Ident::parse)?),
+            Ok(parse_buffer) => Some(Punctuated::<Ident, Token![,]>::parse_terminated(
+                &parse_buffer,
+            )?),
             Err(_) => None,
         };
 
@@ -32,26 +34,25 @@ impl Parse for CallbackFunction {
     }
 }
 
+/// The callback definition in a `nwg_events` attribute
 /// A single pair of (PATH, CALLBACK_EVENT_ID): [CALLBACK_FUNCTIONS,]
 #[allow(unused)]
-struct CallbackDef {
-    field_name: Option<syn::Expr>,
-    callback_id: syn::Ident,
+struct CallbackDefinition {
+    field_name: Option<Expr>,
+    callback_id: Ident,
     callbacks: Punctuated<CallbackFunction, Token![,]>,
 }
 
-impl Parse for CallbackDef {
-    fn parse(mut input: ParseStream) -> syn::Result<Self> {
+impl Parse for CallbackDefinition {
+    fn parse(mut input: ParseStream) -> Result<Self> {
         let content;
 
         /// Try to parse the optional `(PATH, CALLBACK_EVENT_ID)` syntax
-        fn parse_callback_name(
-            input: &mut ParseStream,
-        ) -> Result<(Option<syn::Expr>, syn::Ident), syn::Error> {
+        fn parse_callback_name(input: &mut ParseStream) -> Result<(Option<Expr>, Ident)> {
             let event_content;
             let _paren_token = parenthesized!(event_content in input);
 
-            let field_name: syn::Expr = event_content.parse()?;
+            let field_name: Expr = event_content.parse()?;
             let _comma: Token![,] = event_content.parse()?;
             let callback_id = event_content.parse()?;
 
@@ -66,25 +67,10 @@ impl Parse for CallbackDef {
         let _sep: Token![:] = input.parse()?;
         let _bracket_token = bracketed!(content in input);
 
-        Ok(CallbackDef {
+        Ok(CallbackDefinition {
             field_name,
             callback_id,
-            callbacks: content.parse_terminated(CallbackFunction::parse)?,
-        })
-    }
-}
-
-/// The callback definition in a `nwg_events` attribute
-struct CallbackDefinitions {
-    params: Punctuated<CallbackDef, Token![,]>,
-}
-
-impl Parse for CallbackDefinitions {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        parenthesized!(content in input);
-        Ok(CallbackDefinitions {
-            params: content.parse_terminated(CallbackDef::parse)?,
+            callbacks: Punctuated::<CallbackFunction, Token![,]>::parse_terminated(&content)?,
         })
     }
 }
@@ -92,18 +78,18 @@ impl Parse for CallbackDefinitions {
 /// Parsed callbacks for a event type
 #[derive(Debug)]
 struct EventCallback {
-    member: syn::Expr,
-    path: syn::Path,
-    args: Punctuated<syn::Expr, Token![,]>,
+    member: Expr,
+    path: Path,
+    args: Punctuated<Expr, Token![,]>,
 }
 
 /// Wrapper over a basic event dispatcher
 pub struct ControlEvents {
     partial: bool,
-    handles: Vec<syn::Ident>,
-    callbacks: HashMap<syn::Pat, Vec<EventCallback>>,
+    handles: Vec<Ident>,
+    callbacks: HashMap<Expr, Vec<EventCallback>>,
     partials_callbacks: Vec<pm2::TokenStream>,
-    callback_args_cache: HashMap<usize, syn::Expr>,
+    callback_args_cache: HashMap<usize, Expr>,
 }
 
 impl ControlEvents {
@@ -139,36 +125,31 @@ impl ControlEvents {
         }
     }
 
-    pub fn add_partial(&mut self, id: &syn::Ident) {
+    pub fn add_partial(&mut self, id: &Ident) {
         self.partials_callbacks.push(quote! {
             evt_ui.#id.process_event(_evt, &_evt_data, _handle);
         })
     }
 
-    pub fn parse(&mut self, field: &syn::Field) {
-        let attrs = &field.attrs;
-        if attrs.len() == 0 {
-            return;
-        }
+    fn find_attr(attr: &&Attribute) -> bool {
+        attr.path().is_ident("nwg_events")
+    }
 
-        let member = field
-            .ident
-            .as_ref()
-            .expect("Cannot find member name when generating control");
-        let attr = match find_events_attr(&attrs) {
-            Some(a) => a,
-            None => {
-                return;
-            }
+    pub fn parse(&mut self, field: &syn::Field) -> Result<()> {
+        let attr = match field.attrs.iter().find(Self::find_attr) {
+            Some(attr) => attr,
+            None => return Ok(()),
         };
+        let member = field.ident.as_ref().ok_or(Error::new_spanned(
+            field,
+            "Cannot find member name when generating control",
+        ))?;
 
-        let callback_definitions: CallbackDefinitions = match syn::parse2(attr.tokens.clone()) {
-            Ok(a) => a,
-            Err(e) => panic!("Failed to parse events for #{}: {}", member, e),
-        };
+        let callback_definitions =
+            attr.parse_args_with(Punctuated::<CallbackDefinition, Token![,]>::parse_terminated)?;
 
-        for callback_def in callback_definitions.params.iter() {
-            let mapped_event = map_event_enum(&callback_def.callback_id);
+        for callback_def in callback_definitions.iter() {
+            let mapped_event = map_event_enum(&callback_def.callback_id)?;
             let evt_callbacks = self
                 .callbacks
                 .entry(mapped_event)
@@ -178,15 +159,16 @@ impl ControlEvents {
                 let callback = EventCallback {
                     member: Self::parse_member(&callback_def.field_name, &member),
                     path: cb_fn.path.clone(),
-                    args: map_callback_args(&member, &cb_fn.args, &self.callback_args_cache),
+                    args: map_callback_args(&member, &cb_fn.args, &self.callback_args_cache)?,
                 };
 
                 evt_callbacks.push(callback);
             }
         }
+        Ok(())
     }
 
-    fn parse_member(base: &Option<syn::Expr>, id: &syn::Ident) -> syn::Expr {
+    fn parse_member(base: &Option<Expr>, id: &Ident) -> Expr {
         let tokens = match base {
             Some(b) => quote! { evt_ui.#id.#b },
             None => quote! {  evt_ui.#id },
@@ -200,7 +182,7 @@ impl ToTokens for ControlEvents {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
         let handles = &self.handles;
 
-        let mut pats: Vec<&syn::Pat> = Vec::with_capacity(self.callbacks.len());
+        let mut pats: Vec<&Expr> = Vec::with_capacity(self.callbacks.len());
         let partial_callbacks = &self.partials_callbacks;
         let mut callbacks = Vec::with_capacity(self.callbacks.len());
         for (pat, cb) in self.callbacks.iter() {
@@ -262,14 +244,13 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
             }
             _ => {
                 // Group callbacks by members
-                let mut members_callbacks: HashMap<&syn::Expr, Vec<(&syn::Path, &Args)>> =
-                    HashMap::new();
+                let mut members_callbacks: HashMap<&Expr, Vec<(&Path, &Args)>> = HashMap::new();
                 for c in cb.iter() {
                     let mc = members_callbacks.entry(&c.member).or_insert(Vec::new());
                     mc.push((&c.path, &c.args));
                 }
 
-                let members: Vec<&&syn::Expr> = members_callbacks.keys().collect();
+                let members: Vec<&&Expr> = members_callbacks.keys().collect();
                 let values: Vec<PathArgs> =
                     members_callbacks.values().map(|c| PathArgs(c)).collect();
 
@@ -289,8 +270,8 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
     }
 }
 
-type Args = Punctuated<syn::Expr, Token![,]>;
-struct PathArgs<'a>(&'a [(&'a syn::Path, &'a Args)]);
+type Args = Punctuated<Expr, Token![,]>;
+struct PathArgs<'a>(&'a [(&'a Path, &'a Args)]);
 
 impl<'a> ToTokens for PathArgs<'a> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
@@ -302,20 +283,6 @@ impl<'a> ToTokens for PathArgs<'a> {
 
         tk.to_tokens(tokens);
     }
-}
-
-fn find_events_attr(attrs: &[syn::Attribute]) -> Option<&syn::Attribute> {
-    let mut index = None;
-    for (i, attr) in attrs.iter().enumerate() {
-        if let Some(ident) = attr.path.get_ident() {
-            if ident == "nwg_events" {
-                index = Some(i);
-                break;
-            }
-        }
-    }
-
-    index.map(|i| &attrs[i])
 }
 
 fn top_level_window(field: &syn::Field) -> bool {
@@ -333,14 +300,14 @@ fn top_level_window(field: &syn::Field) -> bool {
 }
 
 fn map_callback_args(
-    member: &syn::Ident,
-    args: &Option<Punctuated<syn::Ident, Token![,]>>,
-    cache: &HashMap<usize, syn::Expr>,
-) -> Punctuated<syn::Expr, Token![,]> {
+    member: &Ident,
+    args: &Option<Punctuated<Ident, Token![,]>>,
+    cache: &HashMap<usize, Expr>,
+) -> Result<Punctuated<Expr, Token![,]>> {
     let mut p = Punctuated::new();
     if args.is_none() {
         p.push(cache[&0].clone());
-        return p;
+        return Ok(p);
     }
 
     let values = ["SELF", "CTRL", "HANDLE", "EVT", "EVT_DATA", "RC_SELF"];
@@ -366,17 +333,22 @@ fn map_callback_args(
             Some(_) => {
                 unreachable!();
             }
-            None => panic!(
-                "Unknown callback argument: {}. Should be one of those values: {:?}",
-                a, values
-            ),
+            None => {
+                return Err(Error::new_spanned(
+                    a,
+                    format!(
+                        "Unknown callback argument: {}. Should be one of those values: {:?}",
+                        a, values
+                    ),
+                ));
+            }
         }
     }
 
-    p
+    Ok(p)
 }
 
-fn map_event_enum(ident: &syn::Ident) -> syn::Pat {
+fn map_event_enum(ident: &Ident) -> Result<Expr> {
     let evt = ident.to_string();
     let pat = match &evt as &str {
         "MousePressLeftUp" | "MousePressLeftDown" | "MousePressRightUp" | "MousePressRightDown" => {
@@ -386,5 +358,6 @@ fn map_event_enum(ident: &syn::Ident) -> syn::Pat {
         _ => format!("Event::{}", evt),
     };
 
-    syn::parse_str(&pat).unwrap()
+    Ok(syn::parse_str(&pat)
+        .map_err(|e| Error::new_spanned(ident, format!("{} while mapping nwg_events", e)))?)
 }

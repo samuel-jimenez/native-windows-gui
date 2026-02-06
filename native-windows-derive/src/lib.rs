@@ -3,12 +3,13 @@ extern crate proc_macro2 as pm2;
 
 #[macro_use]
 extern crate syn;
-use syn::{DeriveInput, GenericParam, LifetimeDef, TypeParam, punctuated::Punctuated};
+use pm2::Span;
+use syn::{DeriveInput, Error, Ident};
 
 #[macro_use]
 extern crate quote;
 
-use proc_macro_crate::crate_name;
+use proc_macro_crate::{FoundCrate, crate_name};
 
 mod controls;
 mod events;
@@ -19,10 +20,10 @@ mod ui;
 use ui::NwgUi;
 
 struct BaseNames {
-    n_module: syn::Ident,
-    n_partial_module: syn::Ident,
-    n_struct: syn::Ident,
-    n_struct_ui: syn::Ident,
+    n_module: Ident,
+    n_partial_module: Ident,
+    n_struct: Ident,
+    n_struct_ui: Ident,
 }
 
 fn to_snake_case(s: &str) -> String {
@@ -49,10 +50,10 @@ fn parse_base_names(d: &DeriveInput) -> BaseNames {
     let struct_name = format!("{}Ui", &base_name);
 
     BaseNames {
-        n_module: syn::Ident::new(&module_name, pm2::Span::call_site()),
-        n_partial_module: syn::Ident::new(&partial_module, pm2::Span::call_site()),
-        n_struct: syn::Ident::new(&base_name, pm2::Span::call_site()),
-        n_struct_ui: syn::Ident::new(&struct_name, pm2::Span::call_site()),
+        n_module: Ident::new(&module_name, Span::call_site()),
+        n_partial_module: Ident::new(&partial_module, Span::call_site()),
+        n_struct: Ident::new(&base_name, Span::call_site()),
+        n_struct_ui: Ident::new(&struct_name, Span::call_site()),
     }
 }
 
@@ -61,27 +62,6 @@ fn parse_ui_data(d: &DeriveInput) -> Option<&syn::DataStruct> {
         syn::Data::Struct(ds) => Some(ds),
         _ => None,
     }
-}
-
-/// Extract generic names from definition.
-/// It is useful to erase definition and generate `impl<T: Trait1> Struct<T> {...}` tokens.
-///
-/// For example `<'a: 'b, T: Trait1, const C: usize = 10>` becomes `<'a, T, C>`
-fn extract_generic_names(
-    generics: &Punctuated<GenericParam, Token![,]>,
-) -> Punctuated<GenericParam, Token![,]> {
-    let mut generic_names: Punctuated<GenericParam, Token![,]> = Punctuated::new();
-    for generic_param in generics {
-        let ident = match generic_param {
-            GenericParam::Type(t) => GenericParam::Type(TypeParam::from(t.ident.clone())),
-            GenericParam::Lifetime(l) => {
-                GenericParam::Lifetime(LifetimeDef::new(l.lifetime.clone()))
-            }
-            GenericParam::Const(c) => GenericParam::Type(TypeParam::from(c.ident.clone())), // a little hack
-        };
-        generic_names.push(ident);
-    }
-    generic_names
 }
 
 /**
@@ -320,7 +300,14 @@ struct Ui {
     )
 )]
 pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
-    let base = parse_macro_input!(input as DeriveInput);
+    match derive_base(&parse_macro_input!(input as DeriveInput)) {
+        Ok(val) => val,
+        Err(err) => err.into_compile_error(),
+    }
+    .into()
+}
+
+fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let names = parse_base_names(&base);
     let ui_data = parse_ui_data(&base).expect("NWG derive can only be implemented on structs");
 
@@ -328,88 +315,85 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
     let struct_name = &names.n_struct;
     let ui_struct_name = &names.n_struct_ui;
 
-    let lt = &base.generics.lt_token;
-    let generic_params = &base.generics.params;
-    let generic_names = extract_generic_names(generic_params);
-    let gt = &base.generics.gt_token;
-    let where_clause = &base.generics.where_clause;
+    let (generics, generic_names, where_clause) = &base.generics.split_for_impl();
 
-    let generics = quote! { #lt #generic_params #gt }; // <'a: 'b, T: Trait1, const C>
-    let generic_names = quote! { #lt #generic_names #gt }; // <'a, T, C>
+    let ui = NwgUi::build(&ui_data, false)?;
 
-    let ui = NwgUi::build(&ui_data, false);
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
     let layouts = ui.layouts();
     let events = ui.events();
 
-    let nwg_name = crate_name("native-windows-gui");
+    let nwg = get_crate_name();
 
-    // Returns an error in the examples, so we try a default value
-    let nwg = match nwg_name {
-        Ok(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
-        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),
-    };
+    Ok(quote! {
+            mod #module_name {
+                extern crate #nwg as nwg;
+                use nwg::*;
+                use super::*;
+                use std::ops::Deref;
+                use std::cell::RefCell;
+                use std::rc::Rc;
+                use std::fmt;
 
-    let derive_ui = quote! {
-        mod #module_name {
-            extern crate #nwg as nwg;
-            use nwg::*;
-            use super::*;
-            use std::ops::Deref;
-            use std::cell::RefCell;
-            use std::rc::Rc;
-            use std::fmt;
-
-            pub struct #ui_struct_name #generics #where_clause {
-                inner: Rc<#struct_name #generic_names>,
-                default_handlers: RefCell<Vec<EventHandler>>
-            }
-
-            impl #generics NativeUi<#ui_struct_name #generic_names> for #struct_name #generic_names #where_clause {
-                fn build_ui(mut data: Self) -> Result<#ui_struct_name #generic_names, NwgError> {
-                    #resources
-                    #controls
-                    #partials
-
-                    let inner = Rc::new(data);
-                    let ui = #ui_struct_name { inner: inner.clone(), default_handlers: Default::default() };
-
-                    #events
-                    #layouts
-
-                    Ok(ui)
+                pub struct #ui_struct_name #generics #where_clause {
+                    inner: Rc<#struct_name #generic_names>,
+                    default_handlers: RefCell<Vec<EventHandler>>
                 }
-            }
 
-            impl #generics Drop for #ui_struct_name #generic_names #where_clause {
-                /// To make sure that everything is freed without issues, the default handler must be unbound.
-                fn drop(&mut self) {
-                    let mut handlers = self.default_handlers.borrow_mut();
-                    for handler in handlers.drain(0..) {
-                        nwg::unbind_event_handler(&handler);
+                impl #generics NativeUi<#ui_struct_name #generic_names> for #struct_name #generic_names #where_clause {
+                    fn build_ui(mut data: Self) -> Result<#ui_struct_name #generic_names, NwgError> {
+                        #resources
+                        #controls
+                        #partials
+
+                        let inner = Rc::new(data);
+                        let ui = #ui_struct_name { inner: inner.clone(), default_handlers: Default::default() };
+
+                        #events
+                        #layouts
+
+                        Ok(ui)
+                    }
+                }
+
+                impl #generics Drop for #ui_struct_name #generic_names #where_clause {
+                    /// To make sure that everything is freed without issues, the default handler must be unbound.
+                    fn drop(&mut self) {
+                        let mut handlers = self.default_handlers.borrow_mut();
+                        for handler in handlers.drain(0..) {
+                            nwg::unbind_event_handler(&handler);
+                        }
+                    }
+                }
+
+                impl #generics Deref for #ui_struct_name #generic_names #where_clause {
+                    type Target = #struct_name #generic_names;
+
+                    fn deref(&self) -> &Self::Target {
+                        &self.inner
+                    }
+                }
+
+                impl #generics fmt::Debug for #ui_struct_name #generic_names #where_clause {
+                    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                        write!(f, "[#ui_struct_name Ui]")
                     }
                 }
             }
 
-            impl #generics Deref for #ui_struct_name #generic_names #where_clause {
-                type Target = #struct_name #generic_names;
+    })
+}
 
-                fn deref(&self) -> &Self::Target {
-                    &self.inner
-                }
-            }
+fn get_crate_name() -> Ident {
+    let nwg_name =
+        crate_name("native-windows-gui").expect("native-windows-gui is present in `Cargo.toml`");
 
-            impl #generics fmt::Debug for #ui_struct_name #generic_names #where_clause {
-                fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                    write!(f, "[#ui_struct_name Ui]")
-                }
-            }
-        }
-    };
-
-    pm::TokenStream::from(derive_ui)
+    match nwg_name {
+        FoundCrate::Itself => Ident::new("native_windows_gui", Span::call_site()),
+        FoundCrate::Name(name) => Ident::new(&name, Span::call_site()),
+    }
 }
 
 /**
@@ -460,24 +444,23 @@ pub struct MyApp {
     )
 )]
 pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
-    let base = parse_macro_input!(input as DeriveInput);
+    match derive_partial_base(&parse_macro_input!(input as DeriveInput)) {
+        Ok(val) => val,
+        Err(err) => err.into_compile_error(),
+    }
+    .into()
+}
 
+fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let names = parse_base_names(&base);
 
     let partial_name = &names.n_partial_module;
     let struct_name = &names.n_struct;
 
-    let lt = &base.generics.lt_token;
-    let generic_params = &base.generics.params;
-    let generic_names = extract_generic_names(generic_params);
-    let gt = &base.generics.gt_token;
-    let where_clause = &base.generics.where_clause;
-
-    let generics = quote! { #lt #generic_params #gt }; // <'a: 'b, T: Trait1, const C>
-    let generic_names = quote! { #lt #generic_names #gt }; // <'a, T, C>
+    let (generics, generic_names, where_clause) = &base.generics.split_for_impl();
 
     let ui_data = parse_ui_data(&base).expect("NWG derive can only be implemented on structs");
-    let ui = NwgUi::build(&ui_data, true);
+    let ui = NwgUi::build(&ui_data, true)?;
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
@@ -495,15 +478,9 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
         quote! {}
     };
 
-    let nwg_name = crate_name("native-windows-gui");
+    let nwg = get_crate_name();
 
-    // Returns an error in the examples, so we try a default value
-    let nwg = match nwg_name {
-        Ok(name) => syn::Ident::new(&name, proc_macro2::Span::call_site()),
-        Err(_) => syn::Ident::new("native_windows_gui", proc_macro2::Span::call_site()),
-    };
-
-    let partial_ui = quote! {
+    Ok(quote! {
         mod #partial_name {
             extern crate #nwg as nwg;
             use nwg::*;
@@ -536,7 +513,5 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
                 }
             }
         }
-    };
-
-    pm::TokenStream::from(partial_ui)
+    })
 }

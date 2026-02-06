@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use quote::ToTokens;
+use syn::{Error, Expr, Field, Ident, Result};
 
 use crate::{
     events::ControlEvents,
@@ -21,17 +22,70 @@ const AUTO_TAB_PARENT: &'static [&'static str] = &["TabsContainer"];
 
 const SUB_CONTROL: &'static [&'static str] = &["LabeledEdit", "LabeledCombo"];
 
+fn parse_type_attr(parameters: Parameters) -> Option<Ident> {
+    // Check for `ty` in attribute
+    parameters
+        .params
+        .iter()
+        .find(|p| p.ident == "ty")
+        .map(|p| &p.e)
+        .map(|e| match e {
+            Expr::Path(p) => Some(p),
+            _ => None,
+        })
+        .flatten()
+        .map(|p| p.path.get_ident().clone())
+        .flatten()
+        .map(|ident| ident.clone())
+}
+
+fn parse_type_borrow<'a>(field: &'a Field, ident: &str) -> Result<&'a Ident> {
+    // Use field type
+    match &field.ty {
+        syn::Type::Path(p) => Some(p),
+        _ => None,
+    }
+    .map(|p| p.path.segments.last())
+    .flatten()
+    .ok_or(Error::new_spanned(
+        field.ident.as_ref().unwrap(),
+        format!(
+            "Impossible to parse type for field {:?}. Try specifying it in the {} attribute.",
+            field.ident, ident
+        ),
+    ))
+    .map(|seg| &seg.ident)
+}
+
+fn parse_type_clone(field: &Field, ident: &Ident) -> Result<Ident> {
+    // Use field type
+    match &field.ty {
+        syn::Type::Path(p) => Some(p),
+        _ => None,
+    }
+    .map(|p| p.path.segments.last())
+    .flatten()
+    .ok_or(Error::new_spanned(
+        field.ident.as_ref().unwrap(),
+        format!(
+            "Impossible to parse type for field {:?}. Try specifying it in the {} attribute.",
+            field.ident, ident
+        ),
+    ))
+    .map(|seg| seg.ident.clone())
+}
+
 struct NwgControl<'a> {
-    id: &'a syn::Ident,
+    id: &'a Ident,
     parent_id: Option<String>,
 
-    ty: syn::Ident,
+    ty: Ident,
 
     layout: Option<LayoutChild>,
     layout_index: usize,
 
-    names: Vec<syn::Ident>,
-    values: Vec<syn::Expr>,
+    names: Vec<Ident>,
+    values: Vec<Expr>,
 
     // First value if the parent order, second value is the insert order
     weight: [u16; 2],
@@ -41,83 +95,75 @@ struct NwgControl<'a> {
 }
 
 impl<'a> NwgControl<'a> {
-    fn find_attr(attr: &&syn::Attribute) -> bool {
-        attr.path
-            .get_ident()
-            .map(|ident| ident == "nwg_control" || ident == "nwg_control_layout")
-            .unwrap_or(false)
+    fn parse(field: &'a Field, field_pos: u16) -> Result<Self> {
+        let id = field.ident.as_ref().unwrap();
+        let (ty, nested) = NwgControl::parse_attrs(field)?;
+        let (names, values) = crate::controls::parameters(field, NwgControl::find_attr)?;
+        let nested = nested || SUB_CONTROL.iter().any(|nest| ty == nest);
+        Ok(Self {
+            id,
+            parent_id: None,
+            ty,
+            layout: LayoutChild::prepare(field)?,
+            layout_index: 0,
+            names,
+            values,
+            weight: [0, field_pos as u16],
+            nested,
+        })
     }
+
+    fn get_root_info(&self) -> (Option<&'a Ident>, Option<Ident>) {
+        (Some(self.id), Some(self.ty.clone()))
+    }
+
+    fn find_attr(attr: &&syn::Attribute) -> bool {
+        attr.path().is_ident("nwg_control") || attr.path().is_ident("nwg_control_layout")
+    }
+
     fn valid_attr(attr: &syn::Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
-    fn valid(field: &syn::Field) -> bool {
+    fn valid(field: &Field) -> bool {
         field.attrs.iter().any(Self::valid_attr)
     }
 
-    fn parse_attrs(field: &syn::Field) -> (syn::Ident, bool) {
+    fn parse_attrs(field: &Field) -> Result<(Ident, bool)> {
         let attr = match field.attrs.iter().find(Self::find_attr) {
             Some(attr) => attr,
             None => unreachable!(),
         };
-        let nested = attr
-            .path
-            .get_ident()
-            .map(|ident| ident == "nwg_control_layout")
-            .unwrap_or(false);
 
-        let params: Parameters = match syn::parse2(attr.tokens.clone()) {
-            Ok(p) => p,
-            Err(e) => panic!(
-                "Failed to parse field #{}: {}",
-                field.ident.as_ref().unwrap(),
-                e
-            ),
-        };
+        let parameters = Parameters::parse_attr(attr)?;
 
-        let nested = nested || params.params.iter().any(|p| p.ident == "nested");
+        let nested = attr.path().is_ident("nwg_control_layout")
+            || parameters.params.iter().any(|p| p.ident == "nested");
 
-        match params.params.iter().find(|p| p.ident == "ty").map(|p| &p.e) {
-            Some(syn::Expr::Path(p)) => match p.path.segments.last().map(|seg| seg.ident.clone()) {
-                Some(ty) => {
-                    return (ty, nested);
-                }
-                None => {}
-            },
-            _ => {}
-        }
-
-        // Use field type
-        match &field.ty {
-            syn::Type::Path(p) => match p.path.segments.last() {
-                Some(seg) => (seg.ident.clone(), nested),
-                None => panic!(
-                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
-                    field.ident
-                ),
-            },
-            _ => panic!(
-                "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
-                field.ident
-            ),
-        }
+        // Check for `ty` in attribute
+        parse_type_attr(parameters)
+            .map_or_else(
+                ||          // Use field type
+            parse_type_clone(&field, &attr.path().get_ident().unwrap()),
+                Ok,
+            )
+            .map(|ident| (ident, nested))
     }
 
-    fn is_root(field: &syn::Field) -> bool {
-        field.attrs.iter().any(|attr| {
-            attr.path
-                .get_ident()
-                .map(|ident| ident == "nwg_root")
-                .unwrap_or(false)
-        })
+    fn is_root(field: &Field) -> bool {
+        field
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("nwg_root"))
     }
 
-    fn expand_flags(&mut self) {
+    fn expand_flags(&mut self) -> Result<()> {
         let flags_index = self.names.iter().position(|n| n == "flags");
         if let Some(i) = flags_index {
             let old_flags = self.values[i].clone();
-            self.values[i] = crate::controls::expand_flags(&self.id, &self.ty, old_flags);
+            self.values[i] = crate::controls::expand_flags(&self.id, &self.ty, old_flags)?;
         }
+        Ok(())
     }
 
     fn expand_parent(&mut self) {
@@ -127,8 +173,8 @@ impl<'a> NwgControl<'a> {
         }
 
         let i = parent_index.unwrap();
-        let parent_expr: syn::Expr = match &self.values[i] {
-            syn::Expr::Path(p) => {
+        let parent_expr: Expr = match &self.values[i] {
+            Expr::Path(p) => {
                 let id = &p.path.segments.last().unwrap().ident;
                 self.parent_id = Some(id.to_string());
                 syn::parse_str(&format!("&data.{}", id)).unwrap()
@@ -143,111 +189,99 @@ impl<'a> NwgControl<'a> {
 }
 
 struct NwgResource<'a> {
-    id: &'a syn::Ident,
-    ty: syn::Ident,
-    names: Vec<syn::Ident>,
-    values: Vec<syn::Expr>,
+    id: &'a Ident,
+    ty: Ident,
+    names: Vec<Ident>,
+    values: Vec<Expr>,
 }
 
 impl<'a> NwgResource<'a> {
-    fn find_attr(attr: &&syn::Attribute) -> bool {
-        attr.path
-            .get_ident()
-            .map(|ident| ident == "nwg_resource")
-            .unwrap_or(false)
+    fn parse(field: &'a Field) -> Result<Self> {
+        let id = field.ident.as_ref().unwrap();
+        let ty = NwgResource::parse_type(field)?;
+        let (names, values) = crate::controls::parameters(field, NwgResource::find_attr)?;
+
+        Ok(Self {
+            id,
+            ty,
+            names,
+            values,
+        })
     }
+
+    fn find_attr(attr: &&syn::Attribute) -> bool {
+        attr.path().is_ident("nwg_resource")
+    }
+
     fn valid_attr(attr: &syn::Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
-    fn valid(field: &syn::Field) -> bool {
+    fn valid(field: &Field) -> bool {
         field.attrs.iter().any(Self::valid_attr)
     }
 
-    fn parse_type(field: &syn::Field) -> syn::Ident {
+    fn parse_type(field: &Field) -> Result<Ident> {
         // Check for `ty` in nwg_resource
-
         let attr = match field.attrs.iter().find(Self::find_attr) {
             Some(attr) => attr,
             None => unreachable!(),
         };
-
-        let params: Parameters = match syn::parse2(attr.tokens.clone()) {
-            Ok(p) => p,
-            Err(e) => panic!(
-                "Failed to parse field #{}: {}",
-                field.ident.as_ref().unwrap(),
-                e
-            ),
-        };
-
-        match params.params.iter().find(|p| p.ident == "ty").map(|p| &p.e) {
-            Some(syn::Expr::Path(p)) => match p.path.segments.last().map(|seg| seg.ident.clone()) {
-                Some(ty) => {
-                    return ty;
-                }
-                None => {}
-            },
-            _ => {}
-        }
-
-        // Use field type
-        match &field.ty {
-            syn::Type::Path(p) => match p.path.segments.last() {
-                Some(seg) => seg.ident.clone(),
-                None => panic!(
-                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.",
-                    field.ident
-                ),
-            },
-            _ => panic!(
-                "Impossible to parse type for field {:?}. Try specifying it in the nwg_resource attribute.",
-                field.ident
-            ),
-        }
+        parse_type_attr(Parameters::parse_attr(attr)?).map_or_else(
+            ||          // Use field type
+            parse_type_clone(&field, &attr.path().get_ident().unwrap()),
+            Ok,
+        )
     }
 }
 
 #[derive(Debug)]
 struct NwgLayout<'a> {
-    id: &'a syn::Ident,
-    ty: &'a syn::Ident,
+    id: &'a Ident,
+    ty: &'a Ident,
 
     layout: Option<LayoutChild>,
     layout_index: usize,
 
-    names: Vec<syn::Ident>,
-    values: Vec<syn::Expr>,
+    names: Vec<Ident>,
+    values: Vec<Expr>,
     weight: [u16; 2],
     sublayout: bool,
 }
 
 impl<'a> NwgLayout<'a> {
-    fn valid(field: &syn::Field) -> bool {
-        field.attrs.iter().any(|attr| {
-            attr.path
-                .get_ident()
-                .map(|ident| ident == "nwg_layout")
-                .unwrap_or(false)
+    fn parse(field: &'a Field, field_pos: u16, sublayout: bool) -> Result<Self> {
+        let id = field.ident.as_ref().unwrap();
+        let ty = NwgLayout::parse_type(field)?;
+        let (names, values) = layout_parameters(field)?;
+
+        Ok(Self {
+            id,
+            ty,
+            layout: LayoutChild::prepare(field)?,
+            layout_index: 0,
+            names,
+            values,
+            weight: [0, field_pos as u16],
+            sublayout,
         })
     }
 
-    fn parse_type(field: &syn::Field) -> &syn::Ident {
-        // TODO: extract type from nwg_layout first
+    fn find_attr(attr: &&syn::Attribute) -> bool {
+        attr.path().is_ident("nwg_layout")
+    }
 
-        match &field.ty {
-            syn::Type::Path(p) => match p.path.segments.last() {
-                Some(seg) => &seg.ident,
-                None => panic!(
-                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
-                    field.ident
-                ),
-            },
-            _ => panic!(
-                "Impossible to parse type for field {:?}. Try specifying it in the nwg_control attribute.",
-                field.ident
-            ),
-        }
+    fn valid_attr(attr: &syn::Attribute) -> bool {
+        Self::find_attr(&attr)
+    }
+
+    fn valid(field: &Field) -> bool {
+        field.attrs.iter().any(Self::valid_attr)
+    }
+
+    fn parse_type(field: &Field) -> Result<&Ident> {
+        // TODO: extract type from nwg_layout first
+        parse_type_borrow(&field, "nwg_layout")
     }
 
     fn expand_parent(&mut self) {
@@ -257,8 +291,8 @@ impl<'a> NwgLayout<'a> {
         }
 
         let i = parent_index.unwrap();
-        let parent_expr: syn::Expr = match &self.values[i] {
-            syn::Expr::Path(p) => {
+        let parent_expr: Expr = match &self.values[i] {
+            Expr::Path(p) => {
                 let id = &p.path.segments.last().unwrap().ident;
                 syn::parse_str(&format!("&ui.{}", id)).unwrap()
             }
@@ -272,9 +306,9 @@ impl<'a> NwgLayout<'a> {
 }
 
 struct NwgPartial<'a> {
-    id: &'a syn::Ident,
-    ty: &'a syn::Ident,
-    parent: Option<syn::Ident>,
+    id: &'a Ident,
+    ty: &'a Ident,
+    parent: Option<Ident>,
     layout: Option<LayoutChild>,
     layout_index: usize,
     weight: [u16; 2],
@@ -283,81 +317,66 @@ struct NwgPartial<'a> {
 }
 
 impl<'a> NwgPartial<'a> {
-    fn find_attr(attr: &&syn::Attribute) -> bool {
-        attr.path
-            .get_ident()
-            .map(|ident| ident == "nwg_partial" || ident == "nwg_partial_control")
-            .unwrap_or(false)
+    fn parse(field: &'a Field, field_pos: u16, nested: bool) -> Result<Self> {
+        let (parent, as_layout_p) = NwgPartial::parse_attrs(field)?;
+
+        Ok(Self {
+            id: field.ident.as_ref().unwrap(),
+            ty: NwgPartial::parse_type(field)?,
+            parent,
+            layout: LayoutChild::prepare(field)?,
+            layout_index: 0,
+            weight: [0, field_pos as u16],
+            nested,
+            as_layout_p,
+        })
     }
+
+    fn find_attr(attr: &&syn::Attribute) -> bool {
+        attr.path().is_ident("nwg_partial") || attr.path().is_ident("nwg_partial_control")
+    }
+
     fn valid_attr(attr: &syn::Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
-    fn valid(field: &syn::Field) -> bool {
+    fn valid(field: &Field) -> bool {
         field.attrs.iter().any(Self::valid_attr)
     }
 
-    fn parse_type(field: &syn::Field) -> &syn::Ident {
-        match &field.ty {
-            syn::Type::Path(p) => match p.path.segments.last() {
-                Some(seg) => &seg.ident,
-                None => panic!(
-                    "Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.",
-                    field.ident
-                ),
-            },
-            _ => panic!(
-                "Impossible to parse type for field {:?}. Try specifying it in the nwg_partial attribute.",
-                field.ident
-            ),
-        }
+    fn parse_type(field: &Field) -> Result<&Ident> {
+        parse_type_borrow(&field, "nwg_partial")
     }
 
-    fn parse_attrs(field: &syn::Field) -> (Option<syn::Ident>, bool) {
+    fn parse_attrs(field: &Field) -> Result<(Option<Ident>, bool)> {
         let attr = match field.attrs.iter().find(Self::find_attr) {
             Some(attr) => attr,
             None => unreachable!(),
         };
         // #[nwg_partial_control]
-        let as_layout_p = attr
-            .path
-            .get_ident()
-            .map(|ident| ident == "nwg_partial")
-            .unwrap_or(false);
+        let as_layout_p = attr.path().is_ident("nwg_partial");
 
-        let params: Parameters = match syn::parse2(attr.tokens.clone()) {
-            Ok(p) => p,
-            Err(e) => panic!(
-                "Failed to parse field #{}: {}",
-                field.ident.as_ref().unwrap(),
-                e
-            ),
-        };
+        let params = Parameters::parse_attr(attr)?.params;
 
         // #[nwg_partial(be: control)]
         let as_layout_p = as_layout_p
-            && match params.params.iter().find(|p| p.ident == "be").map(|p| &p.e) {
+            && match params.iter().find(|p| p.ident == "be").map(|p| &p.e) {
                 Some(v) => match v {
-                    syn::Expr::Path(p) => p.path.segments.last().map(|seg| seg.ident.to_string()),
+                    Expr::Path(p) => p.path.segments.last().map(|seg| seg.ident.to_string()),
                     _ => None,
                 },
                 None => None,
             }
             .is_none_or(|x| x == "layout");
 
-        let parent = match params
-            .params
-            .iter()
-            .find(|p| p.ident == "parent")
-            .map(|p| &p.e)
-        {
+        let parent = match params.iter().find(|p| p.ident == "parent").map(|p| &p.e) {
             Some(v) => match v {
-                syn::Expr::Path(p) => p.path.segments.last().map(|seg| seg.ident.clone()),
+                Expr::Path(p) => p.path.segments.last().map(|seg| seg.ident.clone()),
                 _ => None,
             },
             None => None,
         };
-        (parent, as_layout_p)
+        Ok((parent, as_layout_p))
     }
 }
 
@@ -504,10 +523,13 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
                         #param_name(&ui.#id)
                         #(.#param_names(#param_values))*
                     },
-                    Some(LayoutChild::Init { field_name, .. }) => panic!(
-                        "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
-                        field_name
-                    ),
+                    Some(LayoutChild::Init { field_name, .. }) => Error::new_spanned(
+                        field_name,
+                        format!(
+                            "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
+                            field_name
+                        ),
+                    ).into_compile_error(),
                     None => panic!("Unfiltered layout item"),
                 };
 
@@ -640,12 +662,12 @@ pub struct NwgUi<'a> {
     layouts: Vec<NwgLayout<'a>>,
     partials: Vec<NwgPartial<'a>>,
     events: ControlEvents,
-    root_id: Option<&'a syn::Ident>,
-    root_type: Option<syn::Ident>,
+    root_id: Option<&'a Ident>,
+    root_type: Option<Ident>,
 }
 
 impl<'a> NwgUi<'a> {
-    pub fn build(data: &'a syn::DataStruct, partial: bool) -> NwgUi<'a> {
+    pub fn build(data: &'a syn::DataStruct, partial_p: bool) -> Result<NwgUi<'a>> {
         let named_fields = match &data.fields {
             syn::Fields::Named(n) => &n.named,
             _ => panic!("Ui structure must have named fields"),
@@ -655,80 +677,40 @@ impl<'a> NwgUi<'a> {
         let mut resources = Vec::with_capacity(named_fields.len());
         let mut layouts = Vec::with_capacity(named_fields.len());
         let mut partials = Vec::with_capacity(named_fields.len());
-        let mut events = ControlEvents::with_capacity(partial, named_fields.len());
+        let mut events = ControlEvents::with_capacity(partial_p, named_fields.len());
 
-        let mut root_id: Option<&syn::Ident> = None;
-        let mut root_type: Option<syn::Ident> = None;
-        let partial_parent_expr: syn::Expr = syn::parse_str("parent_ref.unwrap()").unwrap();
-        let parent_ident = syn::Ident::new("parent", pm2::Span::call_site());
+        let mut root_id: Option<&Ident> = None;
+        let mut root_type: Option<Ident> = None;
+        let partial_parent_expr: Expr = syn::parse_str("parent_ref.unwrap()").unwrap();
+        let parent_ident = Ident::new("parent", pm2::Span::call_site());
 
         // First pass: parse controls, layouts, and events
         for (field_pos, field) in named_fields.iter().enumerate() {
             if NwgControl::valid(field) {
-                let id = field.ident.as_ref().unwrap();
-                let (ty, nested) = NwgControl::parse_attrs(field);
-                // let (names, values) = crate::controls::parameters(field, "nwg_control");
-                let (names, values) = crate::controls::parameters_fn(field, NwgControl::find_attr);
-
-                let nested = nested || SUB_CONTROL.iter().any(|nest| ty == nest);
+                let control = NwgControl::parse(field, field_pos as u16)?;
                 if root_id.is_none() && NwgControl::is_root(field) {
-                    root_id = Some(id);
-                    root_type = Some(ty.clone());
+                    (root_id, root_type) = control.get_root_info();
                 }
 
-                let f = NwgControl {
-                    id,
-                    parent_id: None,
-                    ty,
-                    layout: LayoutChild::prepare(field),
-                    layout_index: 0,
-                    names,
-                    values,
-                    weight: [0, field_pos as u16],
-                    nested,
-                };
-
                 events.add_top_level_handle(field);
-                events.parse(field);
+                events.parse(field)?;
 
-                controls.push(f);
+                controls.push(control);
             }
 
             if NwgResource::valid(field) {
-                let id = field.ident.as_ref().unwrap();
-                let ty = NwgResource::parse_type(field);
-                let (names, values) = crate::controls::parameters(field, "nwg_resource");
+                let resource = NwgResource::parse(field)?;
 
-                let f = NwgResource {
-                    id,
-                    ty,
-                    names,
-                    values,
-                };
-
-                resources.push(f);
+                resources.push(resource);
             } else if NwgLayout::valid(field) {
-                let id = field.ident.as_ref().unwrap();
-                let ty = NwgLayout::parse_type(field);
-                let (names, values) = layout_parameters(field);
-
-                let layout = NwgLayout {
-                    id,
-                    ty,
-                    layout: LayoutChild::prepare(field),
-                    layout_index: 0,
-                    names,
-                    values,
-                    weight: [0, field_pos as u16],
-                    sublayout: partial,
-                };
+                let layout = NwgLayout::parse(field, field_pos as u16, partial_p)?;
 
                 // Reorder layouts
                 match layouts.iter().position(|control: &NwgLayout| {
                     control
                         .layout
                         .as_ref()
-                        .is_some_and(|child_layout| child_layout.parent_matches(id))
+                        .is_some_and(|child_layout| child_layout.parent_matches(layout.id))
                 }) {
                     Some(index) => {
                         layouts.insert(index, layout);
@@ -738,21 +720,10 @@ impl<'a> NwgUi<'a> {
                     }
                 }
             } else if NwgPartial::valid(field) {
-                let (parent, as_layout_p) = NwgPartial::parse_attrs(field);
-
-                let partial = NwgPartial {
-                    id: field.ident.as_ref().unwrap(),
-                    ty: NwgPartial::parse_type(field),
-                    parent,
-                    layout: LayoutChild::prepare(field),
-                    layout_index: 0,
-                    weight: [0, field_pos as u16],
-                    nested: partial,
-                    as_layout_p,
-                };
+                let partial = NwgPartial::parse(field, field_pos as u16, partial_p)?;
 
                 events.add_partial(&partial.id);
-                events.parse(field);
+                events.parse(field)?;
 
                 partials.push(partial);
             }
@@ -768,17 +739,18 @@ impl<'a> NwgUi<'a> {
                 layouts[i].expand_parent();
             } else {
                 if root_id.is_some() {
-                    let parent_expr: syn::Expr =
+                    let parent_expr: Expr =
                         syn::parse_str(&format!("&ui.{}", root_id.unwrap())).unwrap();
                     layouts[i].names.push(parent_ident.clone());
                     layouts[i].values.push(parent_expr);
-                } else if partial {
+                } else if partial_p {
                     layouts[i].names.push(parent_ident.clone());
                     layouts[i].values.push(partial_parent_expr.clone());
                 } else {
-                    panic!(
-                        "Auto detection of layout parent outside of partial is not yet implemented!"
-                    );
+                    return Err(Error::new_spanned(
+                        named_fields.iter().nth(layouts[i].weight[1].into()),
+                        "auto detection of layout parent outside of partial is not yet implemented",
+                    )); //TODO detect
                 }
             }
 
@@ -827,19 +799,19 @@ impl<'a> NwgUi<'a> {
 
                 if let Some(parent) = parent {
                     let parent_id = Some(parent.id.to_string());
-                    let parent_expr: syn::Expr =
+                    let parent_expr: Expr =
                         syn::parse_str(&format!("&data.{}", parent.id)).unwrap();
                     controls[i].names.push(parent_ident.clone());
                     controls[i].values.push(parent_expr);
                     controls[i].parent_id = parent_id;
                 } else if root_id.is_some_and(|x| x != controls[i].id) {
                     let parent_id = Some(root_id.unwrap().to_string());
-                    let parent_expr: syn::Expr =
+                    let parent_expr: Expr =
                         syn::parse_str(&format!("&data.{}", parent_id.as_ref().unwrap())).unwrap();
                     controls[i].names.push(parent_ident.clone());
                     controls[i].values.push(parent_expr);
                     controls[i].parent_id = parent_id;
-                } else if partial {
+                } else if partial_p {
                     // If no parent is found, but we are in a partial, use the partial parent.
                     controls[i].names.push(parent_ident.clone());
                     controls[i].values.push(partial_parent_expr.clone());
@@ -877,7 +849,7 @@ impl<'a> NwgUi<'a> {
 
         // Helpers
         for control in controls.iter_mut() {
-            control.expand_flags();
+            control.expand_flags()?;
         }
 
         // Sort by weight
@@ -887,7 +859,7 @@ impl<'a> NwgUi<'a> {
             a.cmp(&b)
         });
 
-        NwgUi {
+        Ok(NwgUi {
             controls,
             resources,
             layouts,
@@ -895,7 +867,7 @@ impl<'a> NwgUi<'a> {
             events,
             root_id,
             root_type,
-        }
+        })
     }
 
     pub fn controls(&self) -> NwgUiControls<'_> {
@@ -918,7 +890,7 @@ impl<'a> NwgUi<'a> {
         NwgUiPartials(self)
     }
 
-    pub fn root_element(&self) -> (Option<syn::Ident>, Option<syn::Ident>) {
+    pub fn root_element(&self) -> (Option<Ident>, Option<Ident>) {
         (self.root_id.cloned(), self.root_type.clone())
     }
 }

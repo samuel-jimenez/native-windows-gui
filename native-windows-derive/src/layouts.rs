@@ -1,3 +1,5 @@
+use syn::{Attribute, Expr, Field, Ident, Result};
+
 use crate::shared::Parameters;
 
 #[derive(Clone, Copy, Debug)]
@@ -10,8 +12,8 @@ pub struct GridLayoutChild {
 
 #[derive(Clone, Debug)]
 pub struct FlexboxLayoutChild {
-    pub param_names: Vec<syn::Ident>,
-    pub param_values: Vec<syn::Expr>,
+    pub param_names: Vec<Ident>,
+    pub param_values: Vec<Expr>,
 }
 
 #[derive(Debug)]
@@ -25,31 +27,29 @@ pub enum LayoutChild {
 }
 
 impl LayoutChild {
-    pub fn prepare(field: &syn::Field) -> Option<LayoutChild> {
+    pub fn init(field_name: String, attr: &Attribute) -> Result<Self> {
+        Ok(Self::Init {
+            field_name,
+            params: Parameters::parse_attr(attr)?,
+        })
+    }
+
+    pub fn prepare(field: &Field) -> Result<Option<LayoutChild>> {
         let field_name = field
             .ident
             .as_ref()
             .map(|i| i.to_string())
             .unwrap_or("Unnamed".to_string());
 
-        let map_attr = |attr: &syn::Attribute| LayoutChild::Init {
-            field_name,
-            params: syn::parse2(attr.tokens.clone()).unwrap(),
-        };
-
         field
             .attrs
             .iter()
-            .find(|attr| {
-                attr.path
-                    .get_ident()
-                    .map(|id| id == "nwg_layout_item")
-                    .unwrap_or(false)
-            })
-            .map(map_attr)
+            .find(|attr| attr.path().is_ident("nwg_layout_item"))
+            .map(|attr| LayoutChild::init(field_name, attr))
+            .transpose()
     }
 
-    pub fn parse(&mut self, parent_type: &syn::Ident) {
+    pub fn parse(&mut self, parent_type: &Ident) {
         if parent_type == "GridLayout" {
             *self = Self::parse_grid_layout_params(self);
         } else if parent_type == "FlexboxLayout" {
@@ -59,14 +59,14 @@ impl LayoutChild {
         }
     }
 
-    pub fn parent_matches(&self, parent: &syn::Ident) -> bool {
+    pub fn parent_matches(&self, parent: &Ident) -> bool {
         match self {
             LayoutChild::Init { params: p, .. } => p
                 .params
                 .iter()
                 .filter(|p| p.ident == "layout")
                 .any(|p| match &p.e {
-                    syn::Expr::Path(exp_path) => exp_path
+                    Expr::Path(exp_path) => exp_path
                         .path
                         .segments
                         .last()
@@ -120,7 +120,7 @@ impl LayoutChild {
                     }
 
                     let child_name = format!("child_{}", &p.ident);
-                    param_names.push(syn::Ident::new(&child_name, p.ident.span()));
+                    param_names.push(Ident::new(&child_name, p.ident.span()));
                     param_values.push(p.e.clone());
                 }
             }
@@ -133,9 +133,9 @@ impl LayoutChild {
         })
     }
 
-    fn int_value(expr: &syn::Expr) -> u32 {
+    fn int_value(expr: &Expr) -> u32 {
         match expr {
-            syn::Expr::Lit(lit) => match &lit.lit {
+            Expr::Lit(lit) => match &lit.lit {
                 syn::Lit::Int(i) => i.base10_parse().unwrap(),
                 _ => panic!("Layout item members must be int literal."),
             },
@@ -148,30 +148,15 @@ impl LayoutChild {
 // Main layout
 //
 
-pub fn layout_parameters(field: &syn::Field) -> (Vec<syn::Ident>, Vec<syn::Expr>) {
-    let member = match field.ident.as_ref() {
-        Some(m) => m,
-        None => unreachable!(),
-    };
-
-    let nwg_layout = |attr: &&syn::Attribute| {
-        attr.path
-            .get_ident()
-            .map(|id| id == "nwg_layout")
-            .unwrap_or(false)
-    };
+pub fn layout_parameters(field: &Field) -> Result<(Vec<Ident>, Vec<Expr>)> {
+    let nwg_layout = |attr: &&Attribute| attr.path().is_ident("nwg_layout");
 
     let attr = match field.attrs.iter().find(nwg_layout) {
         Some(attr) => attr,
         None => unreachable!(),
     };
 
-    let layout: Parameters = match syn::parse2(attr.tokens.clone()) {
-        Ok(a) => a,
-        Err(e) => panic!("Failed to parse field #{}: {}", member, e),
-    };
-
-    let params = layout.params;
+    let params = Parameters::parse_attr(attr)?.params;
     let mut names = Vec::with_capacity(params.len());
     let mut exprs = Vec::with_capacity(params.len());
 
@@ -180,5 +165,5 @@ pub fn layout_parameters(field: &syn::Field) -> (Vec<syn::Ident>, Vec<syn::Expr>
         exprs.push(p.e);
     }
 
-    (names, exprs)
+    Ok((names, exprs))
 }

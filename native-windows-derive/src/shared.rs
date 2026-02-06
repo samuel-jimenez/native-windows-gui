@@ -1,5 +1,6 @@
 use syn::{
-    parse::{Parse, ParseBuffer, ParseStream},
+    Attribute, Result,
+    parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
 
@@ -12,7 +13,7 @@ pub struct Param {
 }
 
 impl Parse for Param {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> Result<Self> {
         Ok(Param {
             ident: input.parse()?,
             sep: input.parse()?,
@@ -27,22 +28,20 @@ pub struct Parameters {
 }
 
 impl Parse for Parameters {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        fn maybe_parse_parens<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>, syn::Error> {
-            let content;
-            parenthesized!(content in input);
-            Ok(content)
-        }
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            params: Punctuated::<Param, Token![,]>::parse_terminated(&input)?,
+        })
+    }
+}
 
-        let parameters = match maybe_parse_parens(input) {
-            Ok(parse_buffer) => Parameters {
-                params: parse_buffer.parse_terminated(Param::parse)?,
-            },
-            Err(_) => Parameters {
+impl Parameters {
+    pub fn parse_attr(attr: &Attribute) -> Result<Self> {
+        Ok(match attr.meta.require_list() {
+            Ok(attr) => attr.parse_args()?,
+            Err(_) => Self {
                 params: Punctuated::new(),
             },
-        };
-
-        Ok(parameters)
+        })
     }
 }
