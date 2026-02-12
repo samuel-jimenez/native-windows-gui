@@ -1,5 +1,7 @@
 /*!
     Shows how to add controls dynamically into a flexbox layout
+
+    `cargo run --example flexbox_dynamic_d --features "flexbox"`
 */
 
 extern crate native_windows_derive as nwd;

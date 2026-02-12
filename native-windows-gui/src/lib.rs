@@ -20,6 +20,9 @@ pub use events::*;
 mod common_types;
 pub use common_types::*;
 
+pub mod keys;
+pub use keys::*;
+
 pub(crate) mod win32;
 #[cfg(feature = "clipboard")]
 pub use win32::clipboard::{Clipboard, ClipboardData, ClipboardFormat};

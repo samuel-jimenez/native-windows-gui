@@ -1,5 +1,6 @@
 pub(crate) mod base_helper;
 pub(crate) mod high_dpi;
+pub(crate) mod keys;
 pub(crate) mod message_box;
 pub(crate) mod monitor;
 pub(crate) mod resources_helper;

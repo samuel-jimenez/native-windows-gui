@@ -1,9 +1,9 @@
 use itertools::Itertools;
 use quote::ToTokens;
-use syn::{Error, Expr, Field, Ident, Result};
+use syn::{Attribute, Error, Expr, Field, Ident, Result};
 
 use crate::{
-    events::ControlEvents,
+    events::{ControlEventShortcuts, ControlEvents},
     layouts::{FlexboxLayoutChild, GridLayoutChild, LayoutChild, layout_parameters},
     shared::Parameters,
 };
@@ -117,11 +117,11 @@ impl<'a> NwgControl<'a> {
         (Some(self.id), Some(self.ty.clone()))
     }
 
-    fn find_attr(attr: &&syn::Attribute) -> bool {
+    fn find_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_control") || attr.path().is_ident("nwg_control_layout")
     }
 
-    fn valid_attr(attr: &syn::Attribute) -> bool {
+    fn valid_attr(attr: &Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
@@ -209,11 +209,11 @@ impl<'a> NwgResource<'a> {
         })
     }
 
-    fn find_attr(attr: &&syn::Attribute) -> bool {
+    fn find_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_resource")
     }
 
-    fn valid_attr(attr: &syn::Attribute) -> bool {
+    fn valid_attr(attr: &Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
@@ -267,11 +267,11 @@ impl<'a> NwgLayout<'a> {
         })
     }
 
-    fn find_attr(attr: &&syn::Attribute) -> bool {
+    fn find_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_layout")
     }
 
-    fn valid_attr(attr: &syn::Attribute) -> bool {
+    fn valid_attr(attr: &Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
@@ -332,11 +332,11 @@ impl<'a> NwgPartial<'a> {
         })
     }
 
-    fn find_attr(attr: &&syn::Attribute) -> bool {
+    fn find_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_partial") || attr.path().is_ident("nwg_partial_control")
     }
 
-    fn valid_attr(attr: &syn::Attribute) -> bool {
+    fn valid_attr(attr: &Attribute) -> bool {
         Self::find_attr(&attr)
     }
 
@@ -462,6 +462,20 @@ pub struct NwgUiEvents<'a>(&'a NwgUi<'a>);
 impl<'a> ToTokens for NwgUiEvents<'a> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
         self.0.events.to_tokens(tokens);
+    }
+}
+
+pub struct NwgUiShortcuts<'a>(&'a NwgUi<'a>);
+
+impl<'a> NwgUiShortcuts<'a> {
+    pub fn len(&self) -> usize {
+        self.0.events.shortcuts_len()
+    }
+}
+
+impl<'a> ToTokens for NwgUiShortcuts<'a> {
+    fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+        ControlEventShortcuts(&self.0.events).to_tokens(tokens);
     }
 }
 
@@ -667,7 +681,11 @@ pub struct NwgUi<'a> {
 }
 
 impl<'a> NwgUi<'a> {
-    pub fn build(data: &'a syn::DataStruct, partial_p: bool) -> Result<NwgUi<'a>> {
+    pub fn build(
+        data: &'a syn::DataStruct,
+        attrs: Option<&Attribute>,
+        partial_p: bool,
+    ) -> Result<NwgUi<'a>> {
         let named_fields = match &data.fields {
             syn::Fields::Named(n) => &n.named,
             _ => panic!("Ui structure must have named fields"),
@@ -678,6 +696,8 @@ impl<'a> NwgUi<'a> {
         let mut layouts = Vec::with_capacity(named_fields.len());
         let mut partials = Vec::with_capacity(named_fields.len());
         let mut events = ControlEvents::with_capacity(partial_p, named_fields.len());
+
+        attrs.map(|attr| events.parse_global(attr));
 
         let mut root_id: Option<&Ident> = None;
         let mut root_type: Option<Ident> = None;
@@ -880,6 +900,10 @@ impl<'a> NwgUi<'a> {
 
     pub fn events(&self) -> NwgUiEvents<'_> {
         NwgUiEvents(self)
+    }
+
+    pub fn shortcuts(&self) -> NwgUiShortcuts<'_> {
+        NwgUiShortcuts(self)
     }
 
     pub fn layouts(&self) -> NwgUiLayouts<'_> {

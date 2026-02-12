@@ -63,6 +63,13 @@ fn parse_ui_data(d: &DeriveInput) -> Option<&syn::DataStruct> {
         _ => None,
     }
 }
+fn find_attr(attr: &&syn::Attribute) -> bool {
+    attr.path().is_ident("nwg_shortcuts")
+}
+
+fn fetch_attr(d: &DeriveInput) -> Option<&syn::Attribute> {
+    d.attrs.iter().find(find_attr)
+}
 
 /**
 
@@ -296,7 +303,8 @@ struct Ui {
         nwg_layout_item,
         nwg_partial,
         nwg_control_layout,
-        nwg_partial_control
+        nwg_partial_control,
+        nwg_shortcuts,
     )
 )]
 pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
@@ -310,6 +318,7 @@ pub fn derive_ui(input: pm::TokenStream) -> pm::TokenStream {
 fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let names = parse_base_names(&base);
     let ui_data = parse_ui_data(&base).expect("NWG derive can only be implemented on structs");
+    let attrs = fetch_attr(&base);
 
     let module_name = &names.n_module;
     let struct_name = &names.n_struct;
@@ -317,15 +326,22 @@ fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
 
     let (generics, generic_names, where_clause) = &base.generics.split_for_impl();
 
-    let ui = NwgUi::build(&ui_data, false)?;
+    let ui = NwgUi::build(&ui_data, attrs, false)?;
 
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
     let layouts = ui.layouts();
     let events = ui.events();
+    let shortcuts = ui.shortcuts();
 
     let nwg = get_crate_name();
+    let shortcuts_impl = match shortcuts.len() {
+        0 => quote! {},
+        _ => quote! {impl #generics #struct_name #generic_names #where_clause {
+                                #shortcuts
+        }},
+    };
 
     Ok(quote! {
             mod #module_name {
@@ -357,6 +373,8 @@ fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
                         Ok(ui)
                     }
                 }
+
+                #shortcuts_impl
 
                 impl #generics Drop for #ui_struct_name #generic_names #where_clause {
                     /// To make sure that everything is freed without issues, the default handler must be unbound.
@@ -440,7 +458,8 @@ pub struct MyApp {
         nwg_layout_item,
         nwg_partial,
         nwg_control_layout,
-        nwg_partial_control
+        nwg_partial_control,
+        nwg_shortcuts,
     )
 )]
 pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
@@ -453,6 +472,7 @@ pub fn derive_partial(input: pm::TokenStream) -> pm::TokenStream {
 
 fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let names = parse_base_names(&base);
+    let attrs = fetch_attr(&base);
 
     let partial_name = &names.n_partial_module;
     let struct_name = &names.n_struct;
@@ -460,12 +480,14 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
     let (generics, generic_names, where_clause) = &base.generics.split_for_impl();
 
     let ui_data = parse_ui_data(&base).expect("NWG derive can only be implemented on structs");
-    let ui = NwgUi::build(&ui_data, true)?;
+    let ui = NwgUi::build(&ui_data, attrs, true)?;
+
     let controls = ui.controls();
     let resources = ui.resources();
     let partials = ui.partials();
     let layouts = ui.layouts();
     let events = ui.events();
+    let shortcuts = ui.shortcuts();
     let (_root_id, _root_type) = ui.root_element();
 
     let subclass = if _root_id.is_some() {
@@ -479,6 +501,12 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
     };
 
     let nwg = get_crate_name();
+    let shortcuts_impl = match shortcuts.len() {
+        0 => quote! {},
+        _ => quote! {impl #generics #struct_name #generic_names #where_clause {
+                                #shortcuts
+        }},
+    };
 
     Ok(quote! {
         mod #partial_name {
@@ -487,6 +515,9 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
             use super::*;
 
             #subclass
+
+
+                #shortcuts_impl
 
             impl #generics PartialUi for #struct_name #generic_names #where_clause {
 

@@ -29,7 +29,7 @@ use super::{
     high_dpi,
     window_helper::{NOTICE_MESSAGE, NWG_INIT, NWG_TIMER_STOP, NWG_TIMER_TICK, NWG_TRAY},
 };
-use crate::{Event, EventData, NwgError, controls::ControlHandle};
+use crate::{ESCAPE, Event, EventData, NwgError, controls::ControlHandle};
 
 static TIMER_ID: AtomicU32 = AtomicU32::new(1);
 static NOTICE_ID: AtomicU32 = AtomicU32::new(1);
@@ -706,14 +706,14 @@ unsafe extern "system" fn process_events(
                 _ /* WM_KEYUP */ => Event::OnKeyRelease,
             };
 
+                let keycode = w as u32;
                 // Block the textbox ESC key from closing the whole application
-                if w == 27 {
+                if keycode == ESCAPE {
                     if is_textbox_control(hwnd) {
                         return 0;
                     }
                 }
 
-                let keycode = w as u32;
                 let data = EventData::OnKey(keycode);
                 callback(evt, data, base_handle);
             }

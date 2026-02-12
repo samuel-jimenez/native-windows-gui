@@ -37,6 +37,7 @@ pub struct PartialDemo {
 
     #[nwg_partial(parent: frame1)]
     #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
+    #[nwg_shortcuts( (save_btn, Key0): [PartialDemo::do_shortcut], (save_btn, Ctrl+Key0): [PartialDemo::do_shortcut])]
     people_ui: PeopleUi,
 
     #[nwg_partial(parent: frame2)]
@@ -97,11 +98,14 @@ impl PartialDemo {
         nwg::simple_message("Saved!", "Data saved!");
     }
 
+    fn do_shortcut(&self) {
+        println!("Partial shortcut press!");
+    }
+
     fn exit(&self) {
         nwg::stop_thread_dispatch();
     }
 }
-
 #[derive(Default, NwgPartial)]
 pub struct PeopleUi {
     #[nwg_layout(max_size: [1000, 150], min_size: [100, 120])]
@@ -133,11 +137,18 @@ pub struct PeopleUi {
 
     #[nwg_control(text: "Programmer")]
     #[nwg_layout_item(layout: layout, col: 1, row: 2)]
+    #[nwg_shortcuts( Key0: [PeopleUi::do_shortcut] )]
     job_input: nwg::TextInput,
 
     #[nwg_control(text: "Save")]
     #[nwg_layout_item(layout: layout2, col: 1, row: 5)]
     save_btn: nwg::Button,
+}
+
+impl PeopleUi {
+    fn do_shortcut(&self) {
+        println!("shortcut press!");
+    }
 }
 
 #[derive(Default, NwgPartial)]

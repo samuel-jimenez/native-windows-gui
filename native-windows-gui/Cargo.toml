@@ -31,6 +31,7 @@ plotters-backend = { version = "0.3", optional = true }
 
 # Integration for raw-window-handle
 raw-window-handle = { version = "0.3.3", optional = true }
+enum_discriminant = "1.0.1"
 
 [dev-dependencies]
 native-windows-derive = { path = "../native-windows-derive/" }
