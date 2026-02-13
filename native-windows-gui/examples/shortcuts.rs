@@ -127,14 +127,14 @@ mod shortcut_g_u_i_ui {
             match _evt {
                 KeyCombo {
                     modifiers: ModifierKeys::ALT,
-                    key: VirtualKey::S,
+                    key: KeyPress::S,
                 } => {
                     ShortcutGUI::do_global_shortcut(&evt_ui);
                     ShortcutGUI::do_shortcut(&evt_ui);
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::NONE,
-                    key: VirtualKey::NumpadMinus,
+                    key: KeyPress::NumpadMinus,
                 } => {
                     if _handle == &evt_ui.message_title {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -142,7 +142,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
-                    key: VirtualKey::P,
+                    key: KeyPress::P,
                 } => {
                     if _handle == &evt_ui.message_content {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -156,7 +156,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::NONE,
-                    key: VirtualKey::Key0,
+                    key: KeyPress::Key0,
                 } => {
                     if _handle == &evt_ui.add_message_btn {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -164,7 +164,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
-                    key: VirtualKey::M,
+                    key: KeyPress::M,
                 } => {
                     if _handle == &evt_ui.message_content {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -174,7 +174,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL_SHIFT,
-                    key: VirtualKey::Plus,
+                    key: KeyPress::Plus,
                 } => {
                     if _handle == &evt_ui.add_message_btn {
                         ShortcutGUI::do_bonus_shortcut(&evt_ui, &evt_ui.add_message_btn);
@@ -184,7 +184,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL_SHIFT,
-                    key: VirtualKey::S,
+                    key: KeyPress::S,
                 } => {
                     if _handle == &evt_ui.message_title {
                         ShortcutGUI::do_bonus_shortcut(&evt_ui, &evt_ui.message_title);
@@ -194,7 +194,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::ALT,
-                    key: VirtualKey::A,
+                    key: KeyPress::A,
                 } => {
                     if _handle == &evt_ui.message_title {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -202,13 +202,13 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
-                    key: VirtualKey::S,
+                    key: KeyPress::S,
                 } => {
                     ShortcutGUI::do_global_shortcut(&evt_ui);
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL_ALT,
-                    key: VirtualKey::P,
+                    key: KeyPress::P,
                 } => {
                     if _handle == &evt_ui.message_content {
                         ShortcutGUI::do_text_shortcut(&evt_ui, &evt_ui.message_content);
@@ -216,7 +216,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::NONE,
-                    key: VirtualKey::NumpadPlus,
+                    key: KeyPress::NumpadPlus,
                 } => {
                     if _handle == &evt_ui.message_content {
                         ShortcutGUI::do_shortcut(&evt_ui);
@@ -224,7 +224,7 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL_ALT,
-                    key: VirtualKey::S,
+                    key: KeyPress::S,
                 } => {
                     if _handle == &evt_ui.message_title {
                         ShortcutGUI::do_text_shortcut(&evt_ui, &evt_ui.message_title);
@@ -232,13 +232,13 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
-                    key: VirtualKey::G,
+                    key: KeyPress::G,
                 } => {
                     ShortcutGUI::do_global_shortcut(&evt_ui);
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
-                    key: VirtualKey::U,
+                    key: KeyPress::U,
                 } => {
                     if _handle == &evt_ui.message_content {
                         ShortcutGUI::do_shortcut(&evt_ui);

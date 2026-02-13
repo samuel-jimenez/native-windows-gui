@@ -339,7 +339,7 @@ impl Parse for ShortcutKeystrokes {
         );
 
         let modifiers = parse_quote_spanned!(span=>ModifierKeys::#modifier);
-        let key = parse_quote_spanned!(span=>VirtualKey::#key_press);
+        let key = parse_quote_spanned!(span=>KeyPress::#key_press);
 
         Ok(Self { modifiers, key })
     }
