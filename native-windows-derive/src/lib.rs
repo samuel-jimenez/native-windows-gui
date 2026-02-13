@@ -14,6 +14,8 @@ use proc_macro_crate::{FoundCrate, crate_name};
 mod controls;
 mod events;
 mod layouts;
+mod partials;
+mod resources;
 mod shared;
 
 mod ui;

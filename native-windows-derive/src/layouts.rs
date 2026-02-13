@@ -1,6 +1,11 @@
-use syn::{Attribute, Expr, Field, Ident, Result};
+use quote::ToTokens;
+use syn::{Attribute, Error, Expr, Field, Ident, Result};
 
-use crate::shared::Parameters;
+use crate::{
+    controls::NwdControl,
+    partials::NwdPartial,
+    shared::{Parameters, parse_type_borrow},
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct GridLayoutChild {
@@ -142,6 +147,78 @@ impl LayoutChild {
             _ => panic!("Layout item members must be int literal."),
         }
     }
+
+    fn to_tokens(&self, id: &Ident, nested: bool, layout_item: bool) -> pm2::TokenStream {
+        let param_name = if nested || layout_item {
+            quote! {child_layout}
+        } else {
+            quote! {child}
+        };
+
+        match self {
+                    LayoutChild::Grid(GridLayoutChild {
+                        col,
+                        row,
+                        col_span,
+                        row_span,
+                    }) => {
+                        if nested {
+                            let field_col = col + col_span;
+                            quote! {
+                            child_item(GridLayoutItem::new(&ui.#id.label_handle(), #col, #row, #col_span, #row_span))
+                            .child_item(GridLayoutItem::new(&ui.#id, #field_col, #row, #col_span, #row_span))
+                            }
+                        } else {
+                            quote! {
+                            child_item(GridLayoutItem::new(&ui.#id, #col, #row, #col_span, #row_span))
+                            }
+                        }
+                    }
+                    LayoutChild::Flexbox(FlexboxLayoutChild {
+                        param_names,
+                        param_values,
+                    }) => quote! {
+                        #param_name(&ui.#id)
+                        #(.#param_names(#param_values))*
+                    },
+                    LayoutChild::Init { field_name, .. } => Error::new_spanned(
+                        field_name,
+                        format!(
+                            "Unmatched layout item for field \"{}\", Did you forget the `layout` parameter?",
+                            field_name
+                        ),
+                    ).into_compile_error(),
+                }
+    }
+}
+
+pub enum ControlLayout<'b> {
+    Control(&'b NwdControl<'b>),
+    Layout(&'b NwdLayout<'b>),
+    Partial(&'b NwdPartial<'b>),
+}
+impl<'b> ControlLayout<'b> {
+    pub fn weight(&self) -> u16 {
+        match self {
+            ControlLayout::Control(c) => c.weight[1],
+            ControlLayout::Layout(c) => c.weight[1],
+            ControlLayout::Partial(c) => c.weight[1],
+        }
+    }
+}
+
+impl<'b> ToTokens for ControlLayout<'b> {
+    fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+        let (id, layout, nested, layout_item) = match self {
+            ControlLayout::Control(c) => (c.id, &c.layout, c.nested, false),
+            ControlLayout::Layout(c) => (c.id, &c.layout, false, true),
+            ControlLayout::Partial(c) => (c.id, &c.layout, false, c.as_layout_p),
+        };
+
+        let item_tk = layout.as_ref().unwrap().to_tokens(id, nested, layout_item);
+
+        item_tk.to_tokens(tokens);
+    }
 }
 
 //
@@ -166,4 +243,106 @@ pub fn layout_parameters(field: &Field) -> Result<(Vec<Ident>, Vec<Expr>)> {
     }
 
     Ok((names, exprs))
+}
+
+#[derive(Debug)]
+pub(crate) struct NwdLayout<'a> {
+    pub id: &'a Ident,
+    pub ty: &'a Ident,
+
+    pub layout: Option<LayoutChild>,
+    pub layout_index: usize,
+
+    pub names: Vec<Ident>,
+    pub values: Vec<Expr>,
+    pub weight: [u16; 2],
+    pub sublayout: bool,
+}
+
+impl<'a> NwdLayout<'a> {
+    pub fn parse(field: &'a Field, field_pos: u16, sublayout: bool) -> Result<Self> {
+        let id = field.ident.as_ref().unwrap();
+        let ty = NwdLayout::parse_type(field)?;
+        let (names, values) = layout_parameters(field)?;
+
+        Ok(Self {
+            id,
+            ty,
+            layout: LayoutChild::prepare(field)?,
+            layout_index: 0,
+            names,
+            values,
+            weight: [0, field_pos as u16],
+            sublayout,
+        })
+    }
+
+    fn find_attr(attr: &&Attribute) -> bool {
+        attr.path().is_ident("nwg_layout")
+    }
+
+    fn valid_attr(attr: &Attribute) -> bool {
+        Self::find_attr(&attr)
+    }
+
+    pub fn valid(field: &Field) -> bool {
+        field.attrs.iter().any(Self::valid_attr)
+    }
+
+    fn parse_type(field: &Field) -> Result<&Ident> {
+        // TODO: extract type from nwg_layout first
+        parse_type_borrow(&field, "nwg_layout")
+    }
+
+    pub fn expand_parent(&mut self) {
+        let parent_index = self.names.iter().position(|n| n == "parent");
+        if parent_index.is_none() {
+            return;
+        }
+
+        let i = parent_index.unwrap();
+        let parent_expr: Expr = match &self.values[i] {
+            Expr::Path(p) => {
+                let id = &p.path.segments.last().unwrap().ident;
+                syn::parse_str(&format!("&ui.{}", id)).unwrap()
+            }
+            _ => {
+                panic!("Bad expression type for parent of field {}", self.id);
+            }
+        };
+
+        self.values[i] = parent_expr;
+    }
+}
+
+pub struct LayoutGen<'b> {
+    pub layout: &'b NwdLayout<'b>,
+    pub children: Vec<ControlLayout<'b>>,
+}
+
+impl<'b> ToTokens for LayoutGen<'b> {
+    fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+        let ty = &self.layout.ty;
+        let id = &self.layout.id;
+        let names = &self.layout.names;
+        let values = &self.layout.values;
+        let children = &self.children;
+
+        let sublayout = self.layout.sublayout;
+        let build = if self.layout.layout.is_some() {
+            quote! {build_partial(&ui.#id)}
+        } else if !sublayout {
+            quote! {build(&ui.#id)}
+        } else {
+            quote! {build_conditional(&ui.#id, expand_layout_p)}
+        };
+
+        let layout_tk = quote! {
+            #ty::builder()
+            #(.#names(#values))*
+            #(.#children)*
+            .#build?;
+        };
+        layout_tk.to_tokens(tokens);
+    }
 }

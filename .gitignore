@@ -8,3 +8,4 @@ docs/native-windows-docs/tmp.*
 
 # Exclude intellijank
 .idea
+.vscode/launch.json
