@@ -1,5 +1,6 @@
 use std::{cell::RefCell, char, ops::Range};
 
+use derive_setters::Setters;
 use winapi::{
     shared::{
         minwindef::{LPARAM, UINT, WPARAM},
@@ -26,26 +27,6 @@ use crate::{
 const NOT_BOUND: &'static str = "TextInput is not yet bound to a winapi object";
 const BAD_HANDLE: &'static str = "INTERNAL ERROR: TextInput handle is not HWND!";
 
-bitflags! {
-    /**
-        The text input flags
-
-        * VISIBLE:     The text input is immediately visible after creation
-        * DISABLED:    The text input cannot be interacted with by the user. It also has a grayed out look.
-        * NUMBER:      The text input only accepts number
-        * AUTO_SCROLL: The text input automatically scrolls text to the right by 10 characters when the user types a character
-                       at the end of the line. When the user presses the ENTER key, the control scrolls all text back to position zero.
-        * TAB_STOP:    The text input can be selected using tab navigation
-    */
-    pub struct TextInputFlags: u32 {
-        const VISIBLE = WS_VISIBLE;
-        const DISABLED = WS_DISABLED;
-        const NUMBER = ES_NUMBER;
-        const AUTO_SCROLL = ES_AUTOHSCROLL;
-        const TAB_STOP = WS_TABSTOP;
-    }
-}
-
 /**
 An edit control is a rectangular control window to permit the user to enter and edit text by typing on the keyboard
 This control only allow a single line input. For block of text, use `TextBox`.
@@ -58,15 +39,22 @@ TextInput is not behind any features.
   * `text`:             The text input text.
   * `size`:             The text input size.
   * `position`:         The text input position.
-  * `flags`:            A combination of the TextInputFlags values.
-  * `ex_flags`:         A combination of win32 window extended flags. Unlike `flags`, ex_flags must be used straight from winapi
+  * `ex_flags`:         A combination of win32 window extended flags. Must be used straight from winapi
   * `font`:             The font used for the text input text
   * `limit`:            The maximum number of characters that can be inserted in the control
   * `readonly`:         If the text input should allow user input or not
   * `password`:         The password character. If set to None, the textinput is a regular control.
   * `align`:            The alignment of the text in the text input
   * `background_color`: The color of the textinput top and bottom padding. This is not the white background under the text.
+  * `visible`:          The control is immediately visible after creation
+  * `enabled`:          The control can be interacted with by the user. It has a normal instead of grayed out look.
   * `focus`:            The control receives focus after being created
+  * `number`:           The control only accepts numbers
+  * `autoscroll`:       The control automatically scrolls text to the right by 10 characters when the user types a character
+                        at the end of the line. When the user presses the ENTER key, the control scrolls all text back to position zero.
+  * `tab_stop`:         The control can be selected using tab navigation
+
+
 
 **Control events:**
   * `OnTextInput`: When a TextInput value is changed
@@ -94,22 +82,7 @@ pub struct TextInput {
 
 impl TextInput {
     pub fn builder<'a>() -> TextInputBuilder<'a> {
-        TextInputBuilder {
-            text: "",
-            placeholder_text: None,
-            size: (100, 25),
-            position: (0, 0),
-            flags: None,
-            ex_flags: 0,
-            limit: 0,
-            password: None,
-            align: HTextAlign::Left,
-            readonly: false,
-            focus: false,
-            font: None,
-            parent: None,
-            background_color: None,
-        }
+        TextInputBuilder::default()
     }
 
     /// Return the font of the control
@@ -370,14 +343,14 @@ impl TextInput {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        ::winapi::um::winuser::WS_VISIBLE
+        WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL
     }
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
         use winapi::um::winuser::{WS_BORDER, WS_CHILD};
 
-        WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL | WS_CHILD
+        WS_BORDER | WS_CHILD
     }
 
     /// Center the text vertically. Can't believe that must be manually hacked in.
@@ -531,96 +504,77 @@ impl Drop for TextInput {
     }
 }
 
+#[derive(Setters)]
 pub struct TextInputBuilder<'a> {
     text: &'a str,
     placeholder_text: Option<&'a str>,
     size: (i32, i32),
     position: (i32, i32),
-    flags: Option<TextInputFlags>,
     ex_flags: u32,
     limit: usize,
     password: Option<char>,
     align: HTextAlign,
     readonly: bool,
+    visible: bool,
+    enabled: bool,
+    focus: bool,
+    number: bool,
+    autoscroll: bool,
+    tab_stop: bool,
     font: Option<&'a Font>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
     background_color: Option<[u8; 3]>,
-    focus: bool,
+}
+impl<'a> Default for TextInputBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            text: "",
+            placeholder_text: None,
+            size: (100, 25),
+            position: (0, 0),
+            ex_flags: 0,
+            limit: 0,
+            password: None,
+            align: HTextAlign::Left,
+            readonly: false,
+            visible: true,
+            enabled: true,
+            focus: false,
+            number: false,
+            autoscroll: true,
+            tab_stop: true,
+            font: None,
+            parent: None,
+            background_color: None,
+        }
+    }
 }
 
 impl<'a> TextInputBuilder<'a> {
-    pub fn flags(mut self, flags: TextInputFlags) -> TextInputBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> TextInputBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> TextInputBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn placeholder_text(mut self, placeholder_text: Option<&'a str>) -> TextInputBuilder<'a> {
-        self.placeholder_text = placeholder_text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> TextInputBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> TextInputBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn limit(mut self, limit: usize) -> TextInputBuilder<'a> {
-        self.limit = limit;
-        self
-    }
-
-    pub fn password(mut self, psw: Option<char>) -> TextInputBuilder<'a> {
-        self.password = psw;
-        self
-    }
-
-    pub fn align(mut self, align: HTextAlign) -> TextInputBuilder<'a> {
-        self.align = align;
-        self
-    }
-
-    pub fn readonly(mut self, read: bool) -> TextInputBuilder<'a> {
-        self.readonly = read;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> TextInputBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn background_color(mut self, color: Option<[u8; 3]>) -> TextInputBuilder<'a> {
-        self.background_color = color;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> TextInputBuilder<'a> {
-        self.focus = focus;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> TextInputBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut TextInput) -> Result<(), NwgError> {
-        let mut flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
+        let parent = match self.parent {
+            Some(p) => Ok(p),
+            None => Err(NwgError::no_parent("TextInput")),
+        }?;
+
+        let mut flags = out.flags();
+
+        if !self.visible {
+            flags &= !WS_VISIBLE
+        }
+        if !self.enabled {
+            flags |= WS_DISABLED
+        }
+        if self.number {
+            flags |= ES_NUMBER
+        }
+        if !self.autoscroll {
+            flags &= !ES_AUTOHSCROLL
+        }
+        if !self.tab_stop {
+            flags &= !WS_TABSTOP
+        }
 
         match self.align {
             HTextAlign::Left => flags |= ES_LEFT,
@@ -631,11 +585,7 @@ impl<'a> TextInputBuilder<'a> {
             }
         }
 
-        let parent = match self.parent {
-            Some(p) => Ok(p),
-            None => Err(NwgError::no_parent("TextInput")),
-        }?;
-
+        // Drop the old object
         *out = Default::default();
 
         out.handle = ControlBase::build_hwnd()

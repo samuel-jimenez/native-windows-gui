@@ -303,7 +303,7 @@ mod partial_people_ui {
 
             nwg::TextInput::builder()
                 .text("75")
-                .flags(nwg::TextInputFlags::VISIBLE | nwg::TextInputFlags::NUMBER)
+                .number(true)
                 .parent(&parent)
                 .build(&mut data.age_input)?;
 

@@ -146,7 +146,7 @@ pub use status_bar::{StatusBar, StatusBarBuilder};
 pub use tabs::{Tab, TabBuilder, TabsContainer, TabsContainerBuilder, TabsContainerFlags};
 #[cfg(feature = "textbox")]
 pub use text_box::{TextBox, TextBoxBuilder, TextBoxFlags};
-pub use text_input::{TextInput, TextInputBuilder, TextInputFlags};
+pub use text_input::{TextInput, TextInputBuilder};
 #[cfg(feature = "tooltip")]
 pub use tooltip::{Tooltip, TooltipBuilder, TooltipIcon};
 #[cfg(feature = "trackbar")]

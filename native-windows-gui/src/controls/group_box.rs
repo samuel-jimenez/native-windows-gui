@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::cell::RefCell;
 
 use derive_setters::Setters;
@@ -6,13 +5,13 @@ use winapi::{
     shared::windef::HBRUSH,
     um::winuser::{
         BS_GROUPBOX, WM_ERASEBKGND, WM_SIZE, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS,
-        WS_DISABLED, WS_EX_CONTROLPARENT, WS_GROUP, WS_TABSTOP, WS_VISIBLE,
+        WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE,
     },
 };
 
 use super::{ControlBase, ControlHandle};
 use crate::{
-    Font, Frame, NwgError, RawEventHandler,
+    Font, NwgError, RawEventHandler,
     win32::{base_helper::check_hwnd, window_helper as wh},
 };
 
@@ -160,9 +159,7 @@ impl GroupBox {
 
         use winapi::{
             shared::windef::{POINT, RECT},
-            um::winuser::{
-                COLOR_WINDOW, FillRect, GetDC, GetWindowRect, ReleaseDC, ScreenToClient,
-            },
+            um::winuser::{GetWindowRect, ScreenToClient},
         };
 
         use crate::bind_raw_event_handler_inner;
@@ -337,18 +334,6 @@ pub struct _GroupBox {
 }
 
 impl _GroupBox {
-    pub fn builder<'a>() -> _GroupBoxBuilder<'a> {
-        _GroupBoxBuilder {
-            text: "_GroupBox",
-            size: (100, 25),
-            position: (0, 0),
-            flags: 0,
-            ex_flags: 0,
-            font: None,
-            parent: None,
-        }
-    }
-
     /// Returns the font of the control
     pub fn font(&self) -> Option<Font> {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -381,43 +366,6 @@ impl _GroupBox {
     pub fn set_enabled(&self, v: bool) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         unsafe { wh::set_window_enabled(handle, v) }
-    }
-
-    /// Returns true if the control is visible to the user. Will return true even if the
-    /// control is outside of the parent client view (ex: at the position (10000, 10000))
-    pub fn visible(&self) -> bool {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::get_window_visibility(handle) }
-    }
-
-    /// Show or hide the control to the user
-    pub fn set_visible(&self, v: bool) {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_visibility(handle, v) }
-    }
-
-    /// Returns the size of the group box in the parent window
-    pub fn size(&self) -> (u32, u32) {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::get_window_size(handle) }
-    }
-
-    /// Sets the size of the group box in the parent window
-    pub fn set_size(&self, x: u32, y: u32) {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_size(handle, x, y, false) }
-    }
-
-    /// Returns the position of the group box in the parent window
-    pub fn position(&self) -> (i32, i32) {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::get_window_position(handle) }
-    }
-
-    /// Sets the position of the group box in the parent window
-    pub fn set_position(&self, x: i32, y: i32) {
-        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
-        unsafe { wh::set_window_position(handle, x, y) }
     }
 
     /// Returns the group box label

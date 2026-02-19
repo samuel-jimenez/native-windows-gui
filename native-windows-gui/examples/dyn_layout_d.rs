@@ -79,7 +79,7 @@ pub struct Controls {
     #[nwg_events(OnChar: [print_char(EVT_DATA)])]
     name_input: nwg::TextInput,
 
-    #[nwg_control(text: "75", flags: "NUMBER|VISIBLE", position: (120, 40), size: (100, 20))]
+    #[nwg_control(text: "75",  number: true, position: (120, 40), size: (100, 20))]
     age_input: nwg::TextInput,
 
     #[nwg_control(text: "Programmer", position: (120, 70), size: (100, 25))]

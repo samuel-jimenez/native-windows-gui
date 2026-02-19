@@ -1,8 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
+use derive_setters::Setters;
 use winapi::um::winuser::{WS_DISABLED, WS_EX_CONTROLPARENT, WS_TABSTOP, WS_VISIBLE};
 
-use super::{Button, ButtonFlags, ControlBase, ControlHandle, TextInput, TextInputFlags};
+use super::{Button, ButtonFlags, ControlBase, ControlHandle, TextInput};
 use crate::{
     Font, NwgError, RawEventHandler, bind_raw_event_handler_inner, unbind_raw_event_handler,
     win32::{base_helper::check_hwnd, window_helper as wh},
@@ -144,15 +145,7 @@ pub struct NumberSelect {
 
 impl NumberSelect {
     pub fn builder<'a>() -> NumberSelectBuilder<'a> {
-        NumberSelectBuilder {
-            size: (100, 25),
-            position: (0, 0),
-            data: NumberSelectData::default(),
-            enabled: true,
-            flags: None,
-            font: None,
-            parent: None,
-        }
+        NumberSelectBuilder::default()
     }
 
     /// Returns inner data specifying the possible input of a number select
@@ -259,7 +252,7 @@ impl NumberSelect {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        ::winapi::um::winuser::WS_VISIBLE
+        WS_VISIBLE
     }
 
     /// Winapi flags required by the control
@@ -279,42 +272,34 @@ impl Drop for NumberSelect {
     }
 }
 
+#[derive(Setters)]
 pub struct NumberSelectBuilder<'a> {
     size: (i32, i32),
     position: (i32, i32),
     data: NumberSelectData,
+    visible: bool,
     enabled: bool,
-    flags: Option<NumberSelectFlags>,
+    tab_stop: bool,
     font: Option<&'a Font>,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
+}
+impl<'a> Default for NumberSelectBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            size: (100, 25),
+            position: (0, 0),
+            data: NumberSelectData::default(),
+            visible: true,
+            enabled: true,
+            tab_stop: false,
+            font: None,
+            parent: None,
+        }
+    }
 }
 
 impl<'a> NumberSelectBuilder<'a> {
-    pub fn flags(mut self, flags: NumberSelectFlags) -> NumberSelectBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> NumberSelectBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> NumberSelectBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn enabled(mut self, e: bool) -> NumberSelectBuilder<'a> {
-        self.enabled = e;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> NumberSelectBuilder<'a> {
-        self.font = font;
-        self
-    }
-
     // Int values
     pub fn value_int(mut self, v: i64) -> NumberSelectBuilder<'a> {
         match &mut self.data {
@@ -475,26 +460,24 @@ impl<'a> NumberSelectBuilder<'a> {
         self
     }
 
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> NumberSelectBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut NumberSelect) -> Result<(), NwgError> {
-        let flags = self.flags.map(|f| f.bits()).unwrap_or(out.flags());
-        let (btn_flags, text_flags) = if flags & WS_TABSTOP == WS_TABSTOP {
-            (
-                ButtonFlags::VISIBLE | ButtonFlags::TAB_STOP,
-                TextInputFlags::VISIBLE | TextInputFlags::TAB_STOP,
-            )
-        } else {
-            (ButtonFlags::VISIBLE, TextInputFlags::VISIBLE)
-        };
-
         let parent = match self.parent {
             Some(p) => Ok(p),
             None => Err(NwgError::no_parent("NumberSelect")),
         }?;
+
+        let mut btn_flags = ButtonFlags::VISIBLE;
+        let mut flags = out.flags();
+        if !self.visible {
+            flags &= !WS_VISIBLE
+        }
+        if !self.enabled {
+            flags |= WS_DISABLED
+        }
+        if self.tab_stop {
+            btn_flags |= ButtonFlags::TAB_STOP;
+            flags |= WS_TABSTOP
+        }
 
         *out = Default::default();
 
@@ -521,7 +504,8 @@ impl<'a> NumberSelectBuilder<'a> {
             .text(&self.data.formatted_value())
             .size((w - 19, h))
             .parent(&out.handle)
-            .flags(text_flags)
+            .visible(self.visible)
+            .tab_stop(self.tab_stop)
             .build(&mut out.edit)?;
 
         Button::builder()

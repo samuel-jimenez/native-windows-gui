@@ -131,7 +131,7 @@ pub struct PeopleUi {
     #[nwg_events(OnChar: [print_char(EVT_DATA)])]
     name_input: nwg::TextInput,
 
-    #[nwg_control(text: "75", flags: "NUMBER|VISIBLE")]
+    #[nwg_control(text: "75", number: true, visible: true)]
     #[nwg_layout_item(layout: layout, col: 1, row: 1)]
     age_input: nwg::TextInput,
 

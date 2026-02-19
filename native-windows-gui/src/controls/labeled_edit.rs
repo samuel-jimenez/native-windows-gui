@@ -4,9 +4,7 @@ use derive_setters::Setters;
 use taffy::{Dimension, Size};
 
 use super::ControlHandle;
-use crate::{
-    FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, TextInputFlags, VTextAlign,
-};
+use crate::{FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, VTextAlign};
 
 /**
 A labeled input control is an edit control with included label.
@@ -20,7 +18,6 @@ Requires the `labeled` feature.
   * `placeholder_text`: The labeled input placeholder text.
   * `size`:             The labeled input size.
   * `position`:         The labeled input position.
-  * `flags`:            A combination of the TextInputFlags values.
   * `ex_flags`:         A combination of win32 window extended flags. Unlike `flags`, ex_flags must be used straight from winapi
   * `font`:             The font used for the labeled input text
   * `limit`:            The maximum number of characters that can be inserted in the control
@@ -28,7 +25,13 @@ Requires the `labeled` feature.
   * `password`:         The password character. If set to None, the input is a regular control.
   * `align`:            The alignment of the text in the labeled input
   * `background_color`: The color of the top and bottom padding. This is not the white background under the text.
+  * `visible`:          The control is immediately visible after creation
+  * `enabled`:          The control can be interacted with by the user. It has a normal instead of grayed out look.
   * `focus`:            The control receives focus after being created
+  * `number`:           The control only accepts numbers
+  * `autoscroll`:       The control automatically scrolls text to the right by 10 characters when the user types a character
+                        at the end of the line. When the user presses the ENTER key, the control scrolls all text back to position zero.
+  * `tab_stop`:         The control can be selected using tab navigation
 
 **Control events:**
   * `OnTextInput`: When a LabeledEdit value is changed
@@ -242,18 +245,21 @@ pub struct LabeledEditBuilder<'a> {
     placeholder_text: Option<&'a str>,
     size: (i32, i32),
     position: (i32, i32),
-    #[setter(strip_option)]
-    flags: Option<TextInputFlags>,
     ex_flags: u32,
     limit: usize,
     password: Option<char>,
     align: HTextAlign,
     readonly: bool,
+    visible: bool,
+    enabled: bool,
+    focus: bool,
+    number: bool,
+    autoscroll: bool,
+    tab_stop: bool,
     font: Option<&'a Font>,
     #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
     background_color: Option<[u8; 3]>,
-    focus: bool,
 }
 impl<'a> Default for LabeledEditBuilder<'a> {
     fn default() -> Self {
@@ -266,13 +272,17 @@ impl<'a> Default for LabeledEditBuilder<'a> {
             placeholder_text: None,
             size: (100, 25),
             position: (0, 0),
-            flags: None,
             ex_flags: 0,
             limit: 0,
             password: None,
             align: HTextAlign::Left,
             readonly: false,
+            visible: true,
+            enabled: true,
             focus: false,
+            number: false,
+            autoscroll: true,
+            tab_stop: true,
             font: None,
             parent: None,
             background_color: None,
@@ -308,12 +318,8 @@ impl<'a> LabeledEditBuilder<'a> {
             .font(self.font)
             .build(&mut out.label)?;
 
-        let mut field = TextInput::builder().parent(&parent);
-        if self.flags.is_some() {
-            field = field.flags(self.flags.unwrap());
-        }
-
-        field
+        TextInput::builder()
+            .parent(&parent)
             .align(self.align)
             .size(self.size)
             .text(self.text)
@@ -321,7 +327,12 @@ impl<'a> LabeledEditBuilder<'a> {
             .font(self.font)
             .password(self.password)
             .readonly(self.readonly)
+            .visible(self.visible)
+            .enabled(self.enabled)
             .focus(self.focus)
+            .number(self.number)
+            .autoscroll(self.autoscroll)
+            .tab_stop(self.tab_stop)
             .build(&mut out.field)?;
 
         FlexboxLayout::builder()
