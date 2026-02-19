@@ -1,16 +1,11 @@
 [package]
 name = "native-windows-derive"
 version = "1.0.4"
-authors = ["gdube <gdube.475@gmail.com>"]
 edition = "2024"
-
 description = "A very light and simple rust GUI library"
-
-repository = "https://github.com/gabdube/native-windows-gui"
 documentation = "https://gabdube.github.io/native-windows-gui/native-windows-docs/index.html"
-
+repository = "https://github.com/gabdube/native-windows-gui"
 license = "MIT"
-
 keywords = ["gui", "ui", "windows"]
 
 [lib]
@@ -21,4 +16,4 @@ itertools = "0.14.0"
 proc-macro-crate = "^3.4"
 proc-macro2 = "^1.0"
 quote = "^1.0"
-syn = { version = "^2.0", features = ["extra-traits", "full"]}
+syn = { version = "^2.0", features = ["extra-traits", "full"] }

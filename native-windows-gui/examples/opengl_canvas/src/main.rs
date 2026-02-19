@@ -6,10 +6,11 @@
 */
 extern crate gl;
 extern crate glutin;
-#[macro_use]
 extern crate native_windows_gui as nwg;
 
 use std::cell::RefCell;
+
+use nwg::subclass_control;
 
 use crate::{
     glutin::{

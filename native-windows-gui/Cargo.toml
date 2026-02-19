@@ -1,37 +1,56 @@
 [package]
 name = "native-windows-gui"
 version = "1.0.12"
-authors = ["gdube <gdube.475@gmail.com>"]
 edition = "2024"
-
 description = "A rust library to develop native GUI applications on the desktop for Microsoft Windows. Native-windows-gui wraps the native win32 window controls in a rustic API"
-
-repository = "https://github.com/gabdube/native-windows-gui"
 documentation = "https://gabdube.github.io/native-windows-gui/native-windows-docs/index.html"
-
+repository = "https://github.com/gabdube/native-windows-gui"
 license = "MIT"
-
-build = "build.rs"
 keywords = ["gui", "ui", "windows"]
+build = "build.rs"
+
+[package.metadata.docs.rs]
+# This also sets the default target to `x86_64-pc-windows-msvc`
+features = ["all"]
+all-features = false
+targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
-derive-setters = { path = "./derive-setters" }
-winapi = { version = "0.3", features = [
-  "winuser", "wingdi", "winbase", "libloaderapi", "processthreadsapi",
-  "errhandlingapi", "winerror", "commctrl", "sysinfoapi", "shobjidl", "combaseapi",
-  "commdlg", "d2d1", "objbase", "dwrite", "winnls", "shellapi", "wincodec", "stringapiset"] }
-
-lazy_static = "1.4.0"
 bitflags = "1.1.0"
-newline-converter = { version = "0.2.0", optional = true }
-taffy = { version = "0.9.2", optional = true }
+derive-setters = { path = "./derive-setters" }
+enum_discriminant = "1.0.1"
+lazy_static = "1.4.0"
 muldiv = { version = "0.2", optional = true }
-plotters = { version = "0.3", optional = true, default-features=false, features=["all_series", "all_elements"] }
+newline-converter = { version = "0.2.0", optional = true }
+plotters = { version = "0.3", default-features = false, features = [
+  "all_elements",
+  "all_series"
+], optional = true }
 plotters-backend = { version = "0.3", optional = true }
-
 # Integration for raw-window-handle
 raw-window-handle = { version = "0.3.3", optional = true }
-enum_discriminant = "1.0.1"
+taffy = { version = "0.9.2", optional = true }
+winapi = { version = "0.3", features = [
+  "combaseapi",
+  "commctrl",
+  "commdlg",
+  "d2d1",
+  "dwrite",
+  "errhandlingapi",
+  "libloaderapi",
+  "objbase",
+  "processthreadsapi",
+  "shellapi",
+  "shobjidl",
+  "stringapiset",
+  "sysinfoapi",
+  "winbase",
+  "wincodec",
+  "winerror",
+  "wingdi",
+  "winnls",
+  "winuser"
+] }
 
 [dev-dependencies]
 native-windows-derive = { path = "../native-windows-derive/" }
@@ -40,53 +59,81 @@ native-windows-derive = { path = "../native-windows-derive/" }
 winapi-build = "0.1.1"
 
 [features]
-default = [ "all" ]
-file-dialog = []
-color-dialog = []
-font-dialog = []
-datetime-picker = []
-progress-bar = []
-tabs = []
-tree-view = []
-fancy-window = []
-listbox = []
-combobox = []
-tray-notification = []
-message-window = []
+default = ["all"]
+all = [
+  "animation-timer",
+  "clipboard",
+  "color-dialog",
+  "combobox",
+  "cursor",
+  "datetime-picker",
+  "dynamic_layout",
+  "embed-resource",
+  "extern-canvas",
+  "fancy-window",
+  "file-dialog",
+  "flexbox",
+  "font-dialog",
+  "frame",
+  "image-decoder",
+  "image-list",
+  "labeled",
+  "list-view",
+  "listbox",
+  "menu",
+  "message-window",
+  "notice",
+  "number-select",
+  "plotting",
+  "progress-bar",
+  "rich-textbox",
+  "scroll-bar",
+  "status-bar",
+  "tabs",
+  "textbox",
+  "tooltip",
+  "trackbar",
+  "tray-notification",
+  "tree-view",
+  "tree-view-iterator",
+  "winnls"
+]
 animation-timer = []
-notice = []
+clipboard = []
+color-dialog = []
+combobox = []
+cursor = []
+datetime-picker = []
+dynamic_layout = []
+embed-resource = []
+extern-canvas = []
+fancy-window = []
+file-dialog = []
+flexbox = ["taffy"]
+font-dialog = []
+frame = []
+high-dpi = ["muldiv"]
+image-decoder = []
+image-list = []
 labeled = ["flexbox"]
 list-view = []
-image-decoder = []
-number-select = []
-cursor = []
-clipboard = []
+listbox = []
 menu = []
-trackbar = []
-extern-canvas = []
-frame = []
-tooltip = []
-status-bar = []
-winnls = []
-textbox = ["newline-converter"]
-rich-textbox = ["newline-converter"]
-image-list = []
+message-window = []
 no-styling = []
-embed-resource = []
-scroll-bar = []
-tree-view-iterator = []
-dynamic_layout = []
+notice = []
+number-select = []
 plotting = ["plotters", "plotters-backend"]
-flexbox = ["taffy"]
-high-dpi = ["muldiv"]
+progress-bar = []
 raw-win-handle = ["raw-window-handle"]
-all = ["file-dialog", "color-dialog", "font-dialog", "datetime-picker", "progress-bar", "notice","labeled", "list-view", "cursor", "image-decoder",
-       "tabs", "tree-view", "fancy-window", "listbox", "combobox", "tray-notification", "message-window", "number-select", "clipboard", "menu",
-       "trackbar", "extern-canvas", "frame", "tooltip", "status-bar", "winnls", "textbox", "rich-textbox", "image-list", "embed-resource", "scroll-bar",
-       "tree-view-iterator", "flexbox", "dynamic_layout", "animation-timer", "plotting"]
-
-[package.metadata.docs.rs]
-# This also sets the default target to `x86_64-pc-windows-msvc`
-features = [ "all" ]
-all-features = false
-targets = ["x86_64-pc-windows-msvc"]
+rich-textbox = ["newline-converter"]
+scroll-bar = []
+status-bar = []
+tabs = []
+textbox = ["newline-converter"]
+tooltip = []
+trackbar = []
+tray-notification = []
+tree-view = []
+tree-view-iterator = []
+winnls = []

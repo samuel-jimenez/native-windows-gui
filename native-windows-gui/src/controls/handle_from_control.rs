@@ -49,7 +49,8 @@ macro_rules! partial_eq {
 Automatically implements the functionalities required to process an external struct as a NWG control
 
 ```rust
-#[macro_use] extern crate native_windows_gui as nwg;
+extern crate native_windows_gui as nwg;
+use nwg::subclass_control;
 
 pub struct TestControl {
     edit: nwg::TextInput,
@@ -102,7 +103,8 @@ macro_rules! subclass_control {
 Automatically implements the functionalities required to process an external struct as a NWG sub-layout.
 
 ```rust
-#[macro_use] extern crate native_windows_gui as nwg;
+extern crate native_windows_gui as nwg;
+use nwg::subclass_layout;
 
 pub struct TestLayout {
     layout: nwg::FlexboxLayout,
