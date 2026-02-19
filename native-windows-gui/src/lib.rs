@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate bitflags;
 
+extern crate derive_setters;
+pub use derive_setters::Setters;
+
 #[macro_use]
 extern crate lazy_static;
 
