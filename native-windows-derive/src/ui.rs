@@ -359,6 +359,12 @@ impl<'a> ToTokens for NwgUiLayouts<'a> {
 
 pub struct NwgUiPartials<'a>(&'a NwgUi<'a>);
 
+impl<'a> NwgUiPartials<'a> {
+    pub fn len(&self) -> usize {
+        self.0.partials.len()
+    }
+}
+
 impl<'a> ToTokens for NwgUiPartials<'a> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
         let partials = &self.0.partials;

@@ -362,7 +362,7 @@ fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let shortcuts = ui.shortcuts();
 
     let nwg = get_crate_name();
-    let shortcuts_impl = match shortcuts.len() {
+    let shortcuts_impl = match shortcuts.len() + partials.len() {
         0 => quote! {},
         _ => quote! {
             impl #generics ShortcutUi for #ui_struct_name #generic_names #where_clause {
@@ -526,7 +526,7 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
     };
 
     let nwg = get_crate_name();
-    let shortcuts_impl = match shortcuts.len() {
+    let shortcuts_impl = match shortcuts.len() + partials.len() {
         0 => quote! {},
         _ => quote! {#shortcuts},
     };
