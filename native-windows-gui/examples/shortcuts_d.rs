@@ -9,7 +9,7 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
-use nwg::NativeUi;
+use nwg::{NativeUi, ShortcutUi};
 
 #[derive(Default, NwgUi)]
 #[nwg_shortcuts( Ctrl+G: [ShortcutGUI::do_global_shortcut], Ctrl+S: [ShortcutGUI::do_global_shortcut], Alt+S: [ShortcutGUI::do_global_shortcut, ShortcutGUI::do_shortcut], Ctrl+P: [ShortcutGUI::do_global_shortcut], Ctrl+M: [ShortcutGUI::do_global_shortcut] )]
@@ -35,7 +35,7 @@ pub struct ShortcutGUI {
 
     #[nwg_control(text:"Hello World!")]
     #[nwg_layout_item(layout: layout, col: 3, row: 0, col_span: 3)]
-    #[nwg_shortcuts( NumpadPlus: [ShortcutGUI::do_shortcut], Ctrl+U: [ShortcutGUI::do_shortcut],Ctrl+M: [ShortcutGUI::do_shortcut], Ctrl+Plus+Shift: [ShortcutGUI::do_shortcut], Ctrl+P: [ShortcutGUI::do_shortcut], Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL)], Ctrl+Alt+P: [ShortcutGUI::do_text_shortcut(SELF,CTRL)])]
+    #[nwg_shortcuts( NumpadPlus: [ShortcutGUI::do_shortcut], U: [ShortcutGUI::do_shortcut],Ctrl+M: [ShortcutGUI::do_shortcut], Ctrl+Plus+Shift: [ShortcutGUI::do_shortcut], Ctrl+P: [ShortcutGUI::do_shortcut], Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL)], Ctrl+Alt+P: [ShortcutGUI::do_text_shortcut(SELF,CTRL)])]
     message_content: nwg::TextInput,
 }
 
@@ -73,7 +73,6 @@ fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
-    let _ui = ShortcutGUI::build_ui(Default::default()).expect("Failed to build UI");
-
-    nwg::dispatch_thread_events();
+    let ui = ShortcutGUI::build_ui(Default::default()).expect("Failed to build UI");
+    ui.dispatch_thread_events(); // requires ShortcutUi trait
 }

@@ -148,6 +148,31 @@ nwg::TextInput::builder()
 Use the `nwg_resource` to generate a resource from a struct field. It works the exact same way as `nwg_controls`.
 Resources are always instanced before the controls.
 
+## Shortcuts
+
+Use the `nwg_shortcuts` attribute to add shortcuts to the default event handler.
+
+```
+nwg_shortcuts( KEY_COMBO: [CALLBACK(ARGS),*] )
+```
+
+where:
+ - **KEY_COMBO** is any value of the KeyCombo struct.
+ - **CALLBACK** is the function that will be called when the event is triggered.
+ - **ARGS** specifies the parameters of the callback (optional).
+
+## Shortcuts arguments
+
+By default, native windows derive assumes the callback is a method of the Ui structure. So for example,
+`TestApp::callback1` assumes the method has the following signature `callback1(&self)`.
+
+Additionally, the following optional parameters may be used:
+
+ - **SELF**: Sends the ui struct `&UiStruct`. If there are no parameters, this is the default.
+ - **CTRL**: Sends the control that triggered the event. Ex: `&Button`
+ - **HANDLE**: Sends the handle of the control. `&ControlHandle`
+ - **EVT**: Sends the key combo that was triggered. `&KeyCombo`
+
 ## Events
 
 Use the `nwg_events` attribute to add events to the default event handler. Events can only be applied to a field that
@@ -170,7 +195,6 @@ By default, native windows derive assumes the callback is a method of the Ui str
 That's very limiting. For example, if the same callback is used by two different controls, there's no way to differenciate them. In order to fix this, NWD lets you define the callbacks parameters using those identifiers:
 
  - **SELF**: Sends the ui struct `&UiStruct`. If there are no parameters, this is the default.
- - **RC_SELF**: Sends the rc ui struct `&Rc<UiStruct>`. Useful for binding dynamic events
  - **CTRL**: Sends the control that triggered the event. Ex: `&Button`
  - **HANDLE**: Sends the handle of the control. `&ControlHandle`
  - **EVT**: Sends the event that was triggered. `&Event`
@@ -340,9 +364,11 @@ fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let nwg = get_crate_name();
     let shortcuts_impl = match shortcuts.len() {
         0 => quote! {},
-        _ => quote! {impl #generics #struct_name #generic_names #where_clause {
-                                #shortcuts
-        }},
+        _ => quote! {
+            impl #generics ShortcutUi for #ui_struct_name #generic_names #where_clause {
+                #shortcuts
+            }
+        },
     };
 
     Ok(quote! {
@@ -350,10 +376,7 @@ fn derive_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
                 extern crate #nwg as nwg;
                 use nwg::*;
                 use super::*;
-                use std::ops::Deref;
-                use std::cell::RefCell;
-                use std::rc::Rc;
-                use std::fmt;
+                use std::{cell::RefCell, fmt, ops::Deref, rc::Rc};
 
                 pub struct #ui_struct_name #generics #where_clause {
                     inner: Rc<#struct_name #generic_names>,
@@ -505,9 +528,7 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
     let nwg = get_crate_name();
     let shortcuts_impl = match shortcuts.len() {
         0 => quote! {},
-        _ => quote! {impl #generics #struct_name #generic_names #where_clause {
-                                #shortcuts
-        }},
+        _ => quote! {#shortcuts},
     };
 
     Ok(quote! {
@@ -519,7 +540,6 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
             #subclass
 
 
-                #shortcuts_impl
 
             impl #generics PartialUi for #struct_name #generic_names #where_clause {
 
@@ -536,6 +556,8 @@ fn derive_partial_base(base: &DeriveInput) -> Result<proc_macro2::TokenStream, E
                     #layouts
                     Ok(())
                 }
+
+                #shortcuts_impl
 
                 fn process_event<'a>(&self, _evt: Event, _evt_data: &EventData, _handle: ControlHandle) {
                     #events

@@ -16,7 +16,7 @@ pub struct ControlEvents {
     partial: bool,
     handles: Vec<Ident>,
     callbacks: HashMap<Expr, Vec<EventCallback>>,
-    partials_callbacks: Vec<pm2::TokenStream>,
+    partial_members: Vec<Ident>,
     shortcuts: HashMap<ShortcutKeystrokes, Vec<EventCallback>>,
 }
 
@@ -26,7 +26,7 @@ impl ControlEvents {
             partial,
             handles: Vec::with_capacity(1),
             callbacks: HashMap::with_capacity(cap),
-            partials_callbacks: Vec::with_capacity(6),
+            partial_members: Vec::new(),
             shortcuts: HashMap::with_capacity(cap),
         }
     }
@@ -63,9 +63,7 @@ impl ControlEvents {
     }
 
     pub fn add_partial(&mut self, id: &Ident) {
-        self.partials_callbacks.push(quote! {
-            evt_ui.#id.process_event(_evt, &_evt_data, _handle);
-        })
+        self.partial_members.push(id.clone())
     }
 
     fn find_shortcuts_attr(attr: &&Attribute) -> bool {
@@ -114,21 +112,6 @@ impl ControlEvents {
                 shortcut_callbacks,
             )?
         }
-
-        for mapped_event in [
-            syn::parse_str("Event::OnKeyPress")?,
-            syn::parse_str("Event::OnSysKeyPress")?,
-        ] {
-            let shortcut_event_callback = EventCallback {
-                field: None,
-                path: syn::parse_str("Self::handle_shortcuts").unwrap(),
-                args: parse_quote! {&evt_ui, &_handle, &_evt_data},
-            };
-
-            let event_callbacks = self.callbacks.entry(mapped_event).or_insert(Vec::new());
-            event_callbacks.push(shortcut_event_callback);
-        }
-
         Ok(())
     }
 
@@ -181,33 +164,28 @@ impl ControlEvents {
 impl ToTokens for ControlEvents {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
         let handles = &self.handles;
-
         let mut events: Vec<&Expr> = Vec::with_capacity(self.callbacks.len());
-        let partial_callbacks = &self.partials_callbacks;
+        let partial_members = &self.partial_members;
         let mut callbacks = Vec::with_capacity(self.callbacks.len());
         for (event, cb) in self.callbacks.iter() {
             events.push(event);
             callbacks.push(EventCallbackCol(cb));
         }
 
-        let mut shortcuts: Vec<&ShortcutKeystrokes> = Vec::with_capacity(self.shortcuts.len());
-        let mut shortcut_callbacks = Vec::with_capacity(self.shortcuts.len());
-        for (shortcut, cb) in self.shortcuts.iter() {
-            shortcuts.push(shortcut);
-            shortcut_callbacks.push(ShortcutCallbackCol(cb));
-        }
+        let events_callbacks = quote! {
+            #(  evt_ui.#partial_members.process_event(_evt, &_evt_data, _handle); )*
+            match _evt {
+                #( #events => #callbacks ),*
+                _ => {}
+            }
+        };
 
         let events_tk = if self.partial {
             // There's no need to bind events handler in a partials
             quote! {
                 let evt_ui = self;
 
-                #( #partial_callbacks );*
-
-                match _evt {
-                    #( #events => #callbacks ),*
-                    _ => {}
-                }
+                #events_callbacks
             }
         } else {
             quote! {
@@ -217,11 +195,7 @@ impl ToTokens for ControlEvents {
                     let handle_events = move |_evt, _evt_data, _handle| {
 
                         if let Some(evt_ui) = evt_ui.upgrade() {
-                            #( #partial_callbacks );*
-                            match _evt {
-                                #( #events => #callbacks ),*
-                                _ => {}
-                            }
+                            #events_callbacks
                         }
                     };
 
@@ -231,6 +205,33 @@ impl ToTokens for ControlEvents {
         };
 
         events_tk.to_tokens(tokens);
+    }
+}
+
+pub struct ControlEventShortcuts<'a>(pub &'a ControlEvents);
+
+impl<'a> ToTokens for ControlEventShortcuts<'a> {
+    fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+        let partial_members = &self.0.partial_members;
+
+        let mut shortcuts: Vec<&ShortcutKeystrokes> = Vec::with_capacity(self.0.shortcuts.len());
+        let mut shortcut_callbacks = Vec::with_capacity(self.0.shortcuts.len());
+        for (shortcut, cb) in self.0.shortcuts.iter() {
+            shortcuts.push(shortcut);
+            shortcut_callbacks.push(ShortcutCallbackCol(cb));
+        }
+
+        quote! {
+            fn preprocess_event(&self, _evt: &KeyCombo, _handle: ControlHandle) -> bool {
+                let evt_ui = self;
+                #(  evt_ui.#partial_members.preprocess_event(_evt, _handle) ||)*
+                match _evt {
+                    #( #shortcuts => #shortcut_callbacks ),*
+                    _ => false,
+                }
+            }
+        }
+        .to_tokens(tokens);
     }
 }
 
@@ -481,7 +482,7 @@ impl EventCallback {
         for a in args.as_ref().unwrap().iter() {
             let span = a.span();
             match &*a.to_string() {
-                "SELF" | "RC_SELF" => {
+                "SELF" => {
                     p.push(parse_quote_spanned!(span=> &evt_ui));
                 }
                 "CTRL" => {
@@ -512,7 +513,7 @@ impl EventCallback {
                         format!(
                             "Unknown callback argument: {}. Should be one of those values: {}",
                             a,
-                            stringify!(["SELF", "CTRL", "HANDLE", "EVT", "EVT_DATA", "RC_SELF"])
+                            stringify!(["SELF", "CTRL", "HANDLE", "EVT", "EVT_DATA"])
                         ),
                     ));
                 }
@@ -533,9 +534,6 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
 
         // Group callbacks by field
         let mut field_callbacks: HashMap<&Expr, Vec<(&Path, &Args)>> = HashMap::new();
-        let mut path = &cb[0].path;
-        let mut args = &cb[0].args;
-        let mut unbound_p = false;
 
         for c in cb.iter() {
             match &c.field {
@@ -543,13 +541,7 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
                     let mc = field_callbacks.entry(&member).or_insert(Vec::new());
                     mc.push((&c.path, &c.args));
                 }
-                None => {
-                    // remove dupes
-                    if !unbound_p {
-                        (path, args) = (&c.path, &c.args);
-                        unbound_p = true
-                    }
-                }
+                None => {}
             }
         }
 
@@ -562,53 +554,8 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
             })
             .collect();
 
-        match unbound_p {
-            false => {
-                let callback_0 = &callbacks[0];
-                let callbacks = &callbacks[1..];
-
-                quote_spanned! {span=>
-                    #callback_0
-                    #(else #callbacks)*
-                }
-            }
-            _ => {
-                quote_spanned! {span=>
-                    if #path(#args){}
-                    #(else #callbacks)*
-                }
-            }
-        }
-        .to_tokens(tokens);
-    }
-}
-
-pub struct ControlEventShortcuts<'a>(pub &'a ControlEvents);
-
-impl<'a> ToTokens for ControlEventShortcuts<'a> {
-    fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-        let mut shortcuts: Vec<&ShortcutKeystrokes> = Vec::with_capacity(self.0.shortcuts.len());
-        let mut shortcut_callbacks = Vec::with_capacity(self.0.shortcuts.len());
-        for (shortcut, cb) in self.0.shortcuts.iter() {
-            shortcuts.push(shortcut);
-            shortcut_callbacks.push(ShortcutCallbackCol(cb));
-        }
-
-        quote! {
-            fn handle_shortcuts(&self, _handle: &ControlHandle, _evt_data: &EventData) -> bool {
-
-                let evt_ui = self;
-                let _evt = match KeyCombo::read(_evt_data) {
-                    Some(k) => k,
-                    None => return false,
-                };
-
-                match _evt {
-                    #( #shortcuts => #shortcut_callbacks ),*
-                    _ => return false,
-                }
-                true
-            }
+        quote_spanned! {span=>
+            #(#callbacks) else*
         }
         .to_tokens(tokens);
     }
@@ -643,25 +590,21 @@ impl<'a> ToTokens for ShortcutCallbackCol<'a> {
             .zip(field_callbacks.values().map(|c| FunctionCalls(c)))
             .map(|(field, funcall)| {
                 quote_spanned! (field.span()=>
-                if _handle == &#field { #funcall })
+                if &_handle == &#field { #funcall true })
             })
             .collect();
         let global_funccalls = FunctionCalls(&global_callbacks);
         match callbacks.len() {
-            0 => quote! { {#global_funccalls} },
+            0 => quote! { {#global_funccalls true} },
             _ => {
-                let callback_0 = &callbacks[0];
-                let callbacks = &callbacks[1..];
-
                 let global_cb = match global_callbacks.len() {
-                    0 => quote! {},
-                    _ => quote! {else {#global_funccalls}},
+                    0 => quote! {false},
+                    _ => quote! {#global_funccalls true},
                 };
 
                 quote_spanned! {span=>
-                    #callback_0
-                    #(else #callbacks)*
-                    #global_cb
+                    #(#callbacks else) *
+                    {#global_cb}
                 }
             }
         }

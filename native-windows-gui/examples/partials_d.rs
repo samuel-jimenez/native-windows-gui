@@ -9,7 +9,7 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 use nwd::{NwgPartial, NwgUi};
-use nwg::NativeUi;
+use nwg::{NativeUi, ShortcutUi};
 
 #[derive(Default, NwgUi)]
 pub struct PartialDemo {
@@ -20,7 +20,7 @@ pub struct PartialDemo {
     #[nwg_layout(parent: window)]
     layout: nwg::FlexboxLayout,
 
-    #[nwg_control(collection: vec!["People", "Animals", "Food"])]
+    #[nwg_control(collection: vec!["People", "Animals", "Food"], focus: true)]
     #[nwg_layout_item(layout: layout)]
     #[nwg_events( OnListBoxSelect: [PartialDemo::change_interface] )]
     menu: nwg::ListBox<&'static str>,
@@ -227,7 +227,6 @@ fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
-    let _ui = PartialDemo::build_ui(Default::default()).expect("Failed to build UI");
-
-    nwg::dispatch_thread_events();
+    let ui = PartialDemo::build_ui(Default::default()).expect("Failed to build UI");
+    ui.dispatch_thread_events();
 }

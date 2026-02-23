@@ -24,7 +24,7 @@ const PAD: Rect<LengthPercentage> = Rect {
 #[derive(Default, NwgUi)]
 pub struct MyApp {
     #[nwg_control(title: "test", size: (400, 300), position: (80, 60))]
-    #[nwg_events(OnWindowClose: [nwg::stop_thread_dispatch()], OnInit: [MyApp::setup_combo_callback(RC_SELF)])]
+    #[nwg_events(OnWindowClose: [nwg::stop_thread_dispatch()], OnInit: [MyApp::setup_combo_callback(SELF)])]
     window: nwg::Window,
 
     #[nwg_layout(parent: window, padding: PAD, auto_spacing: None, flex_direction: FlexDirection::Column, justify_content: Some(JustifyContent::Center))]

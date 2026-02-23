@@ -2,7 +2,7 @@
 
 use enum_discriminant::discriminant;
 
-use crate::{EventData, win32::keys::get_key_state};
+use crate::win32::keys::get_key_state;
 
 bitflags! {
     pub struct ModifierKeys: u8 {
@@ -26,9 +26,9 @@ pub struct KeyCombo {
 }
 
 impl KeyCombo {
-    pub fn read(event_data: &EventData) -> Option<Self> {
+    pub fn read(keycode: u32) -> Option<Self> {
         Some(Self {
-            key: KeyPress::from_discriminant(event_data.on_key())?,
+            key: KeyPress::from_discriminant(keycode)?,
             modifiers: ModifierKeys {
                 bits: get_key_state(CONTROL) * ModifierKeys::CTRL.bits()
                     | get_key_state(ALT) * ModifierKeys::ALT.bits()

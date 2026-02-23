@@ -88,6 +88,17 @@ pub trait PartialUi {
     ) -> Result<(), NwgError>;
 
     /**
+        Should process the shortcuts of the partial. This method will probably be called from an event handler bound in the parent GUI structure.
+
+        Parameters:
+          - `shortcut`: The key combo pressed
+          - `handle`: Handle of the control that raised the event
+    */
+    fn preprocess_event(&self, _shortcut: &KeyCombo, _handle: ControlHandle) -> bool {
+        false
+    }
+
+    /**
         Should process the events of the partial. This method will probably be called from an event handler bound in the parent GUI structure.
 
         Parameters:
@@ -133,4 +144,53 @@ pub fn init() -> std::result::Result<(), errors::NwgError> {
     }
 
     init_common_controls()
+}
+
+/**
+    A structure that implements this trait will handle shortcut key combos.
+
+    Native-windows-derive can automatically implement this trait.
+*/
+pub trait ShortcutUi {
+    /**
+        Should process the shortcuts of the structure.
+
+        Parameters:
+          - `shortcut`: The key combo pressed
+          - `handle`: Handle of the control that raised the event
+    */
+    fn preprocess_event(&self, _shortcut: &KeyCombo, _handle: ControlHandle) -> bool {
+        false
+    }
+
+    /**
+        An event loop for the structure. It will check for shortcuts before dispatching events.
+    */
+    fn dispatch_thread_events(&self) {
+        use std::{mem, ptr};
+
+        use winapi::um::winuser::{
+            DispatchMessageW, GA_ROOT, GetAncestor, GetMessageW, IsDialogMessageW, MSG,
+            TranslateMessage, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
+        };
+        unsafe {
+            let mut msg: MSG = mem::zeroed();
+            while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
+                let event_preprocessed = match msg.message {
+                    WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
+                        KeyCombo::read(msg.wParam as u32)
+                    }
+                    _ => None,
+                }
+                .map(|k| self.preprocess_event(&k, ControlHandle::Hwnd(msg.hwnd)))
+                .unwrap_or(false);
+                if !(event_preprocessed
+                    || IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) != 0)
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+            }
+        }
+    }
 }
