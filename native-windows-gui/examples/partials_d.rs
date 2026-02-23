@@ -176,7 +176,7 @@ pub struct AnimalUi {
     #[nwg_events(OnChar: [print_char(EVT_DATA)])]
     name_input: nwg::TextInput,
 
-    #[nwg_control(collection: vec!["Cat", "Dog", "Pidgeon", "Monkey"], selected_index: Some(0))]
+    #[nwg_control(collection: vec!["Cat", "Dog", "Pigeon", "Monkey"], selected_index: Some(0))]
     #[nwg_layout_item(layout: layout, col: 1, row: 1)]
     race_input: nwg::ComboBox<&'static str>,
 
@@ -228,5 +228,5 @@ fn main() {
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
 
     let ui = PartialDemo::build_ui(Default::default()).expect("Failed to build UI");
-    ui.dispatch_thread_events();
+    ui.dispatch_thread_events(); // requires ShortcutUi trait
 }

@@ -6,7 +6,7 @@
 */
 
 extern crate native_windows_gui as nwg;
-use nwg::NativeUi;
+use nwg::{NativeUi, ShortcutUi};
 
 #[derive(Default)]
 pub struct PartialDemo {
@@ -84,15 +84,6 @@ mod partial_demo_ui {
                         evt_ui.animal_ui.process_event(_evt, &_evt_data, _handle);
                         evt_ui.food_ui.process_event(_evt, &_evt_data, _handle);
                         match _evt {
-                            Event::OnButtonClick => {
-                                if &_handle == &evt_ui.animal_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
-                                } else if &_handle == &evt_ui.food_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
-                                } else if &_handle == &evt_ui.people_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
-                                }
-                            }
                             Event::OnListBoxSelect => {
                                 if &_handle == &evt_ui.menu {
                                     PartialDemo::change_interface(&evt_ui);
@@ -101,6 +92,15 @@ mod partial_demo_ui {
                             Event::OnWindowClose => {
                                 if &_handle == &evt_ui.window {
                                     PartialDemo::exit(&evt_ui);
+                                }
+                            }
+                            Event::OnButtonClick => {
+                                if &_handle == &evt_ui.animal_ui.save_btn {
+                                    PartialDemo::save(&evt_ui);
+                                } else if &_handle == &evt_ui.food_ui.save_btn {
+                                    PartialDemo::save(&evt_ui);
+                                } else if &_handle == &evt_ui.people_ui.save_btn {
+                                    PartialDemo::save(&evt_ui);
                                 }
                             }
                             _ => {}
@@ -119,18 +119,18 @@ mod partial_demo_ui {
             Ok(ui)
         }
     }
-    impl PartialDemoUi {
-        fn preprocess_event(&self, shortcut: &KeyCombo, handle: ControlHandle) -> bool {
+    impl ShortcutUi for PartialDemoUi {
+        fn preprocess_event(&self, _evt: &KeyCombo, _handle: ControlHandle) -> bool {
             let evt_ui = self;
-            evt_ui.people_ui.preprocess_event(shortcut, handle)
-                || evt_ui.animal_ui.preprocess_event(shortcut, handle)
-                || evt_ui.food_ui.preprocess_event(shortcut, handle)
-                || match shortcut {
+            evt_ui.people_ui.preprocess_event(_evt, _handle)
+                || evt_ui.animal_ui.preprocess_event(_evt, _handle)
+                || evt_ui.food_ui.preprocess_event(_evt, _handle)
+                || match _evt {
                     KeyCombo {
                         modifiers: ModifierKeys::CTRL,
                         key: KeyPress::Key0,
                     } => {
-                        if &handle == &evt_ui.people_ui.save_btn {
+                        if &_handle == &evt_ui.people_ui.save_btn {
                             PartialDemo::do_shortcut(&evt_ui);
                             true
                         } else {
@@ -141,7 +141,7 @@ mod partial_demo_ui {
                         modifiers: ModifierKeys::NONE,
                         key: KeyPress::Key0,
                     } => {
-                        if &handle == &evt_ui.people_ui.save_btn {
+                        if &_handle == &evt_ui.people_ui.save_btn {
                             PartialDemo::do_shortcut(&evt_ui);
                             true
                         } else {
@@ -150,33 +150,6 @@ mod partial_demo_ui {
                     }
                     _ => false,
                 }
-        }
-        pub fn dispatch_thread_events(&self) {
-            use std::{mem, ptr};
-
-            use winapi::um::winuser::{
-                DispatchMessageW, GA_ROOT, GetAncestor, GetMessageW, IsDialogMessageW, MSG,
-                TranslateMessage, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
-            };
-            unsafe {
-                let mut msg: MSG = mem::zeroed();
-                while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
-                    let event_preprocessed = match msg.message {
-                        WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
-                            KeyCombo::read(msg.wParam as u32)
-                        }
-                        _ => None,
-                    }
-                    .map(|k| self.preprocess_event(&k, ControlHandle::Hwnd(msg.hwnd)))
-                    .unwrap_or(false);
-                    if !(event_preprocessed
-                        || IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) != 0)
-                    {
-                        TranslateMessage(&msg);
-                        DispatchMessageW(&msg);
-                    }
-                }
-            }
         }
     }
     impl Drop for PartialDemoUi {
@@ -334,9 +307,9 @@ mod partial_people_ui_ui {
                 .child(1, 5, &ui.save_btn)
                 .build(&ui.layout2)?;
             GridLayout::builder()
-                .parent(parent_ref.unwrap())
                 .max_size([1000, 150])
                 .min_size([100, 120])
+                .parent(parent_ref.unwrap())
                 .child(0, 0, &ui.label1)
                 .child(0, 1, &ui.label2)
                 .child(0, 2, &ui.label3)
@@ -439,7 +412,7 @@ mod partial_animal_ui_ui {
                 .parent(parent_ref.unwrap())
                 .build(&mut data.name_input)?;
             ComboBox::builder()
-                .collection(vec!["Cat", "Dog", "Pidgeon", "Monkey"])
+                .collection(vec!["Cat", "Dog", "Pigeon", "Monkey"])
                 .selected_index(Some(0))
                 .parent(parent_ref.unwrap())
                 .build(&mut data.race_input)?;
@@ -593,5 +566,5 @@ fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
     let ui = PartialDemo::build_ui(Default::default()).expect("Failed to build UI");
-    ui.dispatch_thread_events();
+    ui.dispatch_thread_events(); // requires ShortcutUi trait
 }
