@@ -34,23 +34,33 @@ pub(crate) mod plotters_d2d;
 use std::{fs, mem, ptr};
 
 use winapi::um::winuser::{
-    DispatchMessageW, GA_ROOT, GetAncestor, IsDialogMessageW, TranslateMessage,
+    DispatchMessageW, GA_ROOT, GetAncestor, GetMessageW, IsDialogMessageW, MSG, TranslateMessage,
 };
 
 use crate::errors::NwgError;
+
+pub fn get_message(msg: &mut MSG) -> bool {
+    unsafe { GetMessageW(msg, ptr::null_mut(), 0, 0) != 0 }
+}
+pub fn is_dialog_message(msg: &mut MSG) -> bool {
+    unsafe { IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), msg) != 0 }
+}
+pub fn translate_and_dispatch_message(msg: &MSG) {
+    unsafe {
+        TranslateMessage(msg);
+        DispatchMessageW(msg);
+    }
+}
 
 /**
     Dispatch system events in the current thread. This method will pause the thread until there are events to process.
 */
 pub fn dispatch_thread_events() {
-    use winapi::um::winuser::{GetMessageW, MSG};
-
     unsafe {
         let mut msg: MSG = mem::zeroed();
-        while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
-            if IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) == 0 {
-                TranslateMessage(&msg);
-                DispatchMessageW(&msg);
+        while get_message(&mut msg) {
+            if !is_dialog_message(&mut msg) {
+                translate_and_dispatch_message(&msg);
             }
         }
     }
@@ -71,9 +81,8 @@ where
         while msg.message != WM_QUIT {
             let has_message = PeekMessageW(&mut msg, ptr::null_mut(), 0, 0, PM_REMOVE) != 0;
             if has_message {
-                if IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) == 0 {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
+                if !is_dialog_message(&mut msg) {
+                    translate_and_dispatch_message(&msg);
                 }
             }
 

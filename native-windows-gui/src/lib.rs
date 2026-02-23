@@ -33,7 +33,6 @@ pub use win32::clipboard::{Clipboard, ClipboardData, ClipboardFormat};
 pub use win32::cursor::GlobalCursor;
 #[allow(deprecated)]
 pub use win32::high_dpi::{dpi, scale_factor, set_dpi_awareness};
-pub(crate) use win32::window::bind_raw_event_handler_inner;
 pub use win32::{
     dispatch_thread_events, dispatch_thread_events_with_callback, enable_visual_styles,
     init_common_controls,
@@ -44,6 +43,10 @@ pub use win32::{
         EventHandler, RawEventHandler, bind_event_handler, bind_raw_event_handler,
         full_bind_event_handler, has_raw_handler, unbind_event_handler, unbind_raw_event_handler,
     },
+};
+pub(crate) use win32::{
+    get_message, is_dialog_message, translate_and_dispatch_message,
+    window::bind_raw_event_handler_inner,
 };
 
 mod resources;
@@ -167,15 +170,12 @@ pub trait ShortcutUi {
         An event loop for the structure. It will check for shortcuts before dispatching events.
     */
     fn dispatch_thread_events(&self) {
-        use std::{mem, ptr};
+        use std::mem;
 
-        use winapi::um::winuser::{
-            DispatchMessageW, GA_ROOT, GetAncestor, GetMessageW, IsDialogMessageW, MSG,
-            TranslateMessage, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
-        };
+        use winapi::um::winuser::{MSG, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP};
         unsafe {
             let mut msg: MSG = mem::zeroed();
-            while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
+            while get_message(&mut msg) {
                 let event_preprocessed = match msg.message {
                     WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
                         KeyCombo::read(msg.wParam as u32)
@@ -184,11 +184,8 @@ pub trait ShortcutUi {
                 }
                 .map(|k| self.preprocess_event(&k, ControlHandle::Hwnd(msg.hwnd)))
                 .unwrap_or(false);
-                if !(event_preprocessed
-                    || IsDialogMessageW(GetAncestor(msg.hwnd, GA_ROOT), &mut msg) != 0)
-                {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
+                if !(event_preprocessed || is_dialog_message(&mut msg)) {
+                    translate_and_dispatch_message(&msg);
                 }
             }
         }
