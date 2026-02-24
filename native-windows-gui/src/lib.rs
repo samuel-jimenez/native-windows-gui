@@ -172,14 +172,12 @@ pub trait ShortcutUi {
     fn dispatch_thread_events(&self) {
         use std::mem;
 
-        use winapi::um::winuser::{MSG, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP};
+        use winapi::um::winuser::{MSG, WM_KEYDOWN, WM_SYSKEYDOWN};
         unsafe {
             let mut msg: MSG = mem::zeroed();
             while get_message(&mut msg) {
                 let event_preprocessed = match msg.message {
-                    WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
-                        KeyCombo::read(msg.wParam as u32)
-                    }
+                    WM_KEYDOWN | WM_SYSKEYDOWN => KeyCombo::read(msg.wParam as u32),
                     _ => None,
                 }
                 .map(|k| self.preprocess_event(&k, ControlHandle::Hwnd(msg.hwnd)))
