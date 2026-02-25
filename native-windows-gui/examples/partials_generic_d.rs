@@ -37,15 +37,15 @@ where
     frame3: nwg::Frame,
 
     #[nwg_partial(parent: frame1)]
-    #[nwg_events((save_btn, OnButtonClick): [PartialGenericDemo::show(SELF, CTRL)])]
+    #[nwg_events((save_btn) OnButtonClick: [PartialGenericDemo::show(SELF, CTRL)])]
     f1_ui: GenericFrameUi<T1>,
 
     #[nwg_partial(parent: frame2)]
-    #[nwg_events((save_btn, OnButtonClick): [PartialGenericDemo::show(SELF, CTRL)])]
+    #[nwg_events((save_btn) OnButtonClick: [PartialGenericDemo::show(SELF, CTRL)])]
     f2_ui: GenericFrameUi<T2>,
 
     #[nwg_partial(parent: frame3)]
-    #[nwg_events((save_btn, OnButtonClick): [PartialGenericDemo::show(SELF, CTRL)])]
+    #[nwg_events((save_btn) OnButtonClick: [PartialGenericDemo::show(SELF, CTRL)])]
     f3_ui: GenericFrameUi<T3>,
 }
 

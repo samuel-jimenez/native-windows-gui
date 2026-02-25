@@ -35,7 +35,7 @@ pub struct NwgUi<'a> {
 impl<'a> NwgUi<'a> {
     pub fn build(
         data: &'a syn::DataStruct,
-        attrs: Option<&Attribute>,
+        attrs: Vec<&Attribute>,
         partial_p: bool,
     ) -> Result<NwgUi<'a>> {
         let named_fields = match &data.fields {
@@ -49,7 +49,9 @@ impl<'a> NwgUi<'a> {
         let mut partials = Vec::with_capacity(named_fields.len());
         let mut events = ControlEvents::with_capacity(partial_p, named_fields.len());
 
-        attrs.map(|attr| events.parse_global(attr));
+        for attr in attrs.into_iter() {
+            events.parse_global(attr)?;
+        }
 
         let mut root_id: Option<&Ident> = None;
         let mut root_type: Option<Ident> = None;

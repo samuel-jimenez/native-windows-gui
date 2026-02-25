@@ -36,16 +36,16 @@ pub struct PartialDemo {
     frame3: nwg::Frame,
 
     #[nwg_partial(parent: frame1)]
-    #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
-    #[nwg_shortcuts( (save_btn, Key0): [PartialDemo::do_shortcut], (save_btn, Ctrl+Key0): [PartialDemo::do_shortcut])]
+    #[nwg_events( (save_btn)OnButtonClick: [PartialDemo::save] )]
+    #[nwg_shortcuts( (save_btn) Key0: [PartialDemo::do_shortcut], (save_btn) Ctrl+Key0: [PartialDemo::do_shortcut])]
     people_ui: PeopleUi,
 
     #[nwg_partial(parent: frame2)]
-    #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
+    #[nwg_events( (save_btn) OnButtonClick: [PartialDemo::save] )]
     animal_ui: AnimalUi,
 
     #[nwg_partial(parent: frame3)]
-    #[nwg_events( (save_btn, OnButtonClick): [PartialDemo::save] )]
+    #[nwg_events( (save_btn) OnButtonClick: [PartialDemo::save] )]
     food_ui: FoodUi,
 }
 

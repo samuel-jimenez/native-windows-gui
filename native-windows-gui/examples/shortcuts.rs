@@ -60,15 +60,15 @@ mod shortcut_g_u_i_ui {
                 let handle_events = move |_evt, _evt_data, _handle| {
                     if let Some(evt_ui) = evt_ui.upgrade() {
                         match _evt {
-                            Event::OnKeyPress => {
-                                if &_handle == &evt_ui.window {
-                                    ShortcutGUI::func_0(&evt_ui);
-                                    ShortcutGUI::do_shortcut(&evt_ui);
-                                }
-                            }
                             Event::OnButtonClick => {
                                 if &_handle == &evt_ui.add_message_btn {
                                     ShortcutGUI::click(&evt_ui);
+                                }
+                            }
+                            Event::OnKeyPress => {
+                                if &_handle == &evt_ui.window {
+                                    ShortcutGUI::do_shortcut(&evt_ui);
+                                    ShortcutGUI::func_0(&evt_ui);
                                 }
                             }
                             Event::OnWindowClose => {
@@ -129,30 +129,22 @@ mod shortcut_g_u_i_ui {
                     }
                 }
                 KeyCombo {
-                    modifiers: ModifierKeys::NONE,
-                    key: KeyPress::U,
+                    modifiers: ModifierKeys::CTRL,
+                    key: KeyPress::G,
                 } => {
-                    if &_handle == &evt_ui.message_content {
+                    ShortcutGUI::do_global_shortcut(&evt_ui);
+                    true
+                }
+                KeyCombo {
+                    modifiers: ModifierKeys::NONE,
+                    key: KeyPress::Key0,
+                } => {
+                    if &_handle == &evt_ui.add_message_btn {
                         ShortcutGUI::do_shortcut(&evt_ui);
                         true
                     } else {
                         false
                     }
-                }
-                KeyCombo {
-                    modifiers: ModifierKeys::CTRL,
-                    key: KeyPress::S,
-                } => {
-                    ShortcutGUI::do_global_shortcut(&evt_ui);
-                    true
-                }
-                KeyCombo {
-                    modifiers: ModifierKeys::ALT,
-                    key: KeyPress::S,
-                } => {
-                    ShortcutGUI::do_global_shortcut(&evt_ui);
-                    ShortcutGUI::do_shortcut(&evt_ui);
-                    true
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::CTRL,
@@ -167,25 +159,22 @@ mod shortcut_g_u_i_ui {
                     }
                 }
                 KeyCombo {
-                    modifiers: ModifierKeys::CTRL_SHIFT,
-                    key: KeyPress::Plus,
+                    modifiers: ModifierKeys::NONE,
+                    key: KeyPress::NumpadMinus,
                 } => {
-                    if &_handle == &evt_ui.message_content {
+                    if &_handle == &evt_ui.message_title {
                         ShortcutGUI::do_shortcut(&evt_ui);
-                        true
-                    } else if &_handle == &evt_ui.add_message_btn {
-                        ShortcutGUI::do_bonus_shortcut(&evt_ui, &evt_ui.add_message_btn);
                         true
                     } else {
                         false
                     }
                 }
                 KeyCombo {
-                    modifiers: ModifierKeys::CTRL_ALT,
-                    key: KeyPress::S,
+                    modifiers: ModifierKeys::NONE,
+                    key: KeyPress::NumpadPlus,
                 } => {
-                    if &_handle == &evt_ui.message_title {
-                        ShortcutGUI::do_text_shortcut(&evt_ui, &evt_ui.message_title);
+                    if &_handle == &evt_ui.message_content {
+                        ShortcutGUI::do_shortcut(&evt_ui);
                         true
                     } else {
                         false
@@ -195,13 +184,10 @@ mod shortcut_g_u_i_ui {
                     modifiers: ModifierKeys::CTRL,
                     key: KeyPress::P,
                 } => {
-                    if &_handle == &evt_ui.message_title {
-                        ShortcutGUI::do_shortcut(&evt_ui);
-                        true
-                    } else if &_handle == &evt_ui.add_message_btn {
-                        ShortcutGUI::do_shortcut(&evt_ui);
-                        true
-                    } else if &_handle == &evt_ui.message_content {
+                    if &_handle == &evt_ui.add_message_btn
+                        || &_handle == &evt_ui.message_content
+                        || &_handle == &evt_ui.message_title
+                    {
                         ShortcutGUI::do_shortcut(&evt_ui);
                         true
                     } else {
@@ -215,6 +201,46 @@ mod shortcut_g_u_i_ui {
                 } => {
                     if &_handle == &evt_ui.message_content {
                         ShortcutGUI::do_text_shortcut(&evt_ui, &evt_ui.message_content);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                KeyCombo {
+                    modifiers: ModifierKeys::CTRL_SHIFT,
+                    key: KeyPress::Plus,
+                } => {
+                    if &_handle == &evt_ui.add_message_btn {
+                        ShortcutGUI::do_bonus_shortcut(&evt_ui, &evt_ui.add_message_btn);
+                        true
+                    } else if &_handle == &evt_ui.message_content {
+                        ShortcutGUI::do_shortcut(&evt_ui);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                KeyCombo {
+                    modifiers: ModifierKeys::ALT,
+                    key: KeyPress::S,
+                } => {
+                    ShortcutGUI::do_global_shortcut(&evt_ui);
+                    ShortcutGUI::do_shortcut(&evt_ui);
+                    true
+                }
+                KeyCombo {
+                    modifiers: ModifierKeys::CTRL,
+                    key: KeyPress::S,
+                } => {
+                    ShortcutGUI::do_global_shortcut(&evt_ui);
+                    true
+                }
+                KeyCombo {
+                    modifiers: ModifierKeys::CTRL_ALT,
+                    key: KeyPress::S,
+                } => {
+                    if &_handle == &evt_ui.message_title {
+                        ShortcutGUI::do_text_shortcut(&evt_ui, &evt_ui.message_title);
                         true
                     } else {
                         false
@@ -236,38 +262,9 @@ mod shortcut_g_u_i_ui {
                 }
                 KeyCombo {
                     modifiers: ModifierKeys::NONE,
-                    key: KeyPress::Key0,
-                } => {
-                    if &_handle == &evt_ui.add_message_btn {
-                        ShortcutGUI::do_shortcut(&evt_ui);
-                        true
-                    } else {
-                        false
-                    }
-                }
-                KeyCombo {
-                    modifiers: ModifierKeys::NONE,
-                    key: KeyPress::NumpadPlus,
+                    key: KeyPress::U,
                 } => {
                     if &_handle == &evt_ui.message_content {
-                        ShortcutGUI::do_shortcut(&evt_ui);
-                        true
-                    } else {
-                        false
-                    }
-                }
-                KeyCombo {
-                    modifiers: ModifierKeys::CTRL,
-                    key: KeyPress::G,
-                } => {
-                    ShortcutGUI::do_global_shortcut(&evt_ui);
-                    true
-                }
-                KeyCombo {
-                    modifiers: ModifierKeys::NONE,
-                    key: KeyPress::NumpadMinus,
-                } => {
-                    if &_handle == &evt_ui.message_title {
                         ShortcutGUI::do_shortcut(&evt_ui);
                         true
                     } else {
@@ -278,7 +275,6 @@ mod shortcut_g_u_i_ui {
             }
         }
     }
-
     impl Drop for ShortcutGUIUi {
         /// To make sure that everything is freed without issues, the default handler must be unbound.
         fn drop(&mut self) {

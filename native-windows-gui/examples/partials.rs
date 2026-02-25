@@ -84,6 +84,14 @@ mod partial_demo_ui {
                         evt_ui.animal_ui.process_event(_evt, &_evt_data, _handle);
                         evt_ui.food_ui.process_event(_evt, &_evt_data, _handle);
                         match _evt {
+                            Event::OnButtonClick => {
+                                if &_handle == &evt_ui.animal_ui.save_btn
+                                    || &_handle == &evt_ui.food_ui.save_btn
+                                    || &_handle == &evt_ui.people_ui.save_btn
+                                {
+                                    PartialDemo::save(&evt_ui);
+                                }
+                            }
                             Event::OnListBoxSelect => {
                                 if &_handle == &evt_ui.menu {
                                     PartialDemo::change_interface(&evt_ui);
@@ -92,15 +100,6 @@ mod partial_demo_ui {
                             Event::OnWindowClose => {
                                 if &_handle == &evt_ui.window {
                                     PartialDemo::exit(&evt_ui);
-                                }
-                            }
-                            Event::OnButtonClick => {
-                                if &_handle == &evt_ui.animal_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
-                                } else if &_handle == &evt_ui.food_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
-                                } else if &_handle == &evt_ui.people_ui.save_btn {
-                                    PartialDemo::save(&evt_ui);
                                 }
                             }
                             _ => {}
@@ -559,6 +558,7 @@ mod partial_food_ui_ui {
         }
     }
 }
+
 fn print_char(data: &nwg::EventData) {
     println!("{:?}", data.on_char());
 }

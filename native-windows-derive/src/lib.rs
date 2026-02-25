@@ -69,8 +69,8 @@ fn find_attr(attr: &&syn::Attribute) -> bool {
     attr.path().is_ident("nwg_shortcuts")
 }
 
-fn fetch_attr(d: &DeriveInput) -> Option<&syn::Attribute> {
-    d.attrs.iter().find(find_attr)
+fn fetch_attr(d: &DeriveInput) -> Vec<&syn::Attribute> {
+    d.attrs.iter().find(find_attr).into_iter().collect()
 }
 
 /**
@@ -153,11 +153,14 @@ Resources are always instanced before the controls.
 Use the `nwg_shortcuts` attribute to add shortcuts to the default event handler.
 
 ```
-nwg_shortcuts( KEY_COMBO: [CALLBACK(ARGS),*] )
+nwg_shortcuts( (TARGET,*)? KEY_COMBO: [CALLBACK(ARGS),*] )
 ```
+
+
 
 where:
  - **KEY_COMBO** is any value of the KeyCombo struct.
+ - **TARGET** is the sub-field to attach this handler to (optional).
  - **CALLBACK** is the function that will be called when the event is triggered.
  - **ARGS** specifies the parameters of the callback (optional).
 
@@ -179,11 +182,12 @@ Use the `nwg_events` attribute to add events to the default event handler. Event
 was tagged with `nwg_control`.
 
 ```
-nwg_events( EVENT_TYPE: [CALLBACK(ARGS),*] )
+nwg_events( (TARGET,*)? EVENT_TYPE: [CALLBACK(ARGS),*] )
 ```
 
 where:
  - **EVENT_TYPE** is any value of the Event enum.
+ - **TARGET** is the sub-field to attach this handler to (optional).
  - **CALLBACK** is the function that will be called when the event is triggered.
  - **ARGS** specifies the parameters of the callback (optional).
 

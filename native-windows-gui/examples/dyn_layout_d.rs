@@ -28,7 +28,7 @@ pub struct ConfigDlg {
     frame: nwg::Frame,
 
     #[nwg_partial(parent: frame)]
-    #[nwg_events((save_btn, OnButtonClick): [ConfigDlg::save])]
+    #[nwg_events((save_btn) OnButtonClick: [ConfigDlg::save])]
     controls: Controls,
 }
 
