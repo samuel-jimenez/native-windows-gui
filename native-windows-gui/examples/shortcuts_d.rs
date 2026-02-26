@@ -12,7 +12,7 @@ use nwd::NwgUi;
 use nwg::{NativeUi, ShortcutUi};
 
 #[derive(Default, NwgUi)]
-#[nwg_shortcuts( Ctrl+G: [ShortcutGUI::do_global_shortcut], Ctrl+S: [ShortcutGUI::do_global_shortcut], Alt+S: [ShortcutGUI::do_global_shortcut, ShortcutGUI::do_shortcut], Ctrl+P: [ShortcutGUI::do_global_shortcut], Ctrl+M: [ShortcutGUI::do_global_shortcut] )]
+#[nwg_shortcuts( Ctrl+G: [ShortcutGUI::do_global_shortcut], Ctrl+S: [ShortcutGUI::do_global_shortcut], Alt+S: [ShortcutGUI::do_global_shortcut, ShortcutGUI::do_shortcut], [Ctrl+P, Ctrl+M]: [ShortcutGUI::do_global_shortcut] )]
 pub struct ShortcutGUI {
     #[nwg_control(size:(400, 300), position:(800, 300), title: "Shortcuts Demo")]
     #[nwg_events( OnWindowClose: [ShortcutGUI::exit], OnKeyPress: [ShortcutGUI::func_0,ShortcutGUI::do_shortcut,]  )]
@@ -30,7 +30,7 @@ pub struct ShortcutGUI {
 
     #[nwg_control(text:"Title")]
     #[nwg_layout_item(layout: layout, col: 1, row: 0, col_span: 2)]
-    #[nwg_shortcuts(  NumpadMinus: [ShortcutGUI::do_shortcut], Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL)], Ctrl+Alt+S: [ShortcutGUI::do_text_shortcut(SELF,CTRL)], Ctrl+P: [ShortcutGUI::do_shortcut] , Alt+A: [ShortcutGUI::do_shortcut]  )]
+    #[nwg_shortcuts(  NumpadMinus: [ShortcutGUI::do_shortcut], Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL)], Ctrl+Alt+S: [ShortcutGUI::do_text_shortcut(SELF,CTRL)], [Ctrl+P, Alt+A]: [ShortcutGUI::do_shortcut]  )]
     message_title: nwg::TextInput,
 
     #[nwg_control(text:"Hello World!")]

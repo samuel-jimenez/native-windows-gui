@@ -155,6 +155,10 @@ Use the `nwg_shortcuts` attribute to add shortcuts to the default event handler.
 ```
 nwg_shortcuts( (TARGET,*)? KEY_COMBO: [CALLBACK(ARGS),*] )
 ```
+or
+```
+nwg_shortcuts( (TARGET,*)? [KEY_COMBO,*]: [CALLBACK(ARGS),*] )
+```
 
 
 
@@ -172,8 +176,9 @@ By default, native windows derive assumes the callback is a method of the Ui str
 Additionally, the following optional parameters may be used:
 
  - **SELF**: Sends the ui struct `&UiStruct`. If there are no parameters, this is the default.
- - **CTRL**: Sends the control that triggered the event. Ex: `&Button`
- - **HANDLE**: Sends the handle of the control. `&ControlHandle`
+ - **CTRL**: Sends the control to which this event is bound. Ex: `&Button`
+ - **TARGET**: Sends the control that triggered the event. Ex: `&Button`
+ - **HANDLE**: Sends the handle of the control that triggered the event. `&ControlHandle`
  - **EVT**: Sends the key combo that was triggered. `&KeyCombo`
 
 ## Events
@@ -184,6 +189,11 @@ was tagged with `nwg_control`.
 ```
 nwg_events( (TARGET,*)? EVENT_TYPE: [CALLBACK(ARGS),*] )
 ```
+or
+```
+nwg_events( (TARGET,*)? [EVENT_TYPE,*]: [CALLBACK(ARGS),*] )
+```
+
 
 where:
  - **EVENT_TYPE** is any value of the Event enum.
@@ -199,9 +209,11 @@ By default, native windows derive assumes the callback is a method of the Ui str
 That's very limiting. For example, if the same callback is used by two different controls, there's no way to differenciate them. In order to fix this, NWD lets you define the callbacks parameters using those identifiers:
 
  - **SELF**: Sends the ui struct `&UiStruct`. If there are no parameters, this is the default.
- - **CTRL**: Sends the control that triggered the event. Ex: `&Button`
- - **HANDLE**: Sends the handle of the control. `&ControlHandle`
- - **EVT**: Sends the event that was triggered. `&Event`
+ - **CTRL**: Sends the control to which this event is bound. Ex: `&Button`
+ - **TARGET**: Sends the control that triggered the event. Ex: `&Button`
+ - **HANDLE**: Sends the handle of the control that triggered the event. `&ControlHandle`
+ - **EVT**: Sends the key combo that was triggered. `&KeyCombo`
+
  - **EVT_DATA**: Sends the data of the event that was triggered. `&EventData`
 
 It's also possible to not use any parameters, ex: `TestApp::callback1()`.

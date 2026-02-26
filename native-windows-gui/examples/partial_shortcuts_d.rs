@@ -32,7 +32,7 @@ pub struct ShortcutGUI {
     #[nwg_partial_control(parent: window)]
     #[nwg_layout_item(layout: layout)]
     #[nwg_events( (save_btn)OnButtonClick: [ShortcutGUI::click] )]
-    #[nwg_shortcuts( (bard_ui.save_btn) Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL)], (bard_ui.save_btn) Key1: [ShortcutGUI::do_shortcut], (bard_ui.save_btn) Key0: [ShortcutGUI::do_shortcut], (save_btn) Key0: [ShortcutGUI::do_shortcut], (save_btn) Ctrl+Key0: [ShortcutGUI::do_shortcut])]
+    #[nwg_shortcuts( (bard_ui.save_btn) Ctrl+Shift+S: [ShortcutGUI::do_bonus_shortcut(SELF,CTRL), ShortcutGUI::do_bonus_shortcut(SELF,TARGET)], (bard_ui.save_btn, save_btn, name_input) [Key0,Key1]: [ShortcutGUI::do_shortcut], (save_btn) Ctrl+Key0: [ShortcutGUI::do_shortcut])]
     food_ui: FoodUi,
 
     #[nwg_control(text:"Title")]

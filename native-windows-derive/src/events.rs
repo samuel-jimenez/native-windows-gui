@@ -17,6 +17,12 @@ fn maybe_parse_parens<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>> {
     Ok(content)
 }
 
+fn maybe_parse_bracketed<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>> {
+    let content;
+    bracketed!(content in input);
+    Ok(content)
+}
+
 /// Wrapper over a basic event dispatcher
 pub struct ControlEvents {
     partial: bool,
@@ -106,17 +112,16 @@ impl ControlEvents {
             attr.parse_args_with(Punctuated::<ShortcutDefinition, Token![,]>::parse_terminated)?;
 
         for shortcut_def in shortcut_definitions.into_iter() {
-            let span = shortcut_def.callback_id.span();
-            let mapped_event = shortcut_def.callback_id;
-
-            let shortcut_callbacks = self.shortcuts.entry(mapped_event).or_insert(Vec::new());
-            EventCallback::parse(
-                span,
-                target,
-                shortcut_def.field_names,
-                shortcut_def.callbacks,
-                shortcut_callbacks,
-            )?
+            for mapped_event in shortcut_def.key_combo.into_iter() {
+                let span = mapped_event.span();
+                let shortcut_callbacks = self.shortcuts.entry(mapped_event).or_insert(Vec::new());
+                EventCallback::parse(
+                    target,
+                    Self::map_event_target(span, target, &shortcut_def.field_names),
+                    &shortcut_def.callbacks,
+                    shortcut_callbacks,
+                )?
+            }
         }
         Ok(())
     }
@@ -135,23 +140,53 @@ impl ControlEvents {
             attr.parse_args_with(Punctuated::<CallbackDefinition, Token![,]>::parse_terminated)?;
 
         for callback_def in callback_definitions.into_iter() {
-            let span = callback_def.callback_id.span();
-            let mapped_event = callback_def.callback_id;
+            for mapped_event in callback_def.callback_id.into_iter() {
+                let span = mapped_event.span();
 
-            let evt_callbacks = self.callbacks.entry(mapped_event).or_insert(Vec::new());
-            EventCallback::parse(
-                span,
-                target,
-                callback_def.field_names,
-                callback_def.callbacks,
-                evt_callbacks,
-            )?;
+                let evt_callbacks = self.callbacks.entry(mapped_event).or_insert(Vec::new());
+                EventCallback::parse(
+                    target,
+                    Self::map_event_target(span, target, &callback_def.field_names),
+                    &callback_def.callbacks,
+                    evt_callbacks,
+                )?;
+            }
         }
         Ok(())
     }
 
     pub fn shortcuts_len(&self) -> usize {
         self.shortcuts.len()
+    }
+
+    fn map_event_target(
+        span: Span,
+        target: &Option<&Ident>,
+        field_names: &Option<Punctuated<Expr, Token![,]>>,
+    ) -> Vec<Option<EventField>> {
+        target.map_or_else(
+            || vec![None],
+            |ident| {
+                let mut ident = ident.clone();
+                ident.set_span(span);
+                field_names.as_ref().map_or_else(
+                    || {
+                        vec![Some(EventField(
+                            parse_quote_spanned!(ident.span()=>   evt_ui.#ident ),
+                        ))]
+                    },
+                    |f| {
+                        f.iter()
+                            .map(|field| {
+                                Some(EventField(
+                                    parse_quote_spanned!(field.span()=>  evt_ui.#ident.#field ),
+                                ))
+                            })
+                            .collect()
+                    },
+                )
+            },
+        )
     }
 
     fn map_event_enum(event_ident: &Ident) -> Expr {
@@ -254,45 +289,23 @@ struct EventCallback {
 
 impl EventCallback {
     fn parse(
-        span: Span,
         target: &Option<&Ident>,
-        field_names: Option<Punctuated<Expr, Token![,]>>,
-        callbacks: Punctuated<CallbackFunction, Token![,]>,
+        parsed_targets: Vec<Option<EventField>>,
+        callbacks: &Vec<CallbackFunction>,
         output: &mut Vec<Self>,
     ) -> Result<()> {
-        let parsed_targets = target.map_or_else(
-            || vec![None],
-            |ident| {
-                let mut ident = ident.clone();
-                ident.set_span(span);
-                field_names.map_or_else(
-                    || {
-                        vec![Some(EventField(
-                            parse_quote_spanned!(span=>   evt_ui.#ident ),
-                        ))]
-                    },
-                    |f| {
-                        f.into_iter()
-                            .map(|field| {
-                                Some(EventField(
-                                    parse_quote_spanned!(field.span()=>  evt_ui.#ident.#field ),
-                                ))
-                            })
-                            .collect()
-                    },
-                )
-            },
-        );
-
-        let callbacks: Vec<CallbackFunction> = callbacks.into_iter().sorted().collect();
-
         // collect handles and callbacks
         for parsed_target in parsed_targets.into_iter() {
             for func in callbacks.iter() {
                 let callback = EventCallback {
                     field: parsed_target.clone(),
                     path: func.path.clone(),
-                    args: Self::map_callback_args(func.path.span(), &parsed_target, &func.args)?,
+                    args: Self::map_callback_args(
+                        func.path.span(),
+                        target,
+                        &parsed_target,
+                        &func.args,
+                    )?,
                 };
                 output.push(callback);
             }
@@ -302,6 +315,7 @@ impl EventCallback {
 
     fn map_callback_args(
         span: Span,
+        bind_target: &Option<&Ident>,
         event_target: &Option<EventField>,
         args: &Option<Punctuated<Ident, Token![,]>>,
     ) -> Result<Punctuated<Expr, Token![,]>> {
@@ -316,6 +330,16 @@ impl EventCallback {
                             p.push(parse_quote_spanned!(span=> &evt_ui));
                         }
                         "CTRL" => {
+                            p.push(bind_target.map_or_else(
+                                || parse_quote_spanned!(span=> &evt_ui), // SELF
+                                |ident| {
+                                    let mut ident = ident.clone();
+                                    ident.set_span(span);
+                                    parse_quote_spanned!(span=>   &evt_ui.#ident )
+                                },
+                            ));
+                        }
+                        "TARGET" => {
                             let target: Expr = syn::LitStr::new(
                                 // this is the easiest way to replace a span
                                 &event_target
@@ -361,11 +385,12 @@ impl EventCallback {
 
 /// The callback definition in a `nwg_shortcuts` attribute
 /// An instance of  (TARGET_PATH,*)? KEY_COMBO: [CALLBACK_FUNCTIONS,*]
+/// or  (TARGET_PATH,*)? [KEY_COMBO,*]: [CALLBACK_FUNCTIONS,*]
 #[allow(unused)]
 struct ShortcutDefinition {
     field_names: Option<Punctuated<Expr, Token![,]>>,
-    callback_id: ShortcutKeystrokes,
-    callbacks: Punctuated<CallbackFunction, Token![,]>,
+    key_combo: Punctuated<ShortcutKeystrokes, Token![,]>,
+    callbacks: Vec<CallbackFunction>,
 }
 
 impl Parse for ShortcutDefinition {
@@ -376,15 +401,59 @@ impl Parse for ShortcutDefinition {
             Ok(e) => Some(Punctuated::<Expr, Token![,]>::parse_terminated(&e)?),
             Err(_) => None,
         };
-        let callback_id = input.parse()?;
+        let key_combo = match maybe_parse_bracketed(&mut input) {
+            Ok(e) => Punctuated::parse_terminated(&e)?,
+            Err(_) => Punctuated::parse_separated_nonempty(&input)?,
+        };
 
         let _sep: Token![:] = input.parse()?;
         let _bracket_token = bracketed!(content in input);
 
         Ok(Self {
             field_names,
+            key_combo,
+            callbacks: Punctuated::<CallbackFunction, Token![,]>::parse_terminated(&content)?
+                .into_iter()
+                .sorted()
+                .collect(),
+        })
+    }
+}
+
+/// The callback definition in a `nwg_events` attribute
+/// An instance of  (TARGET_PATH,*)? CALLBACK_EVENT_ID: [CALLBACK_FUNCTIONS,*]
+/// or  (TARGET_PATH,*)? [CALLBACK_EVENT_ID,*]: [CALLBACK_FUNCTIONS,*]
+#[allow(unused)]
+struct CallbackDefinition {
+    field_names: Option<Punctuated<Expr, Token![,]>>,
+    callback_id: Punctuated<Ident, Token![,]>,
+    callbacks: Vec<CallbackFunction>,
+}
+
+impl Parse for CallbackDefinition {
+    fn parse(mut input: ParseStream) -> Result<Self> {
+        let content;
+
+        // Try to parse the optional `(TARGET_PATH)` syntax
+        let field_names = match maybe_parse_parens(&mut input) {
+            Ok(e) => Some(Punctuated::<Expr, Token![,]>::parse_terminated(&e)?),
+            Err(_) => None,
+        };
+        let callback_id = match maybe_parse_bracketed(&mut input) {
+            Ok(e) => Punctuated::parse_terminated(&e)?,
+            Err(_) => Punctuated::parse_separated_nonempty(&input)?,
+        };
+
+        let _sep: Token![:] = input.parse()?;
+        let _bracket_token = bracketed!(content in input);
+
+        Ok(CallbackDefinition {
+            field_names,
             callback_id,
-            callbacks: Punctuated::<CallbackFunction, Token![,]>::parse_terminated(&content)?,
+            callbacks: Punctuated::<CallbackFunction, Token![,]>::parse_terminated(&content)?
+                .into_iter()
+                .sorted()
+                .collect(),
         })
     }
 }
@@ -496,6 +565,7 @@ impl ToTokens for ShortcutKeystrokes {
 }
 
 /// A callback function definition
+#[derive(Clone)]
 struct CallbackFunction {
     path: Path,
     args: Option<Punctuated<Ident, Token![,]>>,
@@ -549,37 +619,6 @@ impl Parse for CallbackFunction {
         };
 
         Ok(CallbackFunction { path, args })
-    }
-}
-
-/// The callback definition in a `nwg_events` attribute
-/// An instance of  (TARGET_PATH,*)? CALLBACK_EVENT_ID: [CALLBACK_FUNCTIONS,*]
-#[allow(unused)]
-struct CallbackDefinition {
-    field_names: Option<Punctuated<Expr, Token![,]>>,
-    callback_id: Ident,
-    callbacks: Punctuated<CallbackFunction, Token![,]>,
-}
-
-impl Parse for CallbackDefinition {
-    fn parse(mut input: ParseStream) -> Result<Self> {
-        let content;
-
-        // Try to parse the optional `(TARGET_PATH)` syntax
-        let field_names = match maybe_parse_parens(&mut input) {
-            Ok(e) => Some(Punctuated::<Expr, Token![,]>::parse_terminated(&e)?),
-            Err(_) => None,
-        };
-        let callback_id = input.parse()?;
-
-        let _sep: Token![:] = input.parse()?;
-        let _bracket_token = bracketed!(content in input);
-
-        Ok(CallbackDefinition {
-            field_names,
-            callback_id,
-            callbacks: Punctuated::<CallbackFunction, Token![,]>::parse_terminated(&content)?,
-        })
     }
 }
 
