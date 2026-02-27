@@ -1,4 +1,7 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, HashMap},
+};
 
 use itertools::Itertools;
 use pm2::TokenStream;
@@ -27,9 +30,9 @@ fn maybe_parse_bracketed<'a>(input: &ParseBuffer<'a>) -> Result<ParseBuffer<'a>>
 pub struct ControlEvents {
     partial: bool,
     handles: Vec<Ident>,
-    callbacks: HashMap<Ident, Vec<EventCallback>>,
+    callbacks: HashMap<Ident, EventCallback>,
     partial_members: Vec<Ident>,
-    shortcuts: HashMap<ShortcutKeystrokes, Vec<EventCallback>>,
+    shortcuts: HashMap<ShortcutKeystrokes, EventCallback>,
 }
 
 impl ControlEvents {
@@ -92,7 +95,7 @@ impl ControlEvents {
     }
 
     pub fn parse_global(&mut self, attr: &Attribute) -> Result<()> {
-        self._parse_shortcut_impl(&None, attr)
+        self.parse_shortcut_impl(&None, attr)
     }
     pub fn parse_shortcuts(&mut self, field: &syn::Field) -> Result<()> {
         let attr = match field.attrs.iter().find(Self::find_shortcuts_attr) {
@@ -104,22 +107,24 @@ impl ControlEvents {
             "Cannot find member name when generating control",
         ))?;
 
-        self._parse_shortcut_impl(&Some(&ident), attr)
+        self.parse_shortcut_impl(&Some(&ident), attr)
     }
 
-    fn _parse_shortcut_impl(&mut self, target: &Option<&Ident>, attr: &Attribute) -> Result<()> {
+    fn parse_shortcut_impl(&mut self, target: &Option<&Ident>, attr: &Attribute) -> Result<()> {
         let shortcut_definitions =
             attr.parse_args_with(Punctuated::<ShortcutDefinition, Token![,]>::parse_terminated)?;
 
         for shortcut_def in shortcut_definitions.into_iter() {
             for mapped_event in shortcut_def.key_combo.into_iter() {
                 let span = mapped_event.span();
-                let shortcut_callbacks = self.shortcuts.entry(mapped_event).or_insert(Vec::new());
-                EventCallback::parse(
+                let shortcut_callbacks = self
+                    .shortcuts
+                    .entry(mapped_event)
+                    .or_insert(EventCallback::new());
+                shortcut_callbacks.parse(
                     target,
                     Self::map_event_target(span, target, &shortcut_def.field_names),
                     &shortcut_def.callbacks,
-                    shortcut_callbacks,
                 )?
             }
         }
@@ -143,12 +148,14 @@ impl ControlEvents {
             for mapped_event in callback_def.callback_id.into_iter() {
                 let span = mapped_event.span();
 
-                let evt_callbacks = self.callbacks.entry(mapped_event).or_insert(Vec::new());
-                EventCallback::parse(
+                let evt_callbacks = self
+                    .callbacks
+                    .entry(mapped_event)
+                    .or_insert(EventCallback::new());
+                evt_callbacks.parse(
                     target,
                     Self::map_event_target(span, target, &callback_def.field_names),
                     &callback_def.callbacks,
-                    evt_callbacks,
                 )?;
             }
         }
@@ -203,111 +210,32 @@ impl ControlEvents {
     }
 }
 
-impl ToTokens for ControlEvents {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let handles = &self.handles;
-        let mut events: Vec<Expr> = Vec::with_capacity(self.callbacks.len());
-        let partial_members = &self.partial_members;
-        let mut callbacks = Vec::with_capacity(self.callbacks.len());
-        for (event, cb) in self.callbacks.iter().sorted_by_key(|x| x.0) {
-            events.push(Self::map_event_enum(event));
-            callbacks.push(EventCallbackCol(cb));
-        }
-
-        let events_callbacks = quote! {
-            #(  evt_ui.#partial_members.process_event(_evt, &_evt_data, _handle); )*
-            match _evt {
-                #( #events => #callbacks ),*
-                _ => {}
-            }
-        };
-
-        let events_tk = if self.partial {
-            // There's no need to bind events handler in a partials
-            quote! {
-                let evt_ui = self;
-
-                #events_callbacks
-            }
-        } else {
-            quote! {
-                let window_handles: &[&ControlHandle] = &[#(&ui.#handles.handle),*];
-                for handle in window_handles.iter() {
-                    let evt_ui = Rc::downgrade(&inner);
-                    let handle_events = move |_evt, _evt_data, _handle| {
-
-                        if let Some(evt_ui) = evt_ui.upgrade() {
-                            #events_callbacks
-                        }
-                    };
-
-                    ui.default_handlers.borrow_mut().push(full_bind_event_handler(handle, handle_events));
-                }
-            }
-        };
-
-        events_tk.to_tokens(tokens);
-    }
-}
-
-pub struct ControlEventShortcuts<'a>(pub &'a ControlEvents);
-
-impl<'a> ToTokens for ControlEventShortcuts<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let partial_members = &self.0.partial_members;
-
-        let mut shortcuts: Vec<&ShortcutKeystrokes> = Vec::with_capacity(self.0.shortcuts.len());
-        let mut shortcut_callbacks = Vec::with_capacity(self.0.shortcuts.len());
-        for (shortcut, cb) in self.0.shortcuts.iter().sorted_by_key(|x| x.0) {
-            shortcuts.push(shortcut);
-            shortcut_callbacks.push(ShortcutCallbackCol(cb));
-        }
-
-        quote! {
-            fn preprocess_event(&self, _evt: &KeyCombo, _handle: ControlHandle) -> bool {
-                let evt_ui = self;
-                #(  evt_ui.#partial_members.preprocess_event(_evt, _handle) ||)*
-                match _evt {
-                    #( #shortcuts => #shortcut_callbacks ),*
-                    _ => false,
-                }
-            }
-        }
-        .to_tokens(tokens);
-    }
-}
-
 /// Parsed callbacks for an event type
-struct EventCallback {
-    // the field listening
-    field: Option<EventField>,
-
-    // the callback function:
-    path: Path,
-    args: Punctuated<Expr, Token![,]>,
-}
+struct EventCallback(HashMap<Option<EventField>, BTreeSet<FunctionCall>>);
 
 impl EventCallback {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
     fn parse(
+        &mut self,
         target: &Option<&Ident>,
         parsed_targets: Vec<Option<EventField>>,
         callbacks: &Vec<CallbackFunction>,
-        output: &mut Vec<Self>,
     ) -> Result<()> {
         // collect handles and callbacks
         for parsed_target in parsed_targets.into_iter() {
             for func in callbacks.iter() {
-                let callback = EventCallback {
-                    field: parsed_target.clone(),
-                    path: func.path.clone(),
-                    args: Self::map_callback_args(
-                        func.path.span(),
-                        target,
-                        &parsed_target,
-                        &func.args,
-                    )?,
-                };
-                output.push(callback);
+                let callbacks = self
+                    .0
+                    .entry(parsed_target.clone())
+                    .or_insert(BTreeSet::new());
+                let callback = FunctionCall(
+                    func.path.clone(),
+                    Self::map_callback_args(func.path.span(), target, &parsed_target, &func.args)?,
+                );
+                callbacks.insert(callback);
             }
         }
         Ok(())
@@ -465,36 +393,6 @@ struct ShortcutKeystrokes {
     key: Path,
 }
 
-impl ShortcutKeystrokes {
-    fn span(&self) -> Span {
-        self.modifiers.span()
-    }
-}
-
-impl Ord for ShortcutKeystrokes {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.key
-            .segments
-            .last()
-            .unwrap()
-            .ident
-            .cmp(&other.key.segments.last().unwrap().ident)
-            .then(
-                self.modifiers
-                    .segments
-                    .last()
-                    .unwrap()
-                    .ident
-                    .cmp(&other.modifiers.segments.last().unwrap().ident),
-            )
-    }
-}
-impl PartialOrd for ShortcutKeystrokes {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl Parse for ShortcutKeystrokes {
     fn parse(input: ParseStream) -> Result<Self> {
         let modifier_list = ["CTRL", "ALT", "SHIFT"];
@@ -563,12 +461,55 @@ impl ToTokens for ShortcutKeystrokes {
         tk.to_tokens(tokens);
     }
 }
+impl ShortcutKeystrokes {
+    fn span(&self) -> Span {
+        self.modifiers.span()
+    }
+}
+
+impl Ord for ShortcutKeystrokes {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.key
+            .segments
+            .last()
+            .unwrap()
+            .ident
+            .cmp(&other.key.segments.last().unwrap().ident)
+            .then(
+                self.modifiers
+                    .segments
+                    .last()
+                    .unwrap()
+                    .ident
+                    .cmp(&other.modifiers.segments.last().unwrap().ident),
+            )
+    }
+}
+impl PartialOrd for ShortcutKeystrokes {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 /// A callback function definition
 #[derive(Clone)]
 struct CallbackFunction {
     path: Path,
     args: Option<Punctuated<Ident, Token![,]>>,
+}
+
+impl Parse for CallbackFunction {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let path = input.parse()?;
+        let args = match maybe_parse_parens(input) {
+            Ok(parse_buffer) => Some(Punctuated::<Ident, Token![,]>::parse_terminated(
+                &parse_buffer,
+            )?),
+            Err(_) => None,
+        };
+
+        Ok(CallbackFunction { path, args })
+    }
 }
 
 impl Ord for CallbackFunction {
@@ -608,20 +549,6 @@ impl PartialEq for CallbackFunction {
 }
 impl Eq for CallbackFunction {}
 
-impl Parse for CallbackFunction {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let path = input.parse()?;
-        let args = match maybe_parse_parens(input) {
-            Ok(parse_buffer) => Some(Punctuated::<Ident, Token![,]>::parse_terminated(
-                &parse_buffer,
-            )?),
-            Err(_) => None,
-        };
-
-        Ok(CallbackFunction { path, args })
-    }
-}
-
 /// The name of the field receiving the callback
 #[derive(Clone, Hash, PartialEq, Eq)]
 struct EventField(Expr);
@@ -647,37 +574,101 @@ impl PartialOrd for EventField {
     }
 }
 
-/// Just a wrapper to implement ToTokens over Vec<&'a [EventCallback]>
-struct EventCallbackCol<'a>(&'a [EventCallback]);
+/// Build event handling
+impl ToTokens for ControlEvents {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let handles = &self.handles;
+        let mut events: Vec<Expr> = Vec::with_capacity(self.callbacks.len());
+        let partial_members = &self.partial_members;
+        let mut callbacks = Vec::with_capacity(self.callbacks.len());
+
+        for (event, cb) in self.callbacks.iter().sorted_by_key(|x| x.0) {
+            events.push(Self::map_event_enum(event));
+            callbacks.push(EventCallbackCol(cb));
+        }
+
+        let events_callbacks = quote! {
+            #(  evt_ui.#partial_members.process_event(_evt, &_evt_data, _handle); )*
+            match _evt {
+                #( #events => #callbacks ),*
+                _ => {}
+            }
+        };
+
+        let events_tk = if self.partial {
+            // There's no need to bind events handler in a partials
+            quote! {
+                let evt_ui = self;
+
+                #events_callbacks
+            }
+        } else {
+            quote! {
+                let window_handles: &[&ControlHandle] = &[#(&ui.#handles.handle),*];
+                for handle in window_handles.iter() {
+                    let evt_ui = Rc::downgrade(&inner);
+                    let handle_events = move |_evt, _evt_data, _handle| {
+
+                        if let Some(evt_ui) = evt_ui.upgrade() {
+                            #events_callbacks
+                        }
+                    };
+
+                    ui.default_handlers.borrow_mut().push(full_bind_event_handler(handle, handle_events));
+                }
+            }
+        };
+
+        events_tk.to_tokens(tokens);
+    }
+}
+
+/// Just a wrapper to implement ToTokens over &'a ControlEvents for shortcuts
+pub struct ControlEventShortcuts<'a>(pub &'a ControlEvents);
+
+/// Build preprocess_event function
+impl<'a> ToTokens for ControlEventShortcuts<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let partial_members = &self.0.partial_members;
+
+        let mut shortcuts: Vec<&ShortcutKeystrokes> = Vec::with_capacity(self.0.shortcuts.len());
+        let mut shortcut_callbacks = Vec::with_capacity(self.0.shortcuts.len());
+        for (shortcut, cb) in self.0.shortcuts.iter().sorted_by_key(|x| x.0) {
+            shortcuts.push(shortcut);
+            shortcut_callbacks.push(ShortcutCallbackCol(&cb));
+        }
+
+        quote! {
+            fn preprocess_event(&self, _evt: &KeyCombo, _handle: ControlHandle) -> bool {
+                let evt_ui = self;
+                #(  evt_ui.#partial_members.preprocess_event(_evt, _handle) ||)*
+                match _evt {
+                    #( #shortcuts => #shortcut_callbacks ),*
+                    _ => false,
+                }
+            }
+        }
+        .to_tokens(tokens);
+    }
+}
+
+/// Just a wrapper to implement ToTokens over &'a EventCallback for events
+struct EventCallbackCol<'a>(&'a EventCallback);
 
 impl<'a> ToTokens for EventCallbackCol<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let cb = &self.0;
+        let cb = self.0;
         let span = Span::call_site();
-
-        // Group callbacks by field
-        let mut field_callbacks: HashMap<&EventField, Vec<FunctionCall>> = HashMap::new();
-
-        for c in cb.iter() {
-            match &c.field {
-                Some(member) => {
-                    let mc = field_callbacks.entry(&member).or_insert(Vec::new());
-                    mc.push(FunctionCall(&c.path, &c.args));
-                }
-                None => {}
-            }
-        }
-        for funcalls in field_callbacks.values_mut() {
-            funcalls.sort();
-        }
 
         // Group fields by callbacks
         let mut fn_callbacks: HashMap<FunctionCalls, Vec<&EventField>> = HashMap::new();
-        for (field, funcalls) in field_callbacks.iter() {
-            let cb_vec = fn_callbacks
-                .entry(FunctionCalls(funcalls))
-                .or_insert(Vec::new());
-            cb_vec.push(&field);
+        for (field, funcalls) in cb.0.iter() {
+            if field.is_some() {
+                let cb_vec = fn_callbacks
+                    .entry(FunctionCalls(funcalls))
+                    .or_insert(Vec::new());
+                cb_vec.push(&field.as_ref().unwrap());
+            }
         }
 
         let callbacks: Vec<_> = fn_callbacks
@@ -697,40 +688,26 @@ impl<'a> ToTokens for EventCallbackCol<'a> {
     }
 }
 
-/// Just a wrapper to implement ToTokens over Vec<&'a [ShortcutCallback]>
-struct ShortcutCallbackCol<'a>(&'a [EventCallback]);
+/// Just a wrapper to implement ToTokens over &'a EventCallback for shortcuts
+struct ShortcutCallbackCol<'a>(&'a EventCallback);
 
 impl<'a> ToTokens for ShortcutCallbackCol<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let cb = &self.0;
         let span = Span::call_site();
-
-        // Group callbacks by field
-        let mut field_callbacks: HashMap<&EventField, Vec<FunctionCall>> = HashMap::new();
-        let mut global_callbacks: Vec<FunctionCall> = Vec::new();
-
-        for c in cb.into_iter() {
-            match &c.field {
-                Some(member) => {
-                    let cb_vec = field_callbacks.entry(&member).or_insert(Vec::new());
-                    cb_vec.push(FunctionCall(&c.path, &c.args));
-                }
-                None => {
-                    global_callbacks.push(FunctionCall(&c.path, &c.args));
-                }
-            }
-        }
-        for funcalls in field_callbacks.values_mut() {
-            funcalls.sort();
-        }
+        let empty_set = BTreeSet::new();
 
         // Group fields by callbacks
         let mut fn_callbacks: HashMap<FunctionCalls, Vec<&EventField>> = HashMap::new();
-        for (field, funcalls) in field_callbacks.iter() {
-            let cb_vec = fn_callbacks
-                .entry(FunctionCalls(funcalls))
-                .or_insert(Vec::new());
-            cb_vec.push(&field);
+        let global_funccalls = FunctionCalls(cb.0.get(&None).unwrap_or(&empty_set));
+
+        for (field, funcalls) in cb.0.iter() {
+            if field.is_some() {
+                let cb_vec = fn_callbacks
+                    .entry(FunctionCalls(funcalls))
+                    .or_insert(Vec::new());
+                cb_vec.push(&field.as_ref().unwrap());
+            }
         }
 
         let callbacks: Vec<_> = fn_callbacks
@@ -742,11 +719,10 @@ impl<'a> ToTokens for ShortcutCallbackCol<'a> {
                 if #(&_handle == &#fields) ||* { #funcalls true })
             })
             .collect();
-        let global_funccalls = FunctionCalls(&global_callbacks);
         match callbacks.len() {
             0 => quote! { {#global_funccalls true} },
             _ => {
-                let global_cb = match global_callbacks.len() {
+                let global_cb = match global_funccalls.0.len() {
                     0 => quote! {false},
                     _ => quote! {#global_funccalls true},
                 };
@@ -761,13 +737,13 @@ impl<'a> ToTokens for ShortcutCallbackCol<'a> {
     }
 }
 
-// function args
+/// function args
 type Args = Punctuated<Expr, Token![,]>;
 
-// A single function call
+/// A single function call
 #[derive(Clone, Hash)]
-struct FunctionCall<'a>(&'a Path, &'a Args);
-impl<'a> Ord for FunctionCall<'a> {
+struct FunctionCall(Path, Args);
+impl Ord for FunctionCall {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0
             .segments
@@ -792,29 +768,29 @@ impl<'a> Ord for FunctionCall<'a> {
             )
     }
 }
-impl<'a> PartialOrd for FunctionCall<'a> {
+impl PartialOrd for FunctionCall {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-impl<'a> PartialEq for FunctionCall<'a> {
+impl PartialEq for FunctionCall {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
-impl<'a> Eq for FunctionCall<'a> {}
+impl Eq for FunctionCall {}
 
-impl<'a> ToTokens for FunctionCall<'a> {
+impl ToTokens for FunctionCall {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let path = self.0;
-        let args = self.1;
+        let path = &self.0;
+        let args = &self.1;
         quote_spanned!(args.span()=> #path(#args)).to_tokens(tokens);
     }
 }
 
-// A set of function calls
+/// A set of function calls
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-struct FunctionCalls<'a>(&'a [FunctionCall<'a>]);
+struct FunctionCalls<'a>(&'a BTreeSet<FunctionCall>);
 
 impl<'a> ToTokens for FunctionCalls<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
