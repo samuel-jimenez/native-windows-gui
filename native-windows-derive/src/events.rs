@@ -172,7 +172,20 @@ impl ControlEvents {
         field_names: &Option<Punctuated<Expr, Token![,]>>,
     ) -> Vec<Option<EventField>> {
         target.map_or_else(
-            || vec![None],
+            || {
+                field_names.as_ref().map_or_else(
+                    || vec![None],
+                    |f| {
+                        f.iter()
+                            .map(|field| {
+                                Some(EventField(
+                                    parse_quote_spanned!(field.span()=>   evt_ui.#field ),
+                                ))
+                            })
+                            .collect()
+                    },
+                )
+            },
             |ident| {
                 let mut ident = ident.clone();
                 ident.set_span(span);
