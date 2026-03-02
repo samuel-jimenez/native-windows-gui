@@ -120,13 +120,13 @@ subclass_layout!(TestLayout, FlexboxLayout, layout);
 macro_rules! subclass_layout {
   ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
     $base_type:ident,
-    $field:ident) => {
+    $field:ident $(.$subfield:tt)*) => {
 
         impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?
             From<&$ty$(< $( $lt ),+ >)?>
         for $crate::$base_type {
            fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
-                control.$field.clone()
+                control.$field$(.$subfield)*.clone()
             }
         }
     };

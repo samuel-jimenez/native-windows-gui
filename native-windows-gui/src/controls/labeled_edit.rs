@@ -51,8 +51,9 @@ fn build_box(tbox: &mut nwg::LabeledEdit, window: &nwg::Window, font: &nwg::Font
 }
 ```
 */
-
 #[derive(Default)]
+// #[derive(Default, Clone)]
+
 pub struct LabeledEdit {
     pub layout: FlexboxLayout,
 

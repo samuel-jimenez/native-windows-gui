@@ -29,16 +29,22 @@ nwg::subclass_control!(CustomButton, Button, base);
 
 impl CustomButton {
     fn builder<'a>() -> CustomButtonBuilder<'a> {
-        CustomButtonBuilder {
-            button_builder: nwg::Button::builder().text("Custom button with builder"),
-            data: 0,
-        }
+        CustomButtonBuilder::default()
     }
 }
 
 pub struct CustomButtonBuilder<'a> {
     button_builder: nwg::ButtonBuilder<'a>,
     data: usize,
+}
+
+impl<'a> Default for CustomButtonBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            button_builder: nwg::Button::builder().text("Custom button with builder"),
+            data: 0,
+        }
+    }
 }
 
 impl<'a> CustomButtonBuilder<'a> {
@@ -52,9 +58,9 @@ impl<'a> CustomButtonBuilder<'a> {
         self
     }
 
-    pub fn build(self, btn: &mut CustomButton) -> Result<(), nwg::NwgError> {
-        self.button_builder.build(&mut btn.base)?;
-        btn.data = self.data;
+    pub fn build(self, control: &mut CustomButton) -> Result<(), nwg::NwgError> {
+        self.button_builder.build(&mut control.base)?;
+        control.data = self.data;
         Ok(())
     }
 }
