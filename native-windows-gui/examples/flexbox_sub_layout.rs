@@ -125,7 +125,7 @@ mod flexbox_app_ui {
                     width: auto(),
                     height: auto(),
                 })
-                .child_layout(&ui.layout2)
+                .child(&ui.layout2)
                 .child_size(Size {
                     width: length(300.0),
                     height: auto(),

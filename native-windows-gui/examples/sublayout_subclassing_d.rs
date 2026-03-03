@@ -11,7 +11,7 @@ use derive_setters::Setters;
 use nwd::NwgUi;
 use nwg::{
     ControlHandle, FlexboxLayout, Font, HTextAlign, Label, NativeUi, NwgError, TextInput,
-    VTextAlign, subclass_control, subclass_layout,
+    VTextAlign, subclass_control_layout,
     taffy::{Dimension, Size, style::FlexDirection, style_helpers::auto},
 };
 
@@ -25,12 +25,8 @@ pub struct NumberUnitsEdit {
 }
 
 // Implements default trait so that the control can be used by native windows derive
-// The parameters are: subclass_control!(user type, base type, base field name)
-subclass_control!(NumberUnitsEdit, TextInput, field);
-
-// Implements default trait so that the layout can be used by native windows derive
-// The parameters are: subclass_layout!(user type, base type, base field name)
-subclass_layout!(NumberUnitsEdit, FlexboxLayout, layout);
+// The parameters are: subclass_control!(user type, base type, base field name, base layout type, base layout field name)
+subclass_control_layout!(NumberUnitsEdit, TextInput, field, FlexboxLayout, layout);
 
 //
 // Implement a builder API compatible with native window derive
@@ -188,8 +184,7 @@ pub struct SubclassApp {
     #[nwg_layout_item(layout: layout)]
     button1: nwg::Button,
 
-    // `nested: true` expands this item as a sub-layout.
-    #[nwg_control(nested: true, text: "5", label:"Subclassed:", units:"g/mL")]
+    #[nwg_control(text: "5", label:"Subclassed:", units:"g/mL")]
     #[nwg_layout_item(layout: layout)]
     button3: NumberUnitsEdit,
 }

@@ -148,13 +148,7 @@ impl LayoutChild {
         }
     }
 
-    fn to_tokens(&self, id: &Ident, nested: bool, layout_item: bool) -> pm2::TokenStream {
-        let param_name = if nested || layout_item {
-            quote! {child_layout}
-        } else {
-            quote! {child}
-        };
-
+    fn to_tokens(&self, id: &Ident, nested: bool) -> pm2::TokenStream {
         match self {
                     LayoutChild::Grid(GridLayoutChild {
                         col,
@@ -178,7 +172,7 @@ impl LayoutChild {
                         param_names,
                         param_values,
                     }) => quote! {
-                        #param_name(&ui.#id)
+                        child(&ui.#id)
                         #(.#param_names(#param_values))*
                     },
                     LayoutChild::Init { field_name, .. } => Error::new_spanned(
@@ -209,13 +203,13 @@ impl<'b> ControlLayout<'b> {
 
 impl<'b> ToTokens for ControlLayout<'b> {
     fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
-        let (id, layout, nested, layout_item) = match self {
-            ControlLayout::Control(c) => (c.id, &c.layout, c.nested, false),
-            ControlLayout::Layout(c) => (c.id, &c.layout, false, true),
-            ControlLayout::Partial(c) => (c.id, &c.layout, false, c.as_layout_p),
+        let (id, layout, nested) = match self {
+            ControlLayout::Control(c) => (c.id, &c.layout, c.nested),
+            ControlLayout::Layout(c) => (c.id, &c.layout, false),
+            ControlLayout::Partial(c) => (c.id, &c.layout, false),
         };
 
-        let item_tk = layout.as_ref().unwrap().to_tokens(id, nested, layout_item);
+        let item_tk = layout.as_ref().unwrap().to_tokens(id, nested);
 
         item_tk.to_tokens(tokens);
     }

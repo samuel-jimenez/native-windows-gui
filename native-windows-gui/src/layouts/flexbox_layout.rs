@@ -44,6 +44,26 @@ impl FlexboxLayoutChild {
     }
 }
 
+impl From<ControlHandle> for FlexboxLayoutChild {
+    fn from(child: ControlHandle) -> Self {
+        Self::Item(FlexboxLayoutItem {
+            control: child.hwnd().unwrap(),
+            style: Style::default(),
+        })
+    }
+}
+
+impl From<&FlexboxLayout> for FlexboxLayoutChild {
+    fn from(child: &FlexboxLayout) -> Self {
+        Self::Flexbox(child.into())
+    }
+}
+
+impl From<FlexboxLayout> for FlexboxLayoutChild {
+    fn from(child: FlexboxLayout) -> Self {
+        Self::Flexbox(child.into())
+    }
+}
 /// This is the inner data shared between the callback and the application
 struct FlexboxLayoutInner {
     base: HWND,
@@ -465,28 +485,9 @@ impl FlexboxLayoutBuilder {
     }
 
     /// Add a new child to the layout build.
-    /// Panics if `child` is not a window-like control.
-    pub fn child<W: Into<ControlHandle>>(mut self, child: W) -> FlexboxLayoutBuilder {
+    pub fn child<W: Into<FlexboxLayoutChild>>(mut self, child: W) -> FlexboxLayoutBuilder {
         self.current_index = Some(self.layout.children.len());
-
-        let item = FlexboxLayoutItem {
-            control: child.into().hwnd().unwrap(),
-            style: Style::default(),
-        };
-
-        self.layout.children.push(FlexboxLayoutChild::Item(item));
-
-        self
-    }
-
-    /// Add a new child layout to the layout build.
-    pub fn child_layout<W: Into<FlexboxLayout>>(mut self, child: W) -> FlexboxLayoutBuilder {
-        self.current_index = Some(self.layout.children.len());
-
-        self.layout
-            .children
-            .push(FlexboxLayoutChild::Flexbox(child.into()));
-
+        self.layout.children.push(child.into());
         self
     }
 
@@ -578,7 +579,6 @@ impl FlexboxLayoutBuilder {
 
     /// Set the position of the current child.
     /// Panics if `child` was not called before.
-    // ??TODo
     pub fn child_position(mut self, position: Rect<LengthPercentageAuto>) -> FlexboxLayoutBuilder {
         self.modify_current_child_style(|s| s.inset = position);
         self

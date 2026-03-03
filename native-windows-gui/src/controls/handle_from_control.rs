@@ -15,12 +15,6 @@ macro_rules! handles {
             }
         }
 
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&mut $control$(< $( $lt ),+ >)?> for ControlHandle {
-            fn from(control: &mut $control$(< $( $lt ),+ >)?) -> Self {
-                control.handle
-            }
-        }
-
         impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<ControlHandle> for $control$(< $( $lt ),+ >)? {
             fn eq(&self, other: &ControlHandle) -> bool {
                 self.handle == *other
@@ -32,6 +26,12 @@ macro_rules! handles {
                 *self == other.handle
             }
         }
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$control$(< $( $lt ),+ >)?> for crate::FlexboxLayoutChild {
+            fn from(control: &$control$(< $( $lt ),+ >)?) -> Self {
+                control.handle.into()
+            }
+        }
     };
 }
 
@@ -40,6 +40,39 @@ macro_rules! partial_eq {
         impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$control$(< $( $lt ),+ >)?> for $control$(< $( $lt ),+ >)? {
             fn eq(&self, other: &Self) -> bool {
                 self.handle == other.handle
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! subclass_control_base {
+  ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
+    $base_type:ident $(< $( $blt:tt ),+ >)?,
+    $field:ident) => {
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::Deref for $ty$(< $( $lt ),+ >)? {
+            type Target = $crate::$base_type$(< $( $blt ),+ >)?;
+            fn deref(&self) -> &$crate::$base_type$(< $( $blt ),+ >)? {
+                &self.$field
+            }
+        }
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::DerefMut for $ty$(< $( $lt ),+ >)? {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.$field
+            }
+        }
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$ty$(< $( $lt ),+ >)?> for $crate::ControlHandle {
+            fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
+                control.$field.handle.clone()
+            }
+        }
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$ty$(< $( $lt ),+ >)?> for $crate::ControlHandle {
+            fn eq(&self, other: &$ty$(< $( $lt ),+ >)?) -> bool {
+                *self == other.$field.handle
             }
         }
     };
@@ -65,37 +98,14 @@ macro_rules! subclass_control {
   ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
     $base_type:ident $(< $( $blt:tt ),+ >)?,
     $field:ident) => {
+        $crate::subclass_control_base!($ty$(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?, $base_type$(< $( $blt ),+ >)?, $field);
 
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::Deref for $ty$(< $( $lt ),+ >)? {
-            type Target = $crate::$base_type$(< $( $blt ),+ >)?;
-            fn deref(&self) -> &$crate::$base_type$(< $( $blt ),+ >)? {
-                &self.$field
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$ty$(< $( $lt ),+ >)?> for $crate::FlexboxLayoutChild {
+            fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
+                $crate::ControlHandle::from(control).into()
             }
         }
 
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? ::std::ops::DerefMut for $ty$(< $( $lt ),+ >)? {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.$field
-            }
-        }
-
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? Into<$crate::ControlHandle> for &$ty$(< $( $lt ),+ >)? {
-            fn into(self) -> $crate::ControlHandle {
-                self.$field.handle.clone()
-            }
-        }
-
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? Into<$crate::ControlHandle> for &mut $ty$(< $( $lt ),+ >)? {
-            fn into(self) -> $crate::ControlHandle {
-                self.$field.handle.clone()
-            }
-        }
-
-        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? PartialEq<$ty$(< $( $lt ),+ >)?> for $crate::ControlHandle {
-            fn eq(&self, other: &$ty$(< $( $lt ),+ >)?) -> bool {
-                *self == other.$field.handle
-            }
-        }
     };
 }
 
@@ -119,16 +129,50 @@ subclass_layout!(TestLayout, FlexboxLayout, layout);
 #[macro_export]
 macro_rules! subclass_layout {
   ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
-    $base_type:ident,
-    $field:ident $(.$subfield:tt)*) => {
-
+    $layout_type:ident,
+    $layout_field:ident $(.$subfield:tt)*) => {
         impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?
             From<&$ty$(< $( $lt ),+ >)?>
-        for $crate::$base_type {
+        for $crate::$layout_type {
            fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
-                control.$field$(.$subfield)*.clone()
+                control.$layout_field$(.$subfield)*.clone()
             }
         }
+
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$ty$(< $( $lt ),+ >)?> for $crate::FlexboxLayoutChild {
+            fn from(control: &$ty$(< $( $lt ),+ >)?) -> Self {
+                $crate::$layout_type::from(control).into()
+            }
+        }
+    };
+}
+
+/**
+Automatically implements the functionalities required to process an external struct as both a NWG sub-layout and a NWG control.
+
+```rust
+extern crate native_windows_gui as nwg;
+use nwg::subclass_control_layout;
+
+pub struct TestLayout {
+    layout: nwg::FlexboxLayout,
+    edit: nwg::TextInput,
+    custom_data: String,
+}
+
+subclass_control_layout!(TestLayout, TextInput, edit, FlexboxLayout, layout);
+```
+*/
+
+#[macro_export]
+macro_rules! subclass_control_layout {
+  ( $ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?,
+    $base_type:ident $(< $( $blt:tt ),+ >)?,
+    $field:ident,
+    $layout_type:ident,
+    $layout_field:ident $(.$subfield:tt)*) => {
+        $crate::subclass_control_base!($ty$(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?, $base_type$(< $( $blt ),+ >)?, $field);
+        $crate::subclass_layout!($ty$(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?, $layout_type, $layout_field$(.$subfield)*);
     };
 }
 
@@ -188,19 +232,13 @@ partial_eq!(ComboBox<D: Display + Default>);
 use super::LabeledCombo;
 
 #[cfg(all(feature = "combobox", feature = "labeled"))]
-subclass_control!(LabeledCombo<D: Display + Default>, ComboBox<D>, field);
-
-#[cfg(all(feature = "combobox", feature = "labeled"))]
-subclass_layout!(LabeledCombo<D: Display + Default>, FlexboxLayout, layout);
+subclass_control_layout!(LabeledCombo<D: Display + Default>, ComboBox<D>, field, FlexboxLayout, layout);
 
 #[cfg(feature = "labeled")]
 use super::LabeledEdit;
 
 #[cfg(feature = "labeled")]
-subclass_layout!(LabeledEdit, FlexboxLayout, layout);
-
-#[cfg(feature = "labeled")]
-subclass_control!(LabeledEdit, TextInput, field);
+subclass_control_layout!(LabeledEdit, TextInput, field, FlexboxLayout, layout);
 
 #[cfg(feature = "listbox")]
 use super::ListBox;

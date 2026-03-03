@@ -10,7 +10,7 @@ mod dyn_layout;
 pub use self::dyn_layout::{DynLayout, DynLayoutBuilder, DynLayoutInner, DynLayoutItem};
 #[cfg(feature = "flexbox")]
 pub use self::flexbox_layout::{
-    FlexboxLayout, FlexboxLayoutBuilder, FlexboxLayoutChildren, FlexboxLayoutChildrenMut,
-    FlexboxLayoutItem,
+    FlexboxLayout, FlexboxLayoutBuilder, FlexboxLayoutChild, FlexboxLayoutChildren,
+    FlexboxLayoutChildrenMut, FlexboxLayoutItem,
 };
 pub use self::grid_layout::{GridLayout, GridLayoutBuilder, GridLayoutInner, GridLayoutItem};
