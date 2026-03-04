@@ -49,9 +49,7 @@ impl<'a> NwgUi<'a> {
         let mut partials = Vec::with_capacity(named_fields.len());
         let mut events = ControlEvents::with_capacity(partial_p, named_fields.len());
 
-        for attr in attrs.into_iter() {
-            events.parse_global(attr)?;
-        }
+        events.parse_global(attrs)?;
 
         let mut root_id: Option<&Ident> = None;
         let mut root_type: Option<Ident> = None;

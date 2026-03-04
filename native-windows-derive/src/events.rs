@@ -81,11 +81,11 @@ impl ControlEvents {
         self.partial_members.push(id.clone())
     }
 
-    fn find_shortcuts_attr(attr: &&Attribute) -> bool {
+    pub fn find_shortcuts_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_shortcuts")
     }
 
-    fn find_events_attr(attr: &&Attribute) -> bool {
+    pub fn find_events_attr(attr: &&Attribute) -> bool {
         attr.path().is_ident("nwg_events")
     }
 
@@ -94,22 +94,29 @@ impl ControlEvents {
         self.parse_events(field)
     }
 
-    pub fn parse_global(&mut self, attr: &Attribute) -> Result<()> {
-        self.parse_shortcut_impl(&None, attr)
+    pub fn parse_global(&mut self, attrs: Vec<&Attribute>) -> Result<()> {
+        let mut iter = attrs.into_iter();
+        if let Some(attr) = iter.by_ref().find(Self::find_shortcuts_attr) {
+            self.parse_shortcut_impl(&None, attr)?
+        }
+        if let Some(attr) = iter.by_ref().find(Self::find_events_attr) {
+            self.parse_events_impl(&None, attr)?
+        }
+        Ok(())
     }
+
     pub fn parse_shortcuts(&mut self, field: &syn::Field) -> Result<()> {
         let attr = match field.attrs.iter().find(Self::find_shortcuts_attr) {
             Some(attr) => attr,
             None => return Ok(()),
         };
-        let ident = field.ident.as_ref().ok_or(Error::new_spanned(
+        let ident = &Some(field.ident.as_ref().ok_or(Error::new_spanned(
             field,
             "Cannot find member name when generating control",
-        ))?;
+        ))?);
 
-        self.parse_shortcut_impl(&Some(&ident), attr)
+        self.parse_shortcut_impl(ident, attr)
     }
-
     fn parse_shortcut_impl(&mut self, target: &Option<&Ident>, attr: &Attribute) -> Result<()> {
         let shortcut_definitions =
             attr.parse_args_with(Punctuated::<ShortcutDefinition, Token![,]>::parse_terminated)?;
@@ -136,18 +143,19 @@ impl ControlEvents {
             Some(attr) => attr,
             None => return Ok(()),
         };
-        let target = &Some(field.ident.as_ref().ok_or(Error::new_spanned(
+        let ident = &Some(field.ident.as_ref().ok_or(Error::new_spanned(
             field,
             "Cannot find member name when generating control",
         ))?);
-
+        self.parse_events_impl(ident, attr)
+    }
+    pub fn parse_events_impl(&mut self, target: &Option<&Ident>, attr: &Attribute) -> Result<()> {
         let callback_definitions =
             attr.parse_args_with(Punctuated::<CallbackDefinition, Token![,]>::parse_terminated)?;
 
         for callback_def in callback_definitions.into_iter() {
             for mapped_event in callback_def.callback_id.into_iter() {
                 let span = mapped_event.span();
-
                 let evt_callbacks = self
                     .callbacks
                     .entry(mapped_event)
@@ -312,7 +320,9 @@ impl EventCallback {
                                 format!(
                                     "Unknown callback argument: {}. Should be one of those values: {}",
                                     a,
-                                    stringify!(["SELF", "CTRL", "HANDLE", "EVT", "EVT_DATA"])
+                                    stringify!([
+                                        "SELF", "CTRL", "TARGET", "HANDLE", "EVT", "EVT_DATA"
+                                    ])
                                 ),
                             ));
                         }

@@ -21,6 +21,8 @@ mod shared;
 mod ui;
 use ui::NwgUi;
 
+use crate::events::ControlEvents;
+
 struct BaseNames {
     n_module: Ident,
     n_partial_module: Ident,
@@ -66,11 +68,11 @@ fn parse_ui_data(d: &DeriveInput) -> Option<&syn::DataStruct> {
     }
 }
 fn find_attr(attr: &&syn::Attribute) -> bool {
-    attr.path().is_ident("nwg_shortcuts")
+    ControlEvents::find_events_attr(attr) || ControlEvents::find_shortcuts_attr(attr)
 }
 
 fn fetch_attr(d: &DeriveInput) -> Vec<&syn::Attribute> {
-    d.attrs.iter().find(find_attr).into_iter().collect()
+    d.attrs.iter().filter(find_attr).collect()
 }
 
 /**
