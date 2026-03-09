@@ -1,10 +1,26 @@
-use std::cell::RefCell;
+use std::{
+    cell::{Cell, RefCell},
+    mem, ptr,
+    rc::Rc,
+};
 
+use derive_setters::Setters;
 use winapi::{
-    shared::windef::HBRUSH,
+    shared::{
+        basetsd::UINT_PTR,
+        minwindef::LRESULT,
+        windef::{HBRUSH, HGDIOBJ, HWND, POINT, RECT},
+    },
     um::{
-        wingdi::DeleteObject,
-        winuser::{SS_WORDELLIPSIS, WS_DISABLED, WS_VISIBLE},
+        wingdi::{CreateSolidBrush, DeleteObject, RGB, SelectObject},
+        winuser::{
+            COLOR_BTNFACE, COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, FrameRect,
+            GetClientRect, GetDC, GetSysColorBrush, GetWindowRect, GetWindowTextLengthW,
+            GetWindowTextW, NCCALCSIZE_PARAMS, RDW_FRAME, RDW_INVALIDATE, RDW_NOCHILDREN,
+            RDW_UPDATENOW, RedrawWindow, ReleaseDC, SS_WORDELLIPSIS, SWP_FRAMECHANGED, SWP_NOMOVE,
+            SWP_NOOWNERZORDER, SWP_NOSIZE, ScreenToClient, SetWindowPos, WM_CTLCOLORSTATIC,
+            WM_NCCALCSIZE, WM_NCPAINT, WM_SIZE, WS_DISABLED, WS_VISIBLE,
+        },
     },
 };
 
@@ -78,24 +94,14 @@ fn build_label(label: &mut nwg::Label, window: &nwg::Window, font: &nwg::Font) {
 pub struct Label {
     pub handle: ControlHandle,
     background_brush: Option<HBRUSH>,
+    border_brush: Rc<Cell<Option<HBRUSH>>>,
     handler0: RefCell<Option<RawEventHandler>>,
     handler1: RefCell<Option<RawEventHandler>>,
 }
 
 impl Label {
     pub fn builder<'a>() -> LabelBuilder<'a> {
-        LabelBuilder {
-            text: "A label",
-            size: (130, 25),
-            position: (0, 0),
-            flags: None,
-            ex_flags: 0,
-            font: None,
-            parent: None,
-            h_align: HTextAlign::Left,
-            v_align: VTextAlign::Center,
-            background_color: None,
-        }
+        LabelBuilder::default()
     }
 
     /// Return the font of the control
@@ -195,6 +201,27 @@ impl Label {
         unsafe { wh::set_window_text(handle, v) }
     }
 
+    pub fn set_border_color(&self, color: Option<[u8; 3]>) {
+        if let Some(brush) = self.border_brush.get() {
+            unsafe {
+                DeleteObject(brush as _);
+            }
+        }
+
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        self.border_brush
+            .set(color.map(|c| unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) }));
+        // invalidate frame
+        unsafe {
+            RedrawWindow(
+                handle,
+                ptr::null(),
+                ptr::null_mut(),
+                RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW | RDW_NOCHILDREN,
+            )
+        };
+    }
+
     /// Winapi class name used during control creation
     pub fn class_name(&self) -> &'static str {
         "STATIC"
@@ -207,7 +234,7 @@ impl Label {
         WS_VISIBLE | SS_NOPREFIX | SS_LEFT
     }
 
-    /// Winapi flags required by the control
+    /// Winapi flags required by the controlF
     pub fn forced_flags(&self) -> u32 {
         use winapi::um::winuser::{SS_NOTIFY, WS_CHILD};
 
@@ -215,27 +242,12 @@ impl Label {
     }
 
     /// Center the text vertically.
-    fn hook_non_client_size(&mut self, bg: Option<[u8; 3]>, v_align: VTextAlign) {
-        use std::{mem, ptr};
-
-        use winapi::{
-            shared::{
-                basetsd::UINT_PTR,
-                minwindef::LRESULT,
-                windef::{HGDIOBJ, HWND, POINT, RECT},
-            },
-            um::{
-                wingdi::{CreateSolidBrush, RGB, SelectObject},
-                winuser::{
-                    COLOR_WINDOW, DT_CALCRECT, DT_LEFT, DrawTextW, FillRect, GetClientRect, GetDC,
-                    GetWindowRect, GetWindowTextLengthW, GetWindowTextW, NCCALCSIZE_PARAMS,
-                    ReleaseDC, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
-                    ScreenToClient, SetWindowPos, WM_CTLCOLORSTATIC, WM_NCCALCSIZE, WM_NCPAINT,
-                    WM_SIZE,
-                },
-            },
-        };
-
+    fn hook_non_client_size(
+        &mut self,
+        bg: Option<[u8; 3]>,
+        border: Option<[u8; 3]>,
+        v_align: VTextAlign,
+    ) {
         use crate::bind_raw_event_handler_inner;
 
         if self.handle.blank() {
@@ -248,11 +260,22 @@ impl Label {
         let brush = match bg {
             Some(c) => {
                 let b = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
+
+                println!("label  set_background_color set proc {b:?}");
                 self.background_brush = Some(b);
                 b
             }
             None => COLOR_WINDOW as HBRUSH,
         };
+
+        if let Some(c) = border {
+            let b = unsafe { CreateSolidBrush(RGB(c[0], c[1], c[2])) };
+
+            println!("label  set border_brush set proc {b:?}");
+            self.border_brush.set(Some(b));
+        }
+
+        let callback_border_brush = self.border_brush.clone();
 
         unsafe {
             if bg.is_some() {
@@ -264,6 +287,7 @@ impl Label {
                             WM_CTLCOLORSTATIC => {
                                 let child = l as HWND;
                                 if child == handle {
+                                    println!("label  set_background_color proc0 {brush:?}");
                                     return Some(brush as LRESULT);
                                 }
                             }
@@ -336,6 +360,8 @@ impl Label {
                         let window_height = window.bottom - window.top;
                         let info_ptr: *mut NCCALCSIZE_PARAMS = l as *mut NCCALCSIZE_PARAMS;
                         let info = &mut *info_ptr;
+                        info.rgrc[0].left += 1;
+                        info.rgrc[0].right -= 1;
                         match v_align {
                             VTextAlign::Top => {
                                 info.rgrc[0].bottom -= window_height - client_height;
@@ -382,12 +408,24 @@ impl Label {
                             bottom: pt2.y,
                         };
 
+                        let full = RECT {
+                            left: pt1.x,
+                            top: pt1.y,
+                            right: pt2.x,
+                            bottom: pt2.y,
+                        };
+                        let border_brush = callback_border_brush
+                            .get()
+                            .unwrap_or_else(|| GetSysColorBrush(COLOR_BTNFACE));
+
                         let dc = GetDC(hwnd);
                         FillRect(dc, &top, brush);
                         FillRect(dc, &bottom, brush);
+                        FrameRect(dc, &full, border_brush);
                         ReleaseDC(hwnd, dc);
                     }
                     WM_SIZE => {
+                        // invalidate frame
                         SetWindowPos(
                             hwnd,
                             ptr::null_mut(),
@@ -427,9 +465,15 @@ impl Drop for Label {
             drop(unbind_raw_event_handler(h));
         }
 
-        if let Some(bg) = self.background_brush {
+        if let Some(brush) = self.background_brush {
             unsafe {
-                DeleteObject(bg as _);
+                DeleteObject(brush as _);
+            }
+        }
+
+        if let Some(brush) = self.border_brush.get() {
+            unsafe {
+                DeleteObject(brush as _);
             }
         }
 
@@ -437,70 +481,41 @@ impl Drop for Label {
     }
 }
 
+#[derive(Setters)]
 pub struct LabelBuilder<'a> {
     text: &'a str,
     size: (i32, i32),
     position: (i32, i32),
     background_color: Option<[u8; 3]>,
+    border_color: Option<[u8; 3]>,
+    #[setter(strip_option)]
     flags: Option<LabelFlags>,
     ex_flags: u32,
     font: Option<&'a Font>,
     h_align: HTextAlign,
     v_align: VTextAlign,
+    #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
 }
 
+impl<'a> Default for LabelBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            text: "A label",
+            size: (130, 25),
+            position: (0, 0),
+            flags: None,
+            ex_flags: 0,
+            font: None,
+            parent: None,
+            h_align: HTextAlign::Left,
+            v_align: VTextAlign::Center,
+            background_color: None,
+            border_color: None,
+        }
+    }
+}
 impl<'a> LabelBuilder<'a> {
-    pub fn flags(mut self, flags: LabelFlags) -> LabelBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> LabelBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> LabelBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> LabelBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> LabelBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> LabelBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn background_color(mut self, color: Option<[u8; 3]>) -> LabelBuilder<'a> {
-        self.background_color = color;
-        self
-    }
-
-    pub fn h_align(mut self, align: HTextAlign) -> LabelBuilder<'a> {
-        self.h_align = align;
-        self
-    }
-
-    pub fn v_align(mut self, align: VTextAlign) -> LabelBuilder<'a> {
-        self.v_align = align;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> LabelBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut Label) -> Result<(), NwgError> {
         use winapi::um::winuser::{SS_CENTER, SS_LEFT, SS_RIGHT};
 
@@ -526,6 +541,7 @@ impl<'a> LabelBuilder<'a> {
         // Drop the old object
         *out = Label::default();
 
+        out.border_brush = Rc::new(Cell::default());
         out.handle = ControlBase::build_hwnd()
             .class_name(out.class_name())
             .forced_flags(out.forced_flags())
@@ -543,7 +559,7 @@ impl<'a> LabelBuilder<'a> {
             out.set_font(Font::global_default().as_ref());
         }
 
-        out.hook_non_client_size(self.background_color, self.v_align);
+        out.hook_non_client_size(self.background_color, self.border_color, self.v_align);
 
         Ok(())
     }

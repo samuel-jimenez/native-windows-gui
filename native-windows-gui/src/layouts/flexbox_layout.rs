@@ -75,7 +75,7 @@ struct FlexboxLayoutInner {
 
 /**
     A flexbox layout that organizes the children control in a parent control.
-    Flexbox uses the taffy library internally ( https://github.com/DioxusLabs/taffy ).
+    Flexbox uses the taffy library internally ( <https://github.com/DioxusLabs/taffy> ).
 
     FlexboxLayout requires the `flexbox` feature.
 */

@@ -233,6 +233,10 @@ impl LabeledEdit {
     pub fn set_placeholder_text<'a>(&self, v: Option<&'a str>) {
         self.field.set_placeholder_text(v)
     }
+
+    pub fn set_border_color(&self, color: Option<[u8; 3]>) {
+        self.label.set_border_color(color);
+    }
 }
 
 #[derive(Setters)]
@@ -317,6 +321,7 @@ impl<'a> LabeledEditBuilder<'a> {
             .h_align(self.label_h_align)
             .v_align(self.label_v_align)
             .font(self.font)
+            .background_color(self.background_color)
             .build(&mut out.label)?;
 
         TextInput::builder()
@@ -334,6 +339,7 @@ impl<'a> LabeledEditBuilder<'a> {
             .number(self.number)
             .autoscroll(self.autoscroll)
             .tab_stop(self.tab_stop)
+            .background_color(self.background_color)
             .build(&mut out.field)?;
 
         FlexboxLayout::builder()
