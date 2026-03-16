@@ -249,6 +249,10 @@ impl<D: Display + Default> LabeledCombo<D> {
     pub fn collection_mut(&self) -> RefMut<'_, Vec<D>> {
         self.field.collection_mut()
     }
+
+    pub fn set_border_color(&self, color: Option<[u8; 3]>) {
+        self.label.set_border_color(color);
+    }
 }
 #[derive(Setters)]
 pub struct LabeledComboBuilder<'a, D: Display + Default> {
@@ -273,6 +277,7 @@ pub struct LabeledComboBuilder<'a, D: Display + Default> {
     #[setter(strip_option)]
     collection: Option<Vec<D>>,
     selected_index: Option<usize>,
+    background_color: Option<[u8; 3]>,
     #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
 }
@@ -297,6 +302,7 @@ impl<'a, D: Display + Default> Default for LabeledComboBuilder<'a, D> {
             font: None,
             collection: None,
             selected_index: None,
+            background_color: None,
             parent: None,
         }
     }
@@ -333,6 +339,7 @@ impl<'a, D: Display + Default> LabeledComboBuilder<'a, D> {
             .h_align(self.label_h_align)
             .v_align(self.label_v_align)
             .font(self.font)
+            .background_color(self.background_color)
             .build(&mut out.label)?;
 
         let mut field = ComboBox::builder().parent(&parent);

@@ -262,9 +262,9 @@ pub struct LabeledEditBuilder<'a> {
     autoscroll: bool,
     tab_stop: bool,
     font: Option<&'a Font>,
+    background_color: Option<[u8; 3]>,
     #[setter(into, strip_option)]
     parent: Option<ControlHandle>,
-    background_color: Option<[u8; 3]>,
 }
 impl<'a> Default for LabeledEditBuilder<'a> {
     fn default() -> Self {
@@ -289,8 +289,8 @@ impl<'a> Default for LabeledEditBuilder<'a> {
             autoscroll: true,
             tab_stop: true,
             font: None,
-            parent: None,
             background_color: None,
+            parent: None,
         }
     }
 }
